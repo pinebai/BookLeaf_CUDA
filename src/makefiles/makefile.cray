@@ -1,0 +1,58 @@
+# Compiler
+FC = ftn
+CC = cc
+
+# General flags
+REALSIZE     = -s real64
+INTSIZE      = -s integer32
+FORM         = -f free
+BIG_ENDIAN   = -h byteswapio
+AUTO_ARRAYS  = 
+SHARED_INTEL = 
+IEEE         = -h fp0 -hflex_mp=intolerant
+# Debug flags
+ifeq ($(LEV),MEMDEBUG)
+  DBG     = -g -O0 -m2
+  CDBG    = -g -O0
+  CHECK   = -O nooverindex -eD
+  FLTTRAP = -K trap=divz,inv
+  IEEE   += 
+endif
+ifeq ($(LEV),DEBUG)
+  DBG     = -g -O0 -m2
+  CDBG    = -g -O0
+  CHECK   = -eD
+  FLTTRAP = -K trap=divz,inv
+  IEEE   +=
+endif
+ifeq ($(LEV),TV)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  IEEE   += -no-ftz
+endif
+ifeq ($(LEV),MEMTV)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  IEEE   += -no-ftz
+  CHECK   = -O nooverindex
+endif
+ifeq ($(LEV),OPTDEBUG)
+  DBG     = -g
+  CDBG    = -g -O0
+endif
+# Optimisation flags
+ifeq ($(LEV),OPTDEBUG)
+  OPT     = -O2
+  COPT    = -O2
+  IEEE   += 
+endif
+ifeq ($(LEV),RELEASE)
+  OPT     =
+  COPT    =
+  IEEE   += 
+endif
+
+FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
+	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+
+CFLAGS = -c $(CDBG) $(COPT)

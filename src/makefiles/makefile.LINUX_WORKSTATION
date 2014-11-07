@@ -1,0 +1,15 @@
+# Alias
+MAKE    = gmake
+
+# Silo library location
+ifeq ($(NO_SILO),)
+  SILODIR      = 
+  SILOINC      = -I$(SILODIR)/include
+  SILOLIB      = -L$(SILODIR)/lib -lsiloh5
+
+  HDF5DIR      = 
+  HDF5INC      = -I$(HDF5DIR)/include
+  HDF5LIB      = -L$(HDF5DIR)/lib -lhdf5_fortran -lhdf5
+  ZLIBDIR      = 
+  ZLIBLIB      = -L$(ZLIBDIR)/lib64 -lz
+endif

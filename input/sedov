@@ -1,0 +1,41 @@
+&CONTROL
+ time_start=0.0
+ time_end=1.0
+ dt_initial=1.0e-4
+ dt_max=1.0e-1
+ dt_min=1.0e-6
+ dt_g=1.02
+ cfl_sf=0.5
+ cq1=0.5
+ cq2=0.75
+ kappaall=0.01
+/
+&EOS
+ eos_type(1)=1
+ eos_param(1,1)=1.6666667
+ mat_rho(1)=1.0
+ mat_ein(1)=0.0
+/
+&PROBSIZE
+ nreg=1
+ nmat=1
+/
+&MESH
+ r_typ='LIN1'
+ r_dimen=45,45
+ s_typ_1='LINE'
+ s_pos_1=0.0,0.0,1.125,0.0
+ s_bc_1='SLIPY'
+ s_typ_2='LINE'
+ s_pos_2=1.125,0.0,1.125,1.125
+ s_typ_3='LINE'
+ s_pos_3=1.125,1.125,0.0,1.125
+ s_typ_4='LINE'
+ s_pos_4=0.0,1.125,0.0,0.0
+ s_bc_4='SLIPX'
+ seg_1=1,1
+ seg_2=1,2
+ seg_3=1,3
+ seg_4=1,4
+ reg_mat(1)=1
+/

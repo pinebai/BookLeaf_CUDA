@@ -1,0 +1,90 @@
+#
+#!Crown Copyright 2014 AWE.
+#!
+#! This file is part of Bookleaf.
+#!
+#! Bookleaf is free software: you can redistribute it and/or modify it under
+#! the terms of the GNU General Public License as published by the
+#! Free Software Foundation, either version 3 of the License, or (at your option)
+#! any later version.
+#!
+#! Bookleaf is distributed in the hope that it will be useful, but
+#! WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#! FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+#! details.
+#!
+#! You should have received a copy of the GNU General Public License along with
+#! Bookleaf. If not, see http://www.gnu.org/licenses/.
+#
+#
+getsp.o : t3_util.o data.o 
+
+getdt.o : t3_util.o utilities.o data.o geometry.o t3_collect.o error.o 
+
+t3_schedule.o : t3_util.o t3_register.o t3_types.o t3_decomposition.o \
+	t3_keys.o 
+
+getforce.o : getsp.o gethg.o t3_util.o data.o 
+
+gethg.o : t3_util.o data.o 
+
+getein.o : t3_util.o data.o 
+
+write.o : t3_util.o data.o t3_collect.o 
+
+t3_util.o : t3_types.o data.o 
+
+init.o : t3_util.o utilities.o getpc.o data.o geometry.o error.o 
+
+t3_register.o : t3_util.o t3_types.o 
+
+getacc.o : t3_util.o utilities.o data.o register.o 
+
+getq.o : t3_util.o data.o register.o 
+
+main.o : write.o t3_util.o mesh.o data.o register.o timers.o error.o 
+
+t3_types.o : 
+
+hydro.o : getdt.o t3_util.o lagstep.o data.o 
+
+halt.o : write.o t3_util.o data.o timers.o typhon.o 
+
+t3_decomposition.o : t3_util.o t3_types.o 
+
+read.o : utilities.o data.o error.o 
+
+utilities.o : data.o 
+
+getpc.o : t3_util.o data.o eos.o 
+
+mesh.o : utilities.o data.o error.o 
+
+t3_exchange.o : t3_schedule.o t3_util.o t3_register.o t3_types.o t3_decomposition.o \
+	t3_keys.o 
+
+t3_keys.o : t3_util.o t3_register.o t3_types.o t3_decomposition.o \
+	t3_collect.o 
+
+lagstep.o : getforce.o getein.o t3_util.o getacc.o getq.o utilities.o \
+	getpc.o data.o geometry.o 
+
+data.o : 
+
+t3_quantity.o : t3_util.o t3_register.o t3_types.o 
+
+geometry.o : t3_util.o utilities.o data.o error.o 
+
+register.o : t3_util.o data.o error.o typhon.o 
+
+eos.o : data.o 
+
+t3_collect.o : t3_types.o 
+
+timers.o : t3_util.o data.o 
+
+error.o : data.o 
+
+typhon.o : t3_util.o t3_register.o t3_types.o t3_decomposition.o t3_exchange.o \
+	t3_keys.o t3_quantity.o 
+

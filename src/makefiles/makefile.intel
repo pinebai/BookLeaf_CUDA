@@ -1,0 +1,67 @@
+# Compiler
+ifeq ($(NO_MPI),)
+FC = mpif90
+CC = mpicc
+else
+FC = ifort
+CC = icc
+endif
+# Fortran to C interface
+F2C_DEF   = -DF2C_UNDERSCORE
+
+# General flags
+REALSIZE     = -r8
+INTSIZE      = -i4
+FORM         = -free
+BIG_ENDIAN   = -convert big_endian
+AUTO_ARRAYS  = -heap-arrays 64
+SHARED_INTEL = -shared-intel 
+#IEEE         = -fp-model precise -fp-model source #-mP2OPT_hlo_loop_unroll=false
+IEEE         = -fltconsistency
+# Debug flags
+ifeq ($(LEV),MEMDEBUG)
+  DBG     = -g -O0 -warn all -traceback
+  CDBG    = -g -O0 -warn all -traceback
+  CHECK   = -check all
+  FLTTRAP = -fpe0
+  IEEE   += -ftz
+endif
+ifeq ($(LEV),DEBUG)
+  DBG     = -g -O0 -warn all -traceback
+  CDBG    = -g -O0 -warn all -traceback
+  CHECK   = -check pointers -check uninit
+  FLTTRAP = -fpe0
+  IEEE   += -ftz
+endif
+ifeq ($(LEV),TV)
+  DBG     = -g -O0 -traceback
+  CDBG    = -g -O0 -traceback
+  IEEE   += -no-ftz
+endif
+ifeq ($(LEV),MEMTV)
+  DBG     = -g -O0 -traceback
+  CDBG    = -g -O0 -traceback
+  IEEE   += -no-ftz
+  CHECK   = -check bounds
+endif
+ifeq ($(LEV),OPTDEBUG)
+  DBG     = -g -traceback
+  CDBG    = -g -traceback
+endif
+# Optimisation flags
+ifeq ($(LEV),OPTDEBUG)
+  OPT     = -O2
+  COPT    = -O2
+  IEEE   += -no-ftz
+endif
+ifeq ($(LEV),RELEASE)
+  OPT     = -O2 -finline-functions -unroll-aggressive -vec-report3 -opt-report 3
+  COPT    = -O2 -vec-report3 -opt-report 3
+  IEEE   += -no-ftz
+endif
+
+FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
+	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+
+CFLAGS = -c $(CDBG) $(COPT)
+

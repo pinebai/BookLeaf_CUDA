@@ -1,0 +1,63 @@
+# Compiler
+ifeq ($(NO_MPI),)
+FC = mpxlf95_r
+CC = mpcc_r
+else
+FC = mpxlf90_r
+CC = mpcc_r
+endif
+
+# General flags
+REALSIZE     = -qrealsize=8
+INTSIZE      = -qintsize=4
+FORM         = -qfree
+BIG_ENDIAN   = #-xfilebyteorder=big8
+AUTO_ARRAYS  = 
+SHARED_INTEL = 
+IEEE         = #-qfloat=nomaf
+# Debug flags
+ifeq ($(LEV),MEMDEBUG)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  CHECK   = -g -xopenmp=noopt -stackvar -u -fpover=yes -C 
+  FLTTRAP = -ftrap=common
+  IEEE   += 
+endif
+ifeq ($(LEV),DEBUG)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  CHECK   = -g -xopenmp=noopt -stackvar -u -fpover=yes -C
+  FLTTRAP = -ftrap=common
+  IEEE   +=
+endif
+ifeq ($(LEV),TV)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  IEEE   += 
+endif
+ifeq ($(LEV),MEMTV)
+  DBG     = -g -O0
+  CDBG    = -g -O0
+  IEEE   += 
+  CHECK   = 
+endif
+ifeq ($(LEV),OPTDEBUG)
+  DBG     = -g
+  CDBG    = -g -O0
+endif
+# Optimisation flags
+ifeq ($(LEV),OPTDEBUG)
+  OPT     = -fast -xipo=2
+  COPT    = -fast -xipo=2
+  IEEE   += 
+endif
+ifeq ($(LEV),RELEASE)
+  OPT     = #-fast -xipo=2
+  COPT    = #-fast -xipo=2
+  IEEE   += 
+endif
+
+FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
+	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+
+CFLAGS = -c $(CDBG) $(COPT)

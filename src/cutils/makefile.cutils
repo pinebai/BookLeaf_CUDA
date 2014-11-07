@@ -1,0 +1,3 @@
+OBJ+=     utils.o      \
+          utils_f.o
+utils_f.o: utils.o
