@@ -185,7 +185,7 @@ CONTAINS
     ! Formats
  1001 FORMAT(2(3X,a3),9X,a3,8X,a4,6X,a6,6X,a6,7X,a5,3X,a9,3X,a9,8X,a4,  &
 &            4X,a8,4X,a8)
- 1002 FORMAT(2(X,i5),1p10e12.4)
+ 1002 FORMAT(2(1X,i5),1p10e12.4)
  1006 FORMAT(' Total ',5X,1p5e12.4,24X,1pe12.4,24X,/)
  1007 FORMAT('           total energy',/,' internal ',1pe12.4,          &
 &             /,' kinetic  ',1pe12.4,/,' total    ',1pe12.4,/)
