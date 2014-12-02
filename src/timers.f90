@@ -65,7 +65,7 @@ CONTAINS
 
     USE paradef_mod, ONLY: MProcW,zparallel
     REAL(KIND=rlk)               :: fac,w1,w2,w3,w4,w5
-    CHARACTER(LEN=23),PARAMETER  :: ft='(a28,X,e13.6,X,f7.3,a2)'
+    CHARACTER(LEN=25),PARAMETER  :: ft='(a28,1X,e13.6,1X,f7.3,a2)'
 
     IF (MProcW) THEN
       fac=100.0_rlk/bookleaf_times%time_total
