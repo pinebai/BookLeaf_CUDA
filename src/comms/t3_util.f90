@@ -238,9 +238,7 @@ contains
     type (MP_tp), pointer          :: aMP
     integer(kind=MPIK), intent(in) :: aCode
     
-    integer(kind=TSIZEK) :: ii             ! Loop
     integer(kind=MPIK)   :: iMPIerr        ! MPI error code
-    integer(kind=TERRK)  :: irc            ! Internal return code
     
     aMP%finalised = .true.
     !
@@ -495,8 +493,6 @@ contains
     integer(kind=TYPHK), intent(in) :: aCode        ! Abort code to use
     character(len=*),    intent(in) :: aString      ! Error description string
 
-    integer(kind=TERRK) :: irc
-
     ty_ErrorCheck = 0
 
     if (aCondition) then
@@ -517,7 +513,6 @@ contains
     character(len=*),    intent(in) :: aVar       ! Variable name
     
     character(len=64)   :: ierrstr
-    integer(kind=TERRK) :: irc        ! Internal return code
     
     ty_MemCheck = 0
 

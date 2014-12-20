@@ -23,7 +23,7 @@ SUBROUTINE halt(smessage,iout,zend)
   USE paradef_mod,  ONLY: MProcW
   USE timers_mod,   ONLY: end_timers,print_timers
   USE TYPH_util_mod,ONLY: get_time
-  USE timing_stats, ONLY: bookleaf_times
+  USE timing_mod,   ONLY: bookleaf_times
   USE write_mod,    ONLY: write_sprint
 #ifdef SILO
   USE silo_mod,     ONLY: write_silo_dump
@@ -40,9 +40,16 @@ SUBROUTINE halt(smessage,iout,zend)
   INTEGER                               :: ierr
   LOGICAL(KIND=lok)                     :: zfin
 
-  zfin = .false._lok
+  ! spacer
+  IF (MProcW) THEN
+    PRINT*,'##########################################################',&
+& '##############'
+  ENDIF
+
+  ! reached end of calculation
+  zfin=.FALSE._lok
   IF (PRESENT(zend)) THEN
-    zfin = zend
+    zfin=zend
   ENDIF
 
   ! echo message
@@ -51,7 +58,7 @@ SUBROUTINE halt(smessage,iout,zend)
   ENDIF
 
   ! Timing data
-  bookleaf_times%time_end_main = get_time()
+  bookleaf_times%time_end_main=get_time()
 
   IF (iout.EQ.1_ink) THEN
 #ifdef SILO
@@ -73,15 +80,15 @@ SUBROUTINE halt(smessage,iout,zend)
 
   ! spacer
   IF (MProcW) THEN
-    PRINT*,'############################################################',&
-& '############'  
+    PRINT*,'##########################################################',&
+& '##############'  
   ENDIF
   ! end program
 
   IF (zfin) THEN
-    ierr = TYPH_Kill(FinalizeMPI=.true.)
+    ierr=TYPH_Kill(FinalizeMPI=.true.)
   ELSE
-    ierr = TYPH_Abort(-1)
+    ierr=TYPH_Abort(-1)
   ENDIF
 
   STOP

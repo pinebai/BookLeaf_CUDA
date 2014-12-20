@@ -18,320 +18,247 @@
 
 MODULE getq_mod
 
-  USE scratch_mod,   ONLY: dub=>rscratch16,dul=>rscratch17,           &
-&                          dut=>rscratch18,dur=>rscratch19,           &
-&                          dvb=>rscratch110,dvl=>rscratch111,         &
-&                          dvt=>rscratch112,dvr=>rscratch113,         &
-&                          dxb=>rscratch114,dxl=>rscratch115,         &
-&                          dxt=>rscratch116,dxr=>rscratch117,         &
-&                          dyb=>rscratch118,dyl=>rscratch119,         &
-&                          dyt=>rscratch120,dyr=>rscratch121
   IMPLICIT NONE
 
   PUBLIC :: getq
 
 CONTAINS
 
-  SUBROUTINE getq(nshape,nel,elx,ely,elu,elv,rho,pre)
+  SUBROUTINE getq(nshape,nel,elx,ely,elu,elv,rho,pre,dx,dy,du,dv,       &
+&                 scratch)
 
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel1
     USE reals_mod,    ONLY: zerocut,cq1,cq2
     USE comms_mod,    ONLY: exchange,VISCOSITY
     USE paradef_mod,  ONLY: zparallel
-    USE pointers_mod, ONLY: a1,a3,b1,b3,ielnod,ielel,indtype,qq,qx,qy,   &
-&                           csqrd
-    USE timing_stats, ONLY: bookleaf_times
-    USE TYPH_util_mod,ONLY: get_time
+    USE pointers_mod, ONLY: ielnod,ielel,ielsd,indtype,qq,qx,qy,csqrd
+    USE timing_mod,   ONLY: bookleaf_times
+    USE typh_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                    INTENT(IN) :: nshape,nel
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(IN) :: elx,ely,elu,elv
-    REAL(KIND=rlk),DIMENSION(nel1),       INTENT(IN) :: rho,pre
+    INTEGER(KIND=ink),                   INTENT(IN)    :: nshape,nel
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)    :: elx,ely,elu,  &
+&                                                         elv
+    REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)    :: rho,pre
+    REAL(KIND=rlk),DIMENSION(:,0:),      INTENT(INOUT) :: dx,dy,du,dv,  &
+&                                                         scratch
     ! Local
-    INTEGER(KIND=ink)                                :: iel,e1,e2,e3,e4, &
-&                                                       n1,n2,n3,n4,jj,ierr
-    REAL(KIND=rlk)                                   :: w1,w2,w3,w4,w5,  &
-&                                                       w6,w7,w8,den,    &
-&                                                       uhat,vhat,xhat,  &
-&                                                       yhat,rl,rr,rb,rt,&
-&                                                       t0,t1
-    REAL(KIND=rlk),   DIMENSION(nel1)                :: phib,phit,phil,  &
-&                                                       phir
-
-    t0 = get_time()
+    INTEGER(KIND=ink)                                  :: iel,iside,in1,&
+&                                                         in2,is1,is2,  &
+&                                                         ins,ic1,ic2
+    REAL(KIND=rlk)                                     :: xhat,yhat,t0, &
+&                                                         uhat,vhat,den,&
+&                                                         w1,w2,w3,w4,  &
+&                                                         w5,w6,w7,w8,t1
+    ! Timer
+    t0=get_time()
 
     !# Missing code here that can't be merged
+
     ! initialisation
-    qq=0.0_rlk
-    qx=0.0_rlk
-    qy=0.0_rlk
-    phib=0.0_rlk
-    phit=0.0_rlk
-    phil=0.0_rlk
-    phir=0.0_rlk
-    !# Missing code here that can't be merged
-    ! gradient construction, geometry checked in getgeom
-    l1:DO iel=1,nel
-      dub(iel)=elu(2,iel)-elu(1,iel)
-      dul(iel)=elu(1,iel)-elu(4,iel) 
-      dut(iel)=elu(4,iel)-elu(3,iel) 
-      dur(iel)=elu(3,iel)-elu(2,iel) 
-      dvb(iel)=elv(2,iel)-elv(1,iel) 
-      dvl(iel)=elv(1,iel)-elv(4,iel) 
-      dvt(iel)=elv(4,iel)-elv(3,iel) 
-      dvr(iel)=elv(3,iel)-elv(2,iel) 
-      dxb(iel)=elx(2,iel)-elx(1,iel) 
-      dxl(iel)=elx(1,iel)-elx(4,iel) 
-      dxt(iel)=elx(4,iel)-elx(3,iel) 
-      dxr(iel)=elx(3,iel)-elx(2,iel) 
-      dyb(iel)=ely(2,iel)-ely(1,iel) 
-      dyl(iel)=ely(1,iel)-ely(4,iel) 
-      dyt(iel)=ely(4,iel)-ely(3,iel) 
-      dyr(iel)=ely(3,iel)-ely(2,iel) 
-    ENDDO l1
+    DO iel=1,nel
+      qq(iel)=0.0_rlk
+      qx(1,iel)=0.0_rlk
+      qx(2,iel)=0.0_rlk
+      qx(3,iel)=0.0_rlk
+      qx(4,iel)=0.0_rlk
+      qy(1,iel)=0.0_rlk
+      qy(2,iel)=0.0_rlk
+      qy(3,iel)=0.0_rlk
+      qy(4,iel)=0.0_rlk
+    ENDDO
 
+    ! gradient construction
+    DO iel=1,nel
+      du(1,iel)=elu(2,iel)-elu(1,iel)
+      du(2,iel)=elu(3,iel)-elu(2,iel)
+      du(3,iel)=elu(4,iel)-elu(3,iel)
+      du(4,iel)=elu(1,iel)-elu(4,iel)
+      dv(1,iel)=elv(2,iel)-elv(1,iel)
+      dv(2,iel)=elv(3,iel)-elv(2,iel)
+      dv(3,iel)=elv(4,iel)-elv(3,iel)
+      dv(4,iel)=elv(1,iel)-elv(4,iel)
+      dx(1,iel)=elx(2,iel)-elx(1,iel)
+      dx(2,iel)=elx(3,iel)-elx(2,iel)
+      dx(3,iel)=elx(4,iel)-elx(3,iel)
+      dx(4,iel)=elx(1,iel)-elx(4,iel)
+      dy(1,iel)=ely(2,iel)-ely(1,iel)
+      dy(2,iel)=ely(3,iel)-ely(2,iel)
+      dy(3,iel)=ely(4,iel)-ely(3,iel)
+      dy(4,iel)=ely(1,iel)-ely(4,iel)
+    ENDDO
+
+    ! MPI parallelism
     IF (zparallel) THEN
-      call exchange(VISCOSITY)
+      CALL exchange(VISCOSITY)
     ENDIF
 
     ! Christiensen monotonic limit
-    DO iel=1,nel 
-      e1=ielel(1,iel) 
-      e2=ielel(2,iel) 
-      e3=ielel(3,iel) 
-      e4=ielel(4,iel) 
-      n1=ielnod(1,iel) 
-      n2=ielnod(2,iel) 
-      n3=ielnod(3,iel) 
-      n4=ielnod(4,iel) 
-      ! initialise
-      w1=0.0_rlk
-      w2=0.0_rlk
-      w3=0.0_rlk
-      w4=0.0_rlk
-      w5=0.0_rlk
-      w6=0.0_rlk
-      w7=0.0_rlk
-      w8=0.0_rlk 
-      ! Neighbour 1
-      IF (e1.NE.0_ink) THEN 
-        den=SQRT(dul(iel)*dul(iel)+dvl(iel)*dvl(iel)) 
-        uhat=dul(iel)/MAX(den,zerocut) 
-        vhat=dvl(iel)/MAX(den,zerocut) 
-        den=SQRT(dxl(iel)*dxl(iel)+dyl(iel)*dyl(iel)) 
-        xhat=dxl(iel)/MAX(den,zerocut) 
-        yhat=dyl(iel)/MAX(den,zerocut) 
-        den=dxl(iel)*xhat+dyl(iel)*yhat
-        rl=(dul(iel)*uhat+dvl(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxl(e1)*xhat+dyl(e1)*yhat      
-        w1=(dul(e1)*uhat+dvl(e1)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w1=w1/SIGN(MAX(ABS(rl),zerocut),rl)
-        den=SQRT(dur(iel)*dur(iel)+dvr(iel)*dvr(iel)) 
-        uhat=dur(iel)/MAX(den,zerocut) 
-        vhat=dvr(iel)/MAX(den,zerocut) 
-        den=SQRT(dxr(iel)*dxr(iel)+dyr(iel)*dyr(iel)) 
-        xhat=dxr(iel)/MAX(den,zerocut) 
-        yhat=dyr(iel)/MAX(den,zerocut) 
-        den=dxr(iel)*xhat+dyr(iel)*yhat
-        rr=(dur(iel)*uhat+dvr(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxr(e1)*xhat+dyr(e1)*yhat
-        w2=(dur(e1)*uhat+dvr(e1)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w2=w2/SIGN(MAX(ABS(rr),zerocut),rr)
-      ELSE  
-        IF (((indtype(n1).LT.0_ink).AND.(indtype(n2).LT.0_ink)).AND.    &
-&           (e3.NE.0_ink)) THEN   
-        !# Missing code here that can't be merged
-          w1=1.0_rlk
-          w2=1.0_rlk 
-        ELSE 
-          w1=0.0_rlk
-          w2=0.0_rlk
-        ENDIF 
-      ENDIF 
-      ! Neighbour 2
-      IF (e2.NE.0_ink) THEN 
-        den=SQRT(dub(iel)*dub(iel)+dvb(iel)*dvb(iel)) 
-        uhat=dub(iel)/MAX(den,zerocut)
-        vhat=dvb(iel)/MAX(den,zerocut) 
-        den=SQRT(dxb(iel)*dxb(iel)+dyb(iel)*dyb(iel)) 
-        xhat=dxb(iel)/MAX(den,zerocut) 
-        yhat=dyb(iel)/MAX(den,zerocut)
-        den=dxb(iel)*xhat+dyb(iel)*yhat
-        rb=(dub(iel)*uhat+dvb(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxb(e2)*xhat+dyb(e2)*yhat
-        w3=(dub(e2)*uhat+dvb(e2)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w3=w3/SIGN(MAX(ABS(rb),zerocut),rb)
-        den=SQRT(dut(iel)*dut(iel)+dvt(iel)*dvt(iel)) 
-        uhat=dut(iel)/MAX(den,zerocut) 
-        vhat=dvt(iel)/MAX(den,zerocut) 
-        den=SQRT(dxt(iel)*dxt(iel)+dyt(iel)*dyt(iel)) 
-        xhat=dxt(iel)/MAX(den,zerocut) 
-        yhat=dyt(iel)/MAX(den,zerocut)
-        den=dxt(iel)*xhat+dyt(iel)*yhat
-        rt=(dut(iel)*uhat+dvt(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxt(e2)*xhat+dyt(e2)*yhat
-        w4=(dut(e2)*uhat+dvt(e2)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w4=w4/SIGN(MAX(ABS(rt),zerocut),rt) 
-      ELSE  
-        IF (((indtype(n2).LT.0_ink).AND.(indtype(n3).LT.0_ink)).AND.    &
-&           (e4.NE.0_ink)) THEN 
-        !# Missing code here that can't be merged
-          w3=1.0_rlk
-          w4=1.0_rlk
-        ELSE 
-          w3=0.0_rlk
-          w4=0.0_rlk
-        ENDIF 
-      ENDIF 
-      ! Neighbour 3
-      IF (e3.NE.0_ink) THEN 
-        den=SQRT(dul(iel)*dul(iel)+dvl(iel)*dvl(iel)) 
-        uhat=dul(iel)/MAX(den,zerocut) 
-        vhat=dvl(iel)/MAX(den,zerocut) 
-        den=SQRT(dxl(iel)*dxl(iel)+dyl(iel)*dyl(iel)) 
-        xhat=dxl(iel)/MAX(den,zerocut) 
-        yhat=dyl(iel)/MAX(den,zerocut) 
-        den=dxl(iel)*xhat+dyl(iel)*yhat
-        rl=(dul(iel)*uhat+dvl(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxl(e3)*xhat+dyl(e3)*yhat
-        w5=(dul(e3)*uhat+dvl(e3)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w5=w5/SIGN(MAX(ABS(rl),zerocut),rl) 
-        den=SQRT(dur(iel)*dur(iel)+dvr(iel)*dvr(iel)) 
-        uhat=dur(iel)/MAX(den,zerocut) 
-        vhat=dvr(iel)/MAX(den,zerocut) 
-        den=SQRT(dxr(iel)*dxr(iel)+dyr(iel)*dyr(iel)) 
-        xhat=dxr(iel)/MAX(den,zerocut) 
-        yhat=dyr(iel)/MAX(den,zerocut) 
-        den=dxr(iel)*xhat+dyr(iel)*yhat
-        rr=(dur(iel)*uhat+dvr(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxr(e3)*xhat+dyr(e3)*yhat
-        w6=(dur(e3)*uhat+dvr(e3)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w6=w6/SIGN(MAX(ABS(rr),zerocut),rr) 
-      ELSE  
-        IF (((indtype(n3).LT.0_ink).AND.(indtype(n4).LT.0_ink)).AND.    &
-&           (e1.NE.0_ink)) THEN 
-        !# Missing code here that can't be merged
-          w5=1.0_rlk
-          w6=1.0_rlk
-        ELSE 
-          w5=0.0_rlk
-          w6=0.0_rlk
-        ENDIF 
-      ENDIF 
-      ! Neighbour 4
-      IF (e4.NE.0_ink) THEN 
-        den=SQRT(dub(iel)*dub(iel)+dvb(iel)*dvb(iel)) 
-        uhat=dub(iel)/MAX(den,zerocut)
-        vhat=dvb(iel)/MAX(den,zerocut)
-        den=SQRT(dxb(iel)*dxb(iel)+dyb(iel)*dyb(iel)) 
-        xhat=dxb(iel)/MAX(den,zerocut)
-        yhat=dyb(iel)/MAX(den,zerocut)
-        den=dxb(iel)*xhat+dyb(iel)*yhat
-        rb=(dub(iel)*uhat+dvb(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxb(e4)*xhat+dyb(e4)*yhat 
-        w7=(dub(e4)*uhat+dvb(e4)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w7=w7/SIGN(MAX(ABS(rb),zerocut),rb) 
-        den=SQRT(dut(iel)*dut(iel)+dvt(iel)*dvt(iel)) 
-        uhat=dut(iel)/MAX(den,zerocut) 
-        vhat=dvt(iel)/MAX(den,zerocut) 
-        den=SQRT(dxt(iel)*dxt(iel)+dyt(iel)*dyt(iel)) 
-        xhat=dxt(iel)/MAX(den,zerocut) 
-        yhat=dyt(iel)/MAX(den,zerocut)
-        den=dxt(iel)*xhat+dyt(iel)*yhat
-        rt=(dut(iel)*uhat+dvt(iel)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        den=dxt(e4)*xhat+dyt(e4)*yhat
-        w8=(dut(e4)*uhat+dvt(e4)*vhat)/SIGN(MAX(ABS(den),zerocut),den)
-        w8=w8/SIGN(MAX(ABS(rt),zerocut),rt)
-      ELSE  
-        IF (((indtype(n4).LT.0_ink).AND.(indtype(n1).LT.0_ink)).AND.    &
-&           (e2.NE.0_ink)) THEN 
-        !# Missing code here that can't be merged
-          w7=1.0_rlk 
-          w8=1.0_rlk
-        ELSE 
-          w7=0.0_rlk
-          w8=0.0_rlk
-        ENDIF 
-      ENDIF 
-      ! Calculate limiters 
-      phib(iel)=MAX(0.0_rlk,MIN(0.5_rlk*(w7+w3),2.0_rlk*w7,2.0_rlk*w3,1.0_rlk)) 
-      phit(iel)=MAX(0.0_rlk,MIN(0.5_rlk*(w8+w4),2.0_rlk*w8,2.0_rlk*w4,1.0_rlk)) 
-      phil(iel)=MAX(0.0_rlk,MIN(0.5_rlk*(w5+w1),2.0_rlk*w5,2.0_rlk*w1,1.0_rlk)) 
-      phir(iel)=MAX(0.0_rlk,MIN(0.5_rlk*(w6+w2),2.0_rlk*w6,2.0_rlk*w2,1.0_rlk)) 
-    ENDDO 
-    ! Construct artificial viscosity
-    DO iel=1,nel 
-      rr=SQRT(csqrd(iel))
-      den=SQRT(dub(iel)*dub(iel)+dvb(iel)*dvb(iel))
-      qx(1,iel)=(1.0_rlk-phib(iel))*rho(iel)*(cq1*rr+cq2*den)
-      qy(1,iel)=(1.0_rlk-phib(iel))*rho(iel)*(cq1*rr+cq2*den) 
-      den=SQRT(dut(iel)*dut(iel)+dvt(iel)*dvt(iel)) 
-      qx(3,iel)=(1.0_rlk-phit(iel))*rho(iel)*(cq1*rr+cq2*den)
-      qy(3,iel)=(1.0_rlk-phit(iel))*rho(iel)*(cq1*rr+cq2*den)
-      den=SQRT(dul(iel)*dul(iel)+dvl(iel)*dvl(iel))
-      qx(4,iel)=(1.0_rlk-phil(iel))*rho(iel)*(cq1*rr+cq2*den)
-      qy(4,iel)=(1.0_rlk-phil(iel))*rho(iel)*(cq1*rr+cq2*den)
-      den=SQRT(dur(iel)*dur(iel)+dvr(iel)*dvr(iel))
-      qx(2,iel)=(1.0_rlk-phir(iel))*rho(iel)*(cq1*rr+cq2*den)
-      qy(2,iel)=(1.0_rlk-phir(iel))*rho(iel)*(cq1*rr+cq2*den)
-      w4=0.25_rlk*(elx(1,iel)+elx(2,iel)+elx(3,iel)+elx(4,iel))
-      w8=0.25_rlk*(ely(1,iel)+ely(2,iel)+ely(3,iel)+ely(4,iel))
-      DO jj=1,4
-        n1=jj
-        n2=jj+1_ink
-        IF (n2.GT.4_ink) n2=1_ink
-        w1=elx(n1,iel)
-        w5=ely(n1,iel)
-        w2=elx(n2,iel)
-        w6=ely(n2,iel)
-        w3=0.5_rlk*(w2+w1)
-        w7=0.5_rlk*(w6+w5)
-        den=SQRT((w4-w3)*(w4-w3)+(w8-w7)*(w8-w7))
-        IF (den.GT.zerocut) THEN
-          xhat=(w8-w7)/den
-          yhat=(w3-w4)/den
-          rb=SQRT((w2-w1)*(w2-w1)+(w6-w5)*(w6-w5))
-          IF (rb.GT.zerocut) THEN
-            uhat=(w2-w1)/rb
-            vhat=(w6-w5)/rb
-            rr=xhat*uhat+yhat*vhat
-            rr=-SIGN(1.0_rlk,rr)
-            xhat=xhat*den*rr
-            yhat=yhat*den*rr
-            uhat=elu(n2,iel)-elu(n1,iel)
-            vhat=elv(n2,iel)-elv(n1,iel)
-            rt=SQRT((uhat*uhat)+(vhat*vhat))
-            IF (rt.GT.zerocut) THEN
-              rl=uhat*xhat+vhat*yhat
-              IF (rl.GT.0.0_rlk) THEN
-                qx(jj,iel)=qx(jj,iel)*rl*uhat/rt
-                qy(jj,iel)=qy(jj,iel)*rl*vhat/rt
-              ELSE
-                qx(jj,iel)=0.0_rlk
-                qy(jj,iel)=0.0_rlk
-              ENDIF
-            ELSE
-              qx(jj,iel)=0.0_rlk
-              qy(jj,iel)=0.0_rlk
-            ENDIF
+    DO iside=1,nshape/2_ink
+      is1=MOD(iside+2_ink,nshape)+1_ink
+      is2=iside+1_ink
+      DO iel=1,nel
+        ! connectivity
+        in1=ielel(iside,iel)
+        in2=ielel(iside+2,iel)
+        ! edge 1
+        w1=du(is1,iel)
+        w2=dv(is1,iel)
+        w3=dx(is1,iel)
+        w4=dy(is1,iel)
+        den=SQRT(w1*w1+w2*w2)
+        den=1.0_rlk/MAX(den,zerocut)
+        uhat=w1*den
+        vhat=w2*den
+        den=SQRT(w3*w3+w4*w4)
+        den=1.0_rlk/MAX(den,zerocut)
+        xhat=w3*den
+        yhat=w4*den
+        den=w3*xhat+w4*yhat
+        w1=(w1*uhat+w2*vhat)/SIGN(MAX(ABS(den),zerocut),den)
+        w1=1.0_rlk/SIGN(MAX(ABS(w1),zerocut),w1)
+        ins=ielsd(iside,iel)
+        ins=MOD(ins,nshape)+1_ink
+        den=dx(ins,in1)*xhat+dy(ins,in1)*yhat
+        w2=(du(ins,in1)*uhat+dv(ins,in1)*vhat)/                        &
+&        SIGN(MAX(ABS(den),zerocut),den)
+        scratch(1,iel)=w2*w1
+        ins=ielsd(iside+2_ink,iel)
+        ins=MOD(ins+2_ink,nshape)+1_ink
+        den=dx(ins,in2)*xhat+dy(ins,in2)*yhat
+        w3=(du(ins,in2)*uhat+dv(ins,in2)*vhat)/                        &
+&        SIGN(MAX(ABS(den),zerocut),den)
+        scratch(2,iel)=w3*w1
+        ! edge 2
+        w1=du(is2,iel)
+        w2=dv(is2,iel)
+        w3=dx(is2,iel)
+        w4=dy(is2,iel)
+        den=SQRT(w1*w1+w2*w2)
+        den=1.0_rlk/MAX(den,zerocut)
+        uhat=w1*den
+        vhat=w2*den
+        den=SQRT(w3*w3+w4*w4)
+        den=1.0_rlk/MAX(den,zerocut)
+        xhat=w3*den
+        yhat=w4*den
+        den=w3*xhat+w4*yhat
+        w1=(w1*uhat+w2*vhat)/SIGN(MAX(ABS(den),zerocut),den)
+        w1=1.0_rlk/SIGN(MAX(ABS(w1),zerocut),w1)
+        ins=ielsd(iside,iel)
+        ins=MOD(ins+2_ink,nshape)+1_ink
+        den=dx(ins,in1)*xhat+dy(ins,in1)*yhat
+        w2=(du(ins,in1)*uhat+dv(ins,in1)*vhat)/                         &
+&        SIGN(MAX(ABS(den),zerocut),den)
+        scratch(3,iel)=w2*w1
+        ins=ielsd(iside+2_ink,iel)
+        ins=MOD(ins,nshape)+1_ink
+        den=dx(ins,in2)*xhat+dy(ins,in2)*yhat
+        w3=(du(ins,in2)*uhat+dv(ins,in2)*vhat)/                         &
+&        SIGN(MAX(ABS(den),zerocut),den)
+        scratch(4,iel)=w3*w1
+      ENDDO
+      ! BC
+      ins=iside+2_ink
+      DO iel=1,nel
+        in1=ielel(iside,iel)
+        in2=ielel(ins,iel)
+        IF (in1.EQ.0_ink) THEN
+          ic1=ielnod(iside,iel)
+          ic2=ielnod(MOD(iside,nshape)+1_ink,iel)
+          IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
+&          (in2.NE.0_ink)) THEN
+            scratch(1,iel)=1.0_rlk
+            scratch(3,iel)=1.0_rlk
           ELSE
-            qx(jj,iel)=0.0_rlk
-            qy(jj,iel)=0.0_rlk
+            scratch(1,iel)=0.0_rlk
+            scratch(3,iel)=0.0_rlk
           ENDIF
-        ELSE
-          qx(jj,iel)=0.0_rlk
-          qy(jj,iel)=0.0_rlk
+        ENDIF
+        IF (in2.EQ.0_ink) THEN
+          ic1=ielnod(ins,iel)
+          ic2=ielnod(MOD(ins,nshape)+1_ink,iel)
+          IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
+&          (in1.NE.0_ink)) THEN
+            scratch(2,iel)=1.0_rlk
+            scratch(4,iel)=1.0_rlk
+          ELSE
+            scratch(2,iel)=0.0_rlk
+            scratch(4,iel)=0.0_rlk
+          ENDIF
         ENDIF
       ENDDO
-      qq(iel)=0.25_rlk*(SQRT(qx(1,iel)*qx(1,iel)+qy(1,iel)*qy(1,iel))   &
-                       +SQRT(qx(2,iel)*qx(2,iel)+qy(2,iel)*qy(2,iel))   &
-                       +SQRT(qx(3,iel)*qx(3,iel)+qy(3,iel)*qy(3,iel))   &
-                       +SQRT(qx(4,iel)*qx(4,iel)+qy(4,iel)*qy(4,iel)))
+      ! Apply limiter
+      DO iel=1,nel
+        w1=cq1*SQRT(csqrd(iel))
+        w2=scratch(1,iel)
+        w3=scratch(2,iel)
+        w2=MIN(0.5_rlk*(w2+w3),2.0_rlk*w2,2.0_rlk*w3,1.0_rlk)
+        w2=MAX(0.0_rlk,w2)
+        w3=du(is1,iel)
+        w4=dv(is1,iel)
+        w3=SQRT(w3*w3+w4*w4)
+        w3=(1.0_rlk-w2)*rho(iel)*(w1+cq2*w3)
+        qx(is1,iel)=w3
+        qy(is1,iel)=w3
+        w2=scratch(3,iel)
+        w3=scratch(4,iel)
+        w2=MIN(0.5_rlk*(w2+w3),2.0_rlk*w2,2.0_rlk*w3,1.0_rlk)
+        w2=MAX(0.0_rlk,w2)
+        w3=du(is2,iel)
+        w4=dv(is2,iel)
+        w3=SQRT(w3*w3+w4*w4)
+        w3=(1.0_rlk-w2)*rho(iel)*(w1+cq2*w3)
+        qx(is2,iel)=w3
+        qy(is2,iel)=w3
+      ENDDO
+    ENDDO
+
+    ! Final Q calculation
+    DO iside=1,nshape
+      ins=MOD(iside,nshape)+1_ink
+      DO iel=1,nel
+        w1=elx(iside,iel)
+        w2=elx(ins,iel)
+        w3=0.5_rlk*(w1+w2)
+        w1=w2-w1
+        w2=0.25_rlk*(elx(1,iel)+elx(2,iel)+elx(3,iel)+elx(4,iel))
+        w4=ely(iside,iel)
+        w5=ely(ins,iel)
+        w6=0.5_rlk*(w4+w5)
+        w4=w5-w4
+        w5=0.25_rlk*(ely(1,iel)+ely(2,iel)+ely(3,iel)+ely(4,iel))
+        w7=SQRT((w2-w3)*(w2-w3)+(w5-w6)*(w5-w6))
+        w8=SQRT(w1*w1+w4*w4)
+        den=1.0_rlk/w7
+        xhat=(w5-w6)*den
+        yhat=(w3-w2)*den
+        den=1.0_rlk/w8
+        w1=w1*den
+        w2=w4*den
+        w3=xhat*w1+yhat*w2
+        den=-SIGN(1.0_rlk,w3)*w7
+        xhat=xhat*den
+        yhat=yhat*den
+        uhat=elu(ins,iel)-elu(iside,iel)
+        vhat=elv(ins,iel)-elv(iside,iel)
+        w5=SQRT((uhat*uhat)+(vhat*vhat))
+        w6=uhat*xhat+vhat*yhat
+        den=w6/MAX(w5,zerocut)
+        qx(iside,iel)=qx(iside,iel)*uhat*den
+        qy(iside,iel)=qy(iside,iel)*vhat*den
+        IF ((w5.LE.zerocut).OR.(w6.LE.zerocut).OR.(w7.LE.zerocut).OR.   &
+&           (w8.LE.zerocut)) THEN
+          qx(iside,iel)=0.0_rlk
+          qy(iside,iel)=0.0_rlk
+        ENDIF
+        qq(iel)=qq(iel)+0.25_rlk*SQRT(qx(iside,iel)*qx(iside,iel)+      &
+&               qy(iside,iel)*qy(iside,iel))
+      ENDDO
     ENDDO
 
     ! Timing data
-    t1 = get_time()
+    t1=get_time()
     t1=t1-t0
     bookleaf_times%time_in_getq=bookleaf_times%time_in_getq+t1
 

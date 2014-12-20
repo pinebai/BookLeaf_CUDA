@@ -20,7 +20,7 @@
 MODULE timers_mod
 
   USE kinds_mod,    ONLY: rlk
-  USE timing_stats, ONLY: bookleaf_times
+  USE timing_mod,   ONLY: bookleaf_times
   USE TYPH_util_mod,ONLY: get_time
 
   IMPLICIT NONE
@@ -51,7 +51,6 @@ CONTAINS
     bookleaf_times%time_in_comms = 0.0_rlk
     bookleaf_times%time_in_colls = 0.0_rlk
 
-
   END SUBROUTINE start_timers
 
   SUBROUTINE end_timers
@@ -64,6 +63,8 @@ CONTAINS
   SUBROUTINE print_timers
 
     USE paradef_mod, ONLY: MProcW,zparallel
+
+    ! local
     REAL(KIND=rlk)               :: fac,w1,w2,w3,w4,w5
     CHARACTER(LEN=25),PARAMETER  :: ft='(a28,1X,e13.6,1X,f7.3,a2)'
 
@@ -114,6 +115,7 @@ CONTAINS
       WRITE(6,'(a13,e13.6,a2)') ' Run time =  ',bookleaf_times%time_total,' s'
       WRITE(6,*) ' '
     ENDIF
+
   END SUBROUTINE print_timers  
 
 END MODULE timers_mod

@@ -25,26 +25,20 @@
  nmat=1
 /
 &MESH
- r_typ='LIN2'
- r_dimen=75,30
- s_typ_1='LINE'
- s_pos_1=0.005,0.0,1.0,0.0
- s_bc_1='SLIPY'
- s_typ_2='ARC_A'
- s_pos_2=1.0,0.0,0.0,1.0,0.0,0.0
- s_bc_2='FREE' 
- s_typ_3='LINE'
- s_pos_3=0.0,1.0,0.0,0.005
- s_bc_3='SLIPX'
- s_typ_4='ARC_C'
- s_pos_4=0.0,0.005,0.005,0.0,0.0,0.0
- s_bc_4='WALL' 
- seg_1=1,1
- seg_2=1,2
- seg_3=1,3
- seg_4=1,4
- r_vel_typ=2
- r_vel=-1.0
- reg_mat=1
+ region_typ(1)='LIN2'
+ region_dim(1,:)=75,30
+ region_material(1)=1
+ region_vel_typ(1)=2
+ region_vel(1,:)=-1.0,0.0,0.0
+ region_side(1,1,:)=1,1
+ region_side(1,2,:)=1,2
+ region_side(1,3,:)=1,3
+ region_side(1,4,:)=1,4
+ segment_typ(:)='LINE','ARC_A','LINE','ARC_C'
+ segment_bc(:)='SLIPY','FREE','SLIPX','WALL'
+ segment_pos(1,:)=0.005,0.0,1.0,0.0
+ segment_pos(2,:)=1.0,0.0,0.0,1.0,0.0,0.0
+ segment_pos(3,:)=0.0,1.0,0.0,0.005
+ segment_pos(4,:)=0.0,0.005,0.005,0.0,0.0,0.0
 /
 

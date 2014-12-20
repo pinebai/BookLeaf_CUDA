@@ -24,19 +24,19 @@ MODULE getsp_mod
 
 CONTAINS
 
-  SUBROUTINE getsp(nshape,nel,nes,rho,elx,ely,elfx,elfy)
+  SUBROUTINE getsp(nshape,nel,rho,elx,ely,elfx,elfy)
 
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: pmeritreg
     USE pointers_mod, ONLY: ielreg,csqrd,spmass
-    USE timing_stats, ONLY: bookleaf_times
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                   INTENT(IN)    :: nshape,nel,nes
-    REAL(KIND=rlk),DIMENSION(nes),       INTENT(IN)    :: rho
-    REAL(KIND=rlk),DIMENSION(nshape,nes),INTENT(IN)    :: elx,ely
-    REAL(KIND=rlk),DIMENSION(nshape,nes),INTENT(INOUT) :: elfx,elfy
+    INTEGER(KIND=ink),                   INTENT(IN)    :: nshape,nel
+    REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)    :: rho
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)    :: elx,ely
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(INOUT) :: elfx,elfy
     ! Local
     INTEGER(KIND=ink)                                  :: iel,ireg,j1,j2
     REAL(KIND=rlk)                                     :: w1,w2,w3,w4,  &
@@ -45,7 +45,8 @@ CONTAINS
 &                                                         y3,y4,t0,t1
     REAL(KIND=rlk),DIMENSION(nshape,nshape)            :: lfx,lfy
 
-    t0 = get_time()
+    ! Timer
+    t0=get_time()
 
     !# Missing code here that can't be merged
     DO iel=1,nel
@@ -111,7 +112,7 @@ CONTAINS
     ENDDO
 
     ! Timing data
-    t1 = get_time()
+    t1=get_time()
     t1=t1-t0
     bookleaf_times%time_in_getsp=bookleaf_times%time_in_getsp+t1
 

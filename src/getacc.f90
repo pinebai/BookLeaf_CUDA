@@ -33,28 +33,31 @@ CONTAINS
     USE paradef_mod,  ONLY: zparallel,ielsort1
     USE pointers_mod, ONLY: ielnod,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy
     USE utilities_mod,ONLY: gather
-    USE timing_stats, ONLY: bookleaf_times
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
-
     ! Argument list
-    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel,nnod,nes,nns
+    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel,nnod,&
+&                                                       nes,nns
     REAL(KIND=rlk),DIMENSION(nshape,nes),INTENT(IN)  :: cnfx,cnfy
     REAL(KIND=rlk),DIMENSION(nns),       INTENT(OUT) :: ndub,ndvb
     REAL(KIND=rlk),DIMENSION(nshape,nes),INTENT(OUT) :: elu,elv
     REAL(KIND=rlk),DIMENSION(nes),       INTENT(IN)  :: rho
     REAL(KIND=rlk),                      INTENT(IN)  :: dt05,dt
     ! Local
-    INTEGER(KIND=ink)                                :: ii,jj,kk,iel,inod
+    INTEGER(KIND=ink)                                :: ii,jj,kk,iel,   &
+&                                                       inod
     REAL(KIND=rlk)                                   :: w1,w2,t0,t1
     REAL(KIND=rlk),DIMENSION(nns)                    :: ndmass,ndarea
 
     ! Timer
     t0=get_time()
 
+    ! MPI parallelism
     IF (zparallel) THEN
       call exchange(HALFSTEP)
     ENDIF
+
     ! Construct nodal mass and scatter force to nodes
     ndmass=0.0_rlk
     ndarea=0.0_rlk

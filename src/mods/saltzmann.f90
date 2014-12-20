@@ -16,29 +16,11 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-SUBROUTINE mesh_modify()
-  USE kinds_mod,   ONLY: ink,rlk
-  USE pointers_mod,ONLY: ndu
-  USE mesh_mod,    ONLY: reg
-  IMPLICIT NONE
-  INTEGER(KIND=ink) :: ii,no_l,l1,l2,ll
-
-  no_l=reg(1)%dim(1)+1_ink
-  l1=1_ink
-  l2=no_l
-
-  ii=0
-  DO ll=l1,l2
-    ii=ii+1
-    ndu(ii)=1.0_rlk
-  ENDDO
-END SUBROUTINE mesh_modify
-
 SUBROUTINE modify()
 
   USE kinds_mod,   ONLY: ink,rlk,lok
   USE integers_mod,ONLY: nel1,nnod1,nshape
-  USE pointers_mod,ONLY: ndx,ndy,ielnod
+  USE pointers_mod,ONLY: ndx,ndy,ielnod,ndu
 
   IMPLICIT NONE
 
@@ -48,6 +30,7 @@ SUBROUTINE modify()
   REAL(KIND=rlk)                    :: pi,x0,y0,w1,w2
   LOGICAL(KIND=lok),DIMENSION(nnod1):: zchanged
 
+  ! Alter mesh positions
   pi=4.0_rlk*ATAN(1.0_rlk)
   zchanged(:)=.FALSE._lok
   DO iel=1,nel1
@@ -61,6 +44,19 @@ SUBROUTINE modify()
         ndx(inod)=w1*DX1+(10.0_rlk-w2)*DY1*SIN(pi*w1*0.01_rlk)
         zchanged(inod)=.TRUE._lok
       ENDIF
+    ENDDO
+  ENDDO
+
+  ! Set left hand boundary velocity
+  w1=ndx(1)
+  DO inod=2,nnod1
+    IF (ndx(inod).LT.w1) w1=ndx(inod)
+  ENDDO
+  w1=w1+TOL
+  DO iel=1,nel1
+    DO ii=1,nshape
+      inod=ielnod(ii,iel)
+      IF (ndx(inod).LE.w1) ndu(inod)=1.0_rlk
     ENDDO
   ENDDO
 

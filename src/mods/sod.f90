@@ -16,38 +16,75 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-SUBROUTINE mesh_modify()
-  USE kinds_mod,   ONLY: ink,rlk
-  USE integers_mod,ONLY: nel,nmat,nreg
-  USE pointers_mod,ONLY: ielmat,ielreg,indtype
-  USE mesh_mod,    ONLY: reg
-  IMPLICIT NONE
-  INTEGER(KIND=ink) :: ii,no_l,no_k
-  INTEGER(KIND=ink) :: l1,l2,k1,k2,kk,ll
-
-  nmat=2_ink
-  nreg=2_ink
-  ielmat((nel/2_ink)+1_ink:nel) = 2_ink
-  ielreg((nel/2_ink)+1_ink:nel) = 2_ink
-
-  no_l=reg(1)%dim(1)+1_ink
-  no_k=reg(1)%dim(2)+1_ink
-  l1=1_ink
-  l2=no_l
-  k1=no_k/2_ink +1_ink
-  k2=no_k-1_ink
-
-  ii=no_l*(no_k/2_ink)
-  DO kk=k1,k2
-    DO ll=l1,l2
-      ii=ii+1
-      IF (ll.NE.1 .AND. ll.NE.no_l) THEN
-        indtype(ii)=2
-      ENDIF
-    ENDDO
-  ENDDO
-END SUBROUTINE mesh_modify
 
 SUBROUTINE modify()
+
+  USE kinds_mod,   ONLY: ink,rlk
+  USE pointers_mod,ONLY: ndx,ndy,ielmat,ielnod,rho,pre,ein,elvol,cnwt,  &
+&                        elmass,cnmass,spmass
+  USE integers_mod,ONLY: nel,nnod
+  USE reals_mod,   ONLY: eos_param
+  USE logicals_mod,ONLY: zsp
+
+  ! Local
+  INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4
+  REAL(KIND=rlk)    :: x1,x2,x3,x4,y1,y2,y3,y4,w1,w2,w3,w4,xmid
+
+  ! find mid-point
+  x1=ndx(1)
+  x2=x1
+  DO inod=1,nnod
+    IF (ndx(inod).LT.x1) x1=ndx(inod)
+    IF (ndx(inod).GT.x2) x2=ndx(inod)
+  ENDDO
+  xmid=0.5_rlk*(x1+x2)
+
+  ! reset variables
+  DO iel=1,nel
+    x1=ndx(ielnod(1,iel))
+    x2=ndx(ielnod(2,iel))
+    x3=ndx(ielnod(3,iel))
+    x4=ndx(ielnod(4,iel))
+    IF ((0.25_rlk*(x1+x2+x3+x4)).LT.xmid) THEN
+      ielmat(iel)=1_ink
+      rho(iel)=1.0_rlk
+      pre(iel)=1.0_rlk
+    ELSE
+      ielmat(iel)=2_ink
+      rho(iel)=0.125_rlk
+      pre(iel)=0.1_rlk
+    ENDIF
+    ein(iel)=pre(iel)/(rho(iel)*(eos_param(1,ielmat(iel))-1.0_rlk))
+    elmass(iel)=rho(iel)*elvol(iel)
+    cnmass(1:4,iel)=rho(iel)*cnwt(1:4,iel)
+  ENDDO
+
+  ! reset subzonal pressure mass
+  IF (zsp) THEN
+    DO iel=1,nel
+      n1=ielnod(1,iel)
+      n2=ielnod(2,iel)
+      n3=ielnod(3,iel)
+      n4=ielnod(4,iel)
+      x3=0.25_rlk*(ndx(n1)+ndx(n2)+ndx(n3)+ndx(n4))
+      y3=0.25_rlk*(ndy(n1)+ndy(n2)+ndy(n3)+ndy(n4))
+      DO inod=1,4
+        x1=ndx(ielnod(inod,iel))
+        y1=ndy(ielnod(inod,iel))
+        ii=MOD(inod,4)+1_ink
+        x2=0.5_rlk*(x1+ndx(ielnod(ii,iel)))
+        y2=0.5_rlk*(y1+ndy(ielnod(ii,iel)))
+        ii=MOD(inod+2,4)+1_ink
+        x4=0.5_rlk*(x1+ndx(ielnod(ii,iel)))
+        y4=0.5_rlk*(y1+ndy(ielnod(ii,iel)))
+        w1=-x1+x2+x3-x4
+        w2=-x1-x2+x3+x4
+        w3=-y1+y2+y3-y4
+        w4=-y1-y2+y3+y4
+        spmass(inod,iel)=rho(iel)*(w1*w4-w2*w3)
+      ENDDO
+    ENDDO
+  ENDIF
+  
 END SUBROUTINE modify
 

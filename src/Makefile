@@ -19,11 +19,12 @@
 #
 # machine input
 MKFILEM = makefile.GENERIC
-MKFILEC = makefile.intel
+MKFILEC = makefile.gcc
 MKFILEV = $(SRCDIR)/makefiles/makefile.VER
 # paths
 SRCDIR  = .
 MODDIR  = $(SRCDIR)/mods
+SCPDIR  = $(SRCDIR)/putils
 
 # build info
 NO_MPI  =
@@ -86,28 +87,32 @@ ifneq ($(SILO),)
     PP_SILO=-DSILO
   endif
   OBJ+=silo.o
-  DEP+=silo
-  include $(SRCDIR)/cutils/makefile.cutils
+  ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
+    include $(SRCDIR)/cutils/makefile.cutils
+  endif
 endif
 ifneq ($(MOD),)
-   ifeq ($(MKFILEC), makefile.xl)
-  PP_MOD=-WF,-DMOD_P
+  ifeq ($(MKFILEC), makefile.xl)
+    PP_MOD=-WF,-DMOD
   else
-  PP_MOD=-DMOD_P
-endif
+    PP_MOD=-DMOD
+  endif
   OBJ+=$(MOD).o
 endif
 ifeq ($(NO_MPI),)
-  include $(SRCDIR)/comms/makefile.T3
+  ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
+    include $(SRCDIR)/comms/makefile.T3
+  endif
 else
-   ifeq ($(MKFILEC), makefile.xl)
-  PP_MPI=-WF,-DNOMPI
-else
-  PP_MPI=-DNOMPI
+  ifeq ($(MKFILEC), makefile.xl)
+    PP_MPI=-WF,-DNOMPI
+  else
+    PP_MPI=-DNOMPI
+  endif
+  ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
+    include $(SRCDIR)/comms/makefile.T1
+  endif
 endif
-  include $(SRCDIR)/comms/makefile.T1
-endif
-
 
 # Include dependencies
 ifneq (,$(findstring $(EXE),$(MAKECMDGOALS)))
@@ -119,7 +124,6 @@ VPATH=$(SRCDIR):$(MODDIR):$(SRCDIR)/comms:$(SRCDIR)/cutils
 
 # Collect all pre-processor options
 PREPRO = $(PP_MOD)   \
-	 $(PP_IO)    \
 	 $(PP_MPI)   \
 	 $(PP_SILO)  \
 
@@ -137,14 +141,14 @@ LIB = 	$(SILOLIB)   \
 # Rules
 .SUFFIXES:
 .SUFFIXES: .o .f90 .F90 .c
-banner.o:
-	$(FC) $(FFLAGS) $(INC) banner.f90
 .f90.o:
 	$(FC) $(FFLAGS) $(INC) $<
 .F90.o:
 	$(FC) $(FFLAGS) $(PREPRO) $(INC) $<
 .c.o:
 	$(CC) $(CFLAGS) $(CPREPRO) $<
+
+# Dependencies
 
 # Commands
 $(EXE): $(DEP) $(OBJ)
@@ -154,3 +158,4 @@ clean:
 	- rm -f *.o
 	- rm -f *.mod
 	- rm -f $(EXE)
+

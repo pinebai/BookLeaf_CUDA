@@ -19,6 +19,7 @@
 #
 # Object list
 OBJ = banner.o       \
+      comm.o         \
       data.o         \
       error.o        \
       eos.o          \
@@ -38,7 +39,6 @@ OBJ = banner.o       \
       main.o         \
       mesh.o         \
       read.o         \
-      register.o     \
       timers.o       \
       utilities.o    \
       write.o

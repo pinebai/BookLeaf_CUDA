@@ -23,6 +23,6 @@ SUBROUTINE banner
 &  '############'
   PRINT*,' Bookleaf:   ','Light-weight FE hydro scheme'
   PRINT*,' Author:     ','R. Kevis, D. Harris'
-  PRINT*,' Revision:   ',' Unversioned directory'
+  PRINT*,' Revision:   ','Unversioned directory'
 
 END SUBROUTINE banner

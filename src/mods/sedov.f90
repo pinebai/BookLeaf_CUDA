@@ -16,18 +16,6 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-SUBROUTINE mesh_modify()
-  USE kinds_mod,   ONLY: ink
-  USE integers_mod,ONLY: nnod
-  USE pointers_mod,ONLY: indtype
-  INTEGER(kind=ink) :: ii
-  DO ii = 1,nnod
-    IF (indtype(ii)==-8) THEN
-      indtype(ii) = 1_ink
-    ENDIF
-  ENDDO
-END SUBROUTINE mesh_modify
-
 SUBROUTINE modify()
 
   USE kinds_mod,   ONLY: ink,rlk
@@ -37,7 +25,8 @@ SUBROUTINE modify()
   USE getpc_mod,   ONLY: getpc
 
   IMPLICIT NONE
-  INTEGER(kind=ink) :: ii,iel
+
+  INTEGER(KIND=ink) :: ii,iel
 
   DO ii=1,nel
     IF (zparallel) THEN
@@ -45,7 +34,7 @@ SUBROUTINE modify()
     ELSE
       iel=ii
     ENDIF
-    IF (iel == 1) THEN
+    IF (iel.EQ.1_ink) THEN
       ein(ii)=0.4935932_rlk/(2.0_rlk*elvol(ii))
       CALL getpc(nel,ielmat(ii),rho(ii),ein(ii),pre(ii),csqrd(ii))
       EXIT

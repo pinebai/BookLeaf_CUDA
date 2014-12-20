@@ -27,22 +27,20 @@ CONTAINS
   SUBROUTINE gethg(nshape,nel,dt,rho,elu,elv,elfx,elfy)
 
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel1
     USE reals_mod,    ONLY: kappareg
-    USE pointers_mod, ONLY: a1,a3,b1,b3,ielreg,area=>elvol
-    USE timing_stats, ONLY: bookleaf_times
+    USE pointers_mod, ONLY: ielreg,area=>elvol
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
-
     ! Argument list
-    INTEGER(KIND=ink),                    INTENT(IN)    :: nel,nshape
-    REAL(KIND=rlk),                       INTENT(IN)    :: dt
-    REAL(KIND=rlk),DIMENSION(nel1),       INTENT(IN)    :: rho
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(IN)    :: elu,elv
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(INOUT) :: elfx,elfy
+    INTEGER(KIND=ink),                   INTENT(IN)    :: nel,nshape
+    REAL(KIND=rlk),                      INTENT(IN)    :: dt
+    REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)    :: rho
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)    :: elu,elv
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(INOUT) :: elfx,elfy
     ! Local
-    INTEGER(KIND=ink)                                   :: iel,ireg
-    REAL(KIND=rlk)                                      :: w1,w2,w3,t0,t1
+    INTEGER(KIND=ink)                                  :: iel,ireg
+    REAL(KIND=rlk)                                     :: w1,w2,w3,t0,t1
 
     ! Timer
     t0=get_time()

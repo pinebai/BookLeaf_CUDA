@@ -28,25 +28,24 @@ CONTAINS
 &                     zflag)
 
     USE kinds_mod,    ONLY: ink,rlk,lok
-    USE integers_mod, ONLY: nel1
     USE logicals_mod, ONLY: zhg,zsp
     USE pointers_mod, ONLY: a1,a3,b1,b3,qx,qy
     USE gethg_mod,    ONLY: gethg
     USE getsp_mod,    ONLY: getsp
-    USE timing_stats, ONLY: bookleaf_times
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                    INTENT(IN)  :: nshape,nel
-    REAL(KIND=rlk),                       INTENT(IN)  :: dt
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(IN)  :: elx,ely,elu,elv
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(OUT) :: elfx,elfy
-    REAL(KIND=rlk),DIMENSION(nel1),       INTENT(IN)  :: pre,rho
-    LOGICAL(KIND=lok),                    INTENT(IN)  :: zflag
+    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel
+    REAL(KIND=rlk),                      INTENT(IN)  :: dt
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)  :: elx,ely,elu,elv
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(OUT) :: elfx,elfy
+    REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)  :: pre,rho
+    LOGICAL(KIND=lok),                   INTENT(IN)  :: zflag
     ! Local
-    INTEGER(KIND=ink),PARAMETER                       :: istrip=48_ink
-    INTEGER(KIND=ink)                                 :: i0,i1,jj,jp,iel
-    REAL(KIND=rlk)                                    :: w1,t0,t1
+    INTEGER(KIND=ink),PARAMETER                      :: istrip=48_ink
+    INTEGER(KIND=ink)                                :: i0,i1,jj,jp,iel
+    REAL(KIND=rlk)                                   :: w1,t0,t1
 
     ! Timer
     t0=get_time()
@@ -66,6 +65,7 @@ CONTAINS
         elfy(4,iel)=w1*( a3(iel)+a1(iel))
       ENDDO
     ENDDO
+
     ! Artificial viscosity force
     !# Missing code here that can't be merged
     DO i0=1,nel,istrip
@@ -81,13 +81,13 @@ CONTAINS
         ENDDO
       ENDDO
     ENDDO
+
     ! Subzonal pressure force
-    IF (zsp) CALL getsp(nshape,nel,nel1,rho,elx,ely,elfx,elfy)
+    IF (zsp) CALL getsp(nshape,nel,rho,elx,ely,elfx,elfy)
+
     !# Missing code here that can't be merged
     IF (zflag) THEN
-
       !# Missing code here that can't be merged
-
       ! Anti-hourglass force
       IF (zhg) CALL gethg(nshape,nel,dt,rho,elu,elv,elfx,elfy)
     ENDIF

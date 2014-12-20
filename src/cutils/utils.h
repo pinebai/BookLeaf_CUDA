@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #define UTILS_SUCCESS (0)
-#define UTILS_FAIL    (-1)
+#define UTILS_FAIL   (-1)
 
 #define UTILS_FAIL_NOACCESS  (-10)
 #define UTILS_FAIL_EXIST     (-11)

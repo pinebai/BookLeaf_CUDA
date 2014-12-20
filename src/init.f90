@@ -19,20 +19,16 @@
 SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
-  USE integers_mod,ONLY: nel,nnod,nshape,nel1,nnod1
+  USE integers_mod,ONLY: nshape,nel1,nnod1
   USE logicals_mod,ONLY: zsp
   USE error_mod,   ONLY: halt
   USE paradef_mod, ONLY: ielsort1
   USE pointers_mod,ONLY: ielreg,ielmat,ielnod,rho,qq,csqrd,pre,ein,cnwt, &
 &                        elmass,elvol,ndu,ndv,a1,a2,a3,b1,b2,b3,ndx,ndy, &
-&                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass
+&                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,ielsd
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,    &
-&                        rscratch11,rscratch12,rscratch13,rscratch14,    &
-&                        rscratch15,rscratch16,rscratch17,rscratch18,    &
-&                        rscratch19,rscratch110,rscratch111,rscratch112, &
-&                        rscratch113,rscratch114,rscratch115,rscratch116,&
-&                        rscratch117,rscratch118,rscratch119,rscratch120,&
-&                        rscratch121
+&                        rscratch25,rscratch26,rscratch27,rscratch11,    &
+&                        rscratch12,rscratch13,rscratch14,rscratch15
 
   IMPLICIT NONE
 
@@ -45,18 +41,15 @@ SUBROUTINE init_memory()
 &          a3(0:nel1),b1(0:nel1),b2(0:nel1),b3(0:nel1),cnwt(nshape,0:nel1), &
 &          ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),ielel(nshape,0:nel1), &
 &          cnmass(nshape,0:nel1),elx(nshape,0:nel1),ely(nshape,0:nel1),     &
-&          qx(nshape,0:nel1),qy(nshape,0:nel1),ielsort1(nel1),STAT=ierr)
+&          qx(nshape,0:nel1),qy(nshape,0:nel1),ielsort1(nel1),              &
+&          ielsd(nshape,0:nel1),STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   isz=MAX(nel1,nnod1)
   ALLOCATE(rscratch11(0:isz),rscratch12(0:isz),rscratch13(0:isz),       &
-&          rscratch14(0:isz),rscratch15(0:isz),rscratch16(0:isz),       &
-&          rscratch17(0:isz),rscratch18(0:isz),rscratch19(0:isz),       &
-&          rscratch110(0:isz),rscratch111(0:isz),rscratch112(0:isz),    &
-&          rscratch113(0:isz),rscratch114(0:isz),rscratch115(0:isz),    &
-&          rscratch116(0:isz),rscratch117(0:isz),rscratch118(0:isz),    &
-&          rscratch119(0:isz),rscratch120(0:isz),rscratch121(0:isz),    &
-&          rscratch21(nshape,0:isz),rscratch22(nshape,0:isz),           &
-&          rscratch23(nshape,0:isz),rscratch24(nshape,0:isz),STAT=ierr)
+&          rscratch14(0:isz),rscratch15(0:isz),rscratch21(nshape,0:isz),&
+&          rscratch22(nshape,0:isz),rscratch23(nshape,0:isz),           &
+&          rscratch24(nshape,0:isz),rscratch25(nshape,0:isz),           &
+&          rscratch26(nshape,0:isz),rscratch27(nshape,0:isz),STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   IF (zsp) THEN
     ALLOCATE(spmass(nshape,0:nel1),STAT=ierr)
@@ -71,13 +64,12 @@ SUBROUTINE init()
   USE integers_mod, ONLY: nshape,nel,nnod,nel1
   USE logicals_mod, ONLY: zsp
   USE reals_mod,    ONLY: time,time_start,mat_rho,mat_ein
-  USE pointers_mod, ONLY: ielmat,rho,ein,elmass,elvol,qq,ndu,ndv,pre,   &
-&                         csqrd,ndx,ndy,elx,ely,ielel,ielnod,qx,qy,cnwt,&
-&                         cnmass,spmass,indtype,ielnod
+  USE pointers_mod, ONLY: ielmat,rho,ein,elmass,elvol,qq,qx,qy,pre,     &
+&                         csqrd,ndx,ndy,elx,ely,ielel,ielnod,ielsd,cnwt,&
+&                         cnmass,spmass,indtype
   USE geometry_mod, ONLY: getgeom
   USE getpc_mod,    ONLY: getpc
-  USE utilities_mod,ONLY: getconn
-
+  USE utilities_mod,ONLY: getconn,getsconn
 
   IMPLICIT NONE
 
@@ -136,6 +128,7 @@ SUBROUTINE init()
 
   ! initialise connectivity
   ielel(1:,1:nel1)=getconn(nel1,nshape,ielnod(1:,1:nel1))
+  ielsd(1:,1:nel1)=getsconn(nel1,nshape,ielel(1:,1:nel1))
 
   ! initialise node type
   DO iel=1,nel1
@@ -179,7 +172,7 @@ END SUBROUTINE init_comm
 SUBROUTINE init_defaults()
 
   USE kinds_mod,   ONLY: rlk,lok,ink
-  USE strings_mod, ONLY: sfile,smesh
+  USE strings_mod, ONLY: sfile
   USE integers_mod,ONLY: eos_type,max_seg,max_subseg
   USE reals_mod,   ONLY: time_start,time_end,dt_initial,dt_g,dt_min,    &
 &                        dt_max,cfl_sf,div_sf,ccut,zcut,zerocut,pcut,   &
@@ -191,7 +184,6 @@ SUBROUTINE init_defaults()
 
   ! file defaults
   sfile='control'
-  smesh='mesh.h5'
   ! time defaults
   time_start=0.0_rlk
   time_end  =1.0_rlk
@@ -240,15 +232,15 @@ SUBROUTINE init_parallel()
   ! Local
   INTEGER(KIND=ink) :: ierr
 
-  ierr = TYPH_Init()   
-  ierr = TYPH_Get_Size(NProcW)
-  zparallel = .FALSE._lok
-  IF (NProcW.GT.1) zparallel = .TRUE._lok
-  ierr = TYPH_Get_Rank(RankW)
+  ierr=TYPH_Init()   
+  ierr=TYPH_Get_Size(NProcW)
+  zparallel=.FALSE._lok
+  IF (NProcW.GT.1_ink) zparallel=.TRUE._lok
+  ierr=TYPH_Get_Rank(RankW)
   MProcW=.FALSE._lok
   IF (RankW.EQ.0_ink) MProcW=.TRUE._lok
-  ierr = set_comm(CommW)
-  ierr = set_comm(CommS)
+  ierr=set_comm(CommW)
+  ierr=set_comm(CommS)
 
 END SUBROUTINE init_parallel
 

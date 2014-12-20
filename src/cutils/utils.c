@@ -54,8 +54,6 @@
 #endif
 #define STDOUT_BUFFER 64
 
-static void *iobuf = NULL;
-
 static int  last_errno = 0;
 static char last_errstr[128];
 static char last_desc[128];
@@ -78,6 +76,11 @@ static int    glob_status = 0;
 
 /* Internal function prototypes: */
 static void UTILS_error(const char *id, const char *desc);
+static int UTILS_fail();
+static int UTILS_isdir(const char *path, const char *caller);
+static int ut_forall(const char *srcpath, const char *tgtpath, const int tgttype, const char *caller, int (*func)(const char *, const char *));
+static int ut_listfree(struct list_tp **list);
+static int ut_listget(const char *pattern, const char *caller, size_t *listlen, struct list_tp **list);
 
 static int ut_mkdir(const char *path, const mode_t mode)
 {
@@ -185,48 +188,19 @@ int UTILS_ln(const char *path, const char *link_path)
 
 #endif
 
-static char *UTILS_tempfstr(int len)
-{
-  char *t;
-  
-  t = NULL;
-  t = (char *)malloc(sizeof(char) * (size_t)(len + 1));
-  
-  if (t != NULL) {
-    t[0] = '\0';     /* Null terminate the string to zero-length by default */
-                     /*   - ensures the string is valid, if never touched   */
-  }
-  
-  return (t);
-}
-
 static char *UTILS_copyfstr(const char *fstr, int len)
 {
   char *t;
-  
+
   t = NULL;
   t = (char *)malloc(sizeof(char) * (size_t)(len + 1));
-  
+
   if (t != NULL) {
     (void) memcpy((void *)t, (const void *)fstr, (size_t)len);
     t[len]='\0';    /* append null terminator at end of actual string */
   }
-  
-  return (t);
-}
 
-static void UTILS_copycstr(char *fstr, const int flen, const char *cstr)
-{
-  size_t clen = strlen(cstr);
-  
-  if (clen > flen) {
-    clen = flen;   /* This shouldn't be needed, but just in case */
-  }
-  
-  (void) memset((void *)fstr, (int)' ', flen);   /* initially blank the whole string */
-  (void) memcpy((void *)fstr, (const void *)cstr, clen);
-  
-  return;
+  return (t);
 }
 
 void F2C(UTILS_error_c,UTILS_ERROR_C)(const char *str, const int *len)
@@ -347,7 +321,6 @@ static int UTILS_isdir(const char *path, const char *caller)
   /* returns true if a given path is identified as a directory */
 
   struct stat statbuf;
-  char errstr[PATH_MAX+64];  /* Long enough to hold the path + an error message */
  
  
   if (NULL == path) {
@@ -556,8 +529,6 @@ static int ut_globerr(const char *epath, int eerrno)
 {
   return (0);
 }
-
-
 
 /**************************************************************************************
  *

@@ -601,8 +601,6 @@ contains
     integer(kind=TMEMK), dimension(:), allocatable :: iMpiAddressArr   ! Addresses
     integer(kind=TSIZEK),dimension(:), pointer     :: iPlist => null() ! list of indexes
 
-    character(len=SUBNAME_LEN)                     :: subname = "mCommitPhase"
-
     allocate(iMpiTypeArr(mMaxParts), stat = iAllocStat)
     irc = ty_MemCheck(iAllocStat, TY_MEM_ALLOC, "iMpiTypeArr")
     iMpiTypeArr = 0_MPIK

@@ -27,18 +27,18 @@ CONTAINS
   SUBROUTINE getdt(dt)
 
     USE kinds_mod,       ONLY: rlk,ink
-    USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,dt_g,dt_min,dt_max, &
-&                              zerocut
+    USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,dt_g,dt_min,     &
+&                              dt_max
     USE integers_mod,    ONLY: nel,nshape,nnod,idtel
     USE logicals_mod,    ONLY: zdtnotreg,zmidlength
     USE paradef_mod,     ONLY: CommS,NProcW,zparallel
-    USE pointers_mod,    ONLY: ielreg,rho,qq,csqrd,elx,ely,a1,a3,b1,b3,    &
+    USE pointers_mod,    ONLY: ielreg,rho,qq,csqrd,elx,ely,a1,a3,b1,b3, &
 &                              ielnod,elvol,ndu,ndv
     USE scratch_mod,     ONLY: rscratch11,elu=>rscratch21,elv=>rscratch22
     USE geometry_mod,    ONLY: dlm,dln
     USE error_mod,       ONLY: halt
     USE utilities_mod,   ONLY: gather
-    USE timing_stats,    ONLY: bookleaf_times
+    USE timing_mod,      ONLY: bookleaf_times
     USE TYPH_util_mod,   ONLY: get_time
     USE TYPH_Collect_mod,ONLY: TYPH_Gather
 
@@ -49,7 +49,8 @@ CONTAINS
     REAL(KIND=rlk)                       :: w1,w2,dt_cfl,dt_div,t0,t1,t2,t3
     REAL(KIND=rlk),DIMENSION(0:NprocW-1) :: dtt
 
-    t0 = get_time()
+    ! Timer
+    t0=get_time()
 
     idtel=0
     ! CFL
@@ -95,9 +96,9 @@ CONTAINS
     ! Find smallest timestep
     dt=MIN(dt_cfl,dt_div,dt_g*dt,dt_max)
     IF (zparallel) THEN
-      t2 = get_time()
+      t2=get_time()
       ierr=TYPH_Gather(dt,dtt,comm=CommS)
-      t3 = get_time()
+      t3=get_time()
       t3=t3-t2
       bookleaf_times%time_in_colls=bookleaf_times%time_in_colls+t3
       dt=MINVAL(dtt)
@@ -107,7 +108,7 @@ CONTAINS
     IF (dt.LT.dt_min) CALL halt("ERROR: dt < dt_min",1,.true.)
 
     ! Timing data
-    t1 = get_time()
+    t1=get_time()
     t1=t1-t0
     bookleaf_times%time_in_getdt=bookleaf_times%time_in_getdt+t1
 

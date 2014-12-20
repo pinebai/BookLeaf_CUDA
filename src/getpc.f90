@@ -27,32 +27,31 @@ CONTAINS
   SUBROUTINE getpc(nel,ielmat,rho,ein,pre,csqrd)
 
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel1
     USE eos_mod,      ONLY: getpre,getcc
-    USE timing_stats, ONLY: bookleaf_times
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                INTENT(IN)  :: nel
-    INTEGER(KIND=ink),DIMENSION(nel1),INTENT(IN)  :: ielmat
-    REAL(KIND=rlk),   DIMENSION(nel1),INTENT(IN)  :: rho,ein
-    REAL(KIND=rlk),   DIMENSION(nel1),INTENT(OUT) :: pre,csqrd
+    INTEGER(KIND=ink),               INTENT(IN)  :: nel
+    INTEGER(KIND=ink),DIMENSION(nel),INTENT(IN)  :: ielmat
+    REAL(KIND=rlk),   DIMENSION(nel),INTENT(IN)  :: rho,ein
+    REAL(KIND=rlk),   DIMENSION(nel),INTENT(OUT) :: pre,csqrd
     ! Local
-    INTEGER(KIND=ink)                             :: iel
-    REAL(KIND=rlk)                                :: t0,t1
+    INTEGER(KIND=ink)                            :: iel
+    REAL(KIND=rlk)                               :: t0,t1
 
     ! Timer
     t0=get_time()
 
     !# Missing code here that can't be merged
 
-    ! update pressure and sound speed (check for negative sound speeds)
+    ! update pressure and sound speed
     DO iel=1,nel
       pre(iel)=getpre(ielmat(iel),rho(iel),ein(iel))
       csqrd(iel)=getcc(ielmat(iel),rho(iel),ein(iel))
     ENDDO
     ! correct negative sound speeds
-    csqrd=MERGE(csqrd,0.0_rlk,csqrd>0.0_rlk)
+    csqrd=MERGE(csqrd,0.0_rlk,csqrd.GT.0.0_rlk)
 
     !# Missing code here that can't be merged
 

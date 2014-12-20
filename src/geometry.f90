@@ -103,21 +103,20 @@ CONTAINS
   SUBROUTINE getgeom(nshape,nel,nnod,ndx,ndy,elx,ely)
 
     USE kinds_mod,     ONLY: ink,rlk
-    USE integers_mod,  ONLY: nel1,nnod1
     USE utilities_mod, ONLY: gather
     USE pointers_mod,  ONLY: a1,a2,a3,b1,b2,b3,elvol,cnwt,ielnod
     USE error_mod,     ONLY: halt
     USE parameters_mod,ONLY: ONEBYNINE
-    USE timing_stats,  ONLY: bookleaf_times
+    USE timing_mod,    ONLY: bookleaf_times
     USE TYPH_util_mod, ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                    INTENT(IN)  :: nshape,nel,nnod
-    REAL(KIND=rlk),DIMENSION(nnod1),      INTENT(IN)  :: ndx,ndy
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(OUT) :: elx,ely
+    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel,nnod
+    REAL(KIND=rlk),DIMENSION(nnod),      INTENT(IN)  :: ndx,ndy
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(OUT) :: elx,ely
     ! Local
-    INTEGER(KIND=ink)                                 :: iel,ierr
-    REAL(KIND=rlk)                                    :: t0,t1
+    INTEGER(KIND=ink)                                :: iel,ierr
+    REAL(KIND=rlk)                                   :: t0,t1
 
     ! Timer
     t0=get_time()

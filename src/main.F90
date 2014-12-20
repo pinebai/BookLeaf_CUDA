@@ -16,24 +16,24 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-
 PROGRAM main
 
   USE comms_mod,    ONLY: register
   USE error_mod,    ONLY: halt
   USE paradef_mod,  ONLY: zparallel,MProcW
-  USE timing_stats, ONLY: bookleaf_times
+  USE timing_mod,   ONLY: bookleaf_times
   USE timers_mod,   ONLY: start_timers
   USE TYPH_util_mod,ONLY: get_time
-  USE write_mod,    ONLY: write_sprint
-  USE mesh_mod,     ONLY: mesh_gen,mesh_transfer
+  USE write_mod,    ONLY: write_sprint,write_iprint
+  USE mesh_mod,     ONLY: mesh_gen,mesh_transfer,regions
 #ifdef SILO
   USE silo_mod,     ONLY: write_silo_dump
 #endif
 
   IMPLICIT NONE
 
-  INTEGER :: ierr
+  ! mesh data
+  TYPE(regions),    DIMENSION(:),  ALLOCATABLE :: reg
 
 ! ###################
 ! Parallelism
@@ -75,7 +75,10 @@ PROGRAM main
   CALL read_files()
 
 ! generate mesh from input
-  CALL mesh_gen()
+  CALL mesh_gen(reg)
+
+! print input
+  CALL write_iprint(reg)
 
 ! ###################
 ! INITIALISATION
@@ -87,8 +90,8 @@ PROGRAM main
 ! setup memory
   CALL init_memory()
 
-  ! Transfer mesh onto solution arrays, populate connectivity arrays
-  CALL mesh_transfer()
+! Transfer mesh onto solution arrays, populate connectivity arrays
+  CALL mesh_transfer(reg)
 
 ! register comms
   IF (zparallel) THEN
@@ -104,11 +107,11 @@ PROGRAM main
   ENDIF
 
 ! problem specific modifications
-#ifdef MOD_P
+#ifdef MOD
   CALL modify()
 #endif
 
-  bookleaf_times%time_end_init = get_time()
+  bookleaf_times%time_end_init=get_time()
 
 ! print initial totals
   CALL write_sprint()

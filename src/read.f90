@@ -19,7 +19,7 @@
 SUBROUTINE read_command()
 
   USE kinds_mod,     ONLY: ink
-  USE strings_mod,   ONLY: sfile,smesh
+  USE strings_mod,   ONLY: sfile
   USE error_mod,     ONLY: halt
   USE parameters_mod,ONLY: LN
   USE paradef_mod,   ONLY: MProcW
@@ -43,17 +43,7 @@ SUBROUTINE read_command()
       IF ((il-5_ink).GT.LN) CALL halt("ERROR: file string too long",0)
       sfile=TRIM(str(6:il))
     ENDIF
-    IF (str(1:5).EQ.'MESH=') THEN
-      smesh=' '
-      IF ((il-5_ink).GT.LN) CALL halt("ERROR: mesh string too long",0)
-      smesh=TRIM(str(6:il))
-    ENDIF
   ENDDO l1
-  IF (MProcW) THEN
-    WRITE(6,*)
-    WRITE(6,*) ' Using control file: ',TRIM(sfile)
-    WRITE(6,*) ' Using mesh file:    ',TRIM(smesh)
-  ENDIF
 
 END SUBROUTINE read_command
 

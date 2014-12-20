@@ -24,7 +24,7 @@ SUBROUTINE hydro()
   USE getdt_mod,    ONLY: getdt
   USE lagstep_mod,  ONLY: lagstep
   USE paradef_mod,  ONLY: MProcW
-  USE timing_stats, ONLY: bookleaf_times
+  USE timing_mod,   ONLY: bookleaf_times
   USE TYPH_util_mod,ONLY: get_time
 
   IMPLICIT NONE
@@ -32,47 +32,38 @@ SUBROUTINE hydro()
   ! Local
   REAL(KIND=rlk)    :: dt,t0,t1,t2,grind
 
-  character(len=20) :: fname
-
-  bookleaf_times%time_hydro = get_time()
+  ! Timer
+  bookleaf_times%time_hydro=get_time()
 
   ! initialise
   nstep=0_ink
   dt=dt_initial
 
   l1:DO
-    t0 = get_time()
+    t0=get_time()
     ! increment step
     nstep=nstep+1_ink
     ! calculate timestep
     IF (nstep.GT.1_ink) CALL getdt(dt)
-
     !# Missing code here that can't be merged
-
     ! update time
     time=time+dt
     !# Code here that can't be taken out
     ! lagrangian step
     CALL lagstep(dt)
-
     !# Missing code here that can't be merged
-
-    !# Output goes here
-
-    t1 = get_time()
-    grind = (t1-t0)*1.0e6/nel
+    t1=get_time()
+    grind=(t1-t0)*1.0e6_rlk/nel
     IF (MProcW) THEN
-      WRITE(6,'(" step",i7,"  el=",i7,"  dt=",1pe13.6,"  time=",'       &
+      WRITE(6,'(" step=",i7,"  el=",i7,"  dt=",1pe13.6,"  time=",'      &
 &      //'1pe13.6,"  grind=",1pe8.1)') nstep,idtel,dt,time,grind
     ENDIF
     ! IO Timing data
-    t2 = get_time()
+    t2=get_time()
     t2=t2-t1
     bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
-
     ! test for end of calculation
     IF (time.GE.time_end) EXIT l1
-
     !# test for resources
   ENDDO l1
 

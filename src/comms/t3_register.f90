@@ -790,8 +790,6 @@ contains
     character(len=*),     intent(in)  :: aName
     integer(kind=TSIZEK), intent(out) :: aID
 
-    character(len=SUBNAME_LEN) :: subname = "mGetNameLL"
-    
     type (PQLL_tp), pointer :: iNode     ! intent(out)
     integer(kind=TSIZEK)    :: ii
     integer(kind=TERRK)     :: irc

@@ -16,7 +16,6 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-
 MODULE silo_mod
 
   IMPLICIT NONE
@@ -29,7 +28,7 @@ CONTAINS
 
     USE kinds_mod,   ONLY: ink
     USE integers_mod,ONLY: nMat,nEl,nNod
-    USE pointers_mod,ONLY: iElNod,iElMat,ndx,ndy
+    USE pointers_mod,ONLY: iElNod,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
     USE error_mod,   ONLY: halt
     USE paradef_mod, ONLY: NprocW,MprocW,rankW
     USE utils_f_mod, ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
@@ -47,36 +46,40 @@ CONTAINS
 &                                                   cHeaderFile='Top.silo'
     CHARACTER(LEN=SLEN),DIMENSION(:),ALLOCATABLE :: cMat
     INTEGER(KIND=ink),  DIMENSION(:),ALLOCATABLE :: iMat,lMat,iNodeList
-    CHARACTER(LEN=SLEN),DIMENSION(NprocW)        :: cName
+    CHARACTER(LEN=SLEN),DIMENSION(NprocW)        :: cTemp,cName
     INTEGER(KIND=ink),  DIMENSION(NprocW)        :: iName,iType
     INTEGER(KIND=ink),  DIMENSION(NSHAPE)        :: iShapeType,         &
 &                                                   iShapeSize,         &
 &                                                   iShapeCount
 
     ! make directory
-    iErr=utils_mkdir_f(TRIM(cDirName))
-    IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to make silo "  &
-&    //"directory",0)
+    IF (MProcW) THEN
+      iErr=utils_mkdir_f(TRIM(cDirName))
+      IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to make silo "&
+&      //"directory",0)
+    ENDIF
 
     ! remove deprecated warning messages
     iErr=DBSetDepWarn(0)
 
     ! header file on Master
     IF (MProcW) THEN
+      WRITE(6,*) 'Writing SILO file: '//TRIM(cDirName)
       ! open
       cString=TRIM(cDirName)//'/'//TRIM(cHeaderFile)
       iErr=DBCreate(TRIM(cString),LEN_TRIM(cString),DB_CLOBBER,DB_LOCAL,&
-&                   'SILO file from Bookleaf',23,DB_HDF5,iFileID)
+      &                   'SILO file from Bookleaf',23,DB_HDF5,iFileID)
       IF (iFileID.EQ.-1) CALL halt("ERROR: failed to create silo file",0)
       ! write mesh
       DO ii=1,NProcW
         WRITE(cNum,'(i4)') ii+999_ink
-        cString=TRIM(cDirName)//'/'//TRIM(cDataName)//cNum(2:4)//'.silo'
-        cName(ii)=TRIM(cString)//':MESH'
+        cTemp(ii)=TRIM(cDirName)//'/'//TRIM(cDataName)//cNum(2:4)//     &
+&        '.silo'
+        cName(ii)=TRIM(cTemp(ii))//':MESH'
         iName(ii)=LEN_TRIM(cName(ii))
         iType(ii)=DB_UCDMESH
       ENDDO
-      iErr=DBPutMMesh(iFileID,'MMESH',5,nProcW,cName,iName,iType,       &
+      iErr=DBPutMMesh(iFileID,'mesh',4,nProcW,cName,iName,iType,        &
 &                     DB_F77NULL,ii)
       ! write material
       ALLOCATE(iMat(nMat),cMat(nMat),lMat(nMat),STAT=iErr)
@@ -93,17 +96,50 @@ CONTAINS
       iErr=DBAddIOpt(iOptionID,DBOPT_NMATNOS,nMat)
       iErr=DBAddIOpt(iOptionID,DBOPT_MATNOS,iMat)
       iErr=DBAddCAOpt(iOptionID,DBOPT_MATNAMES,nMat,cMat,lMat)
-      iErr=DBAddCOpt(iOptionID,DBOPT_MMESH_NAME,'MMESH',5)
+      iErr=DBAddCOpt(iOptionID,DBOPT_MMESH_NAME,'mesh',4)
       DO ii=1,NProcW
-        WRITE(cNum,'(i4)') ii+999_ink
-        cString=TRIM(cDirName)//'/'//TRIM(cDataName)//cNum(2:4)//'.silo'
-        cName(ii)=TRIM(cString)//':MATERIAL'
+        cName(ii)=TRIM(cTemp(ii))//':MATERIAL'
         iName(ii)=LEN_TRIM(cName(ii))
       ENDDO
-      iErr=DBPutMMat(iFileID,'MMATERIAL',9,nProcW,cName,iName,          &
+      iErr=DBPutMMat(iFileID,'material',8,nProcW,cName,iName,           &
 &                    iOptionID,ii)
       iErr=DBFreeOptList(iOptionID)
       ! write variables
+      DO ii=1,NProcW
+        cName(ii)=TRIM(cTemp(ii))//':DENSITY'
+        iName(ii)=LEN_TRIM(cName(ii))
+        iType(ii)=DB_UCDVAR
+      ENDDO
+      iErr=DBPutMVar(iFileID,'density',7,nProcW,cName,iName,iType,      &
+&                    DB_F77NULL,ii)
+      DO ii=1,NProcW
+        cName(ii)=TRIM(cTemp(ii))//':INTERNAL_ENERGY'
+        iName(ii)=LEN_TRIM(cName(ii))
+        iType(ii)=DB_UCDVAR
+      ENDDO
+      iErr=DBPutMVar(iFileID,'internal_energy',15,nProcW,cName,iName,   &
+&                    iType,DB_F77NULL,ii)
+      DO ii=1,NProcW
+        cName(ii)=TRIM(cTemp(ii))//':PRESSURE'
+        iName=LEN_TRIM(cName(ii))
+        iType(ii)=DB_UCDVAR
+      ENDDO
+      iErr=DBPutMVar(iFileID,'pressure',8,nProcW,cName,iName,iType,     &
+&                    DB_F77NULL,ii)
+      DO ii=1,NProcW
+        cName(ii)=TRIM(cTemp(ii))//':X_VELOCITY'
+        iName(ii)=LEN_TRIM(cName(ii))
+        iType(ii)=DB_UCDVAR
+      ENDDO
+      iErr=DBPutMVar(iFileID,'x_velocity',10,nProcW,cName,iName,iType,  &
+&                    DB_F77NULL,ii)
+      DO ii=1,NProcW
+        cName(ii)=TRIM(cTemp(ii))//':Y_VELOCITY'
+        iName(ii)=LEN_TRIM(cName(ii))
+        iType(ii)=DB_UCDVAR
+      ENDDO
+      iErr=DBPutMVar(iFileID,'y_velocity',10,nProcW,cName,iName,iType,  &
+&                    DB_F77NULL,ii)
       ! close header file
       iErr=DBClose(iFileID)
     ENDIF
@@ -157,14 +193,26 @@ CONTAINS
     IF (iErr.NE.0) CALL halt("ERROR: failed to deallocate material for "&
 &    //"silo",0)
     ! write variables
+    iErr=DBPutUV1(iFileID,'DENSITY',7,'MESH',4,rho(1:nEl),nEl,          &
+&                 DB_F77NULL,0,DB_DOUBLE,DB_ZONECENT,DB_F77NULL,ii)
+    iErr=DBPutUV1(iFileID,'INTERNAL_ENERGY',15,'MESH',4,ein(1:nEl),nEl, &
+&                 DB_F77NULL,0,DB_DOUBLE,DB_ZONECENT,DB_F77NULL,ii)
+    iErr=DBPutUV1(iFileID,'PRESSURE',8,'MESH',4,pre(1:nEl),nEl,         &
+&                 DB_F77NULL,0,DB_DOUBLE,DB_ZONECENT,DB_F77NULL,ii)
+    iErr=DBPutUV1(iFileID,'X_VELOCITY',10,'MESH',4,ndu(1:nNod),nNod,    &
+&                 DB_F77NULL,0,DB_DOUBLE,DB_NODECENT,DB_F77NULL,ii)
+    iErr=DBPutUV1(iFileID,'Y_VELOCITY',10,'MESH',4,ndv(1:nNod),nNod,    &
+&                 DB_F77NULL,0,DB_DOUBLE,DB_NODECENT,DB_F77NULL,ii)
     ! close data file
     iErr=DBClose(iFileID)
 
     ! create symbolic link
-    iErr=utils_ln_f(TRIM(cDirName)//'/'//TRIM(cHeaderFile),             &
-&                   TRIM(cDirName)//'.silo')
-    IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to create silo "&
-&    //"link",0)
+    IF (MProcW) THEN
+      iErr=utils_ln_f(TRIM(cDirName)//'/'//TRIM(cHeaderFile),           &
+&                     TRIM(cDirName)//'.silo')
+      IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to create "   &
+&      //"silo link",0)
+    ENDIF
 
   END SUBROUTINE write_silo_dump
 

@@ -27,21 +27,20 @@ CONTAINS
   SUBROUTINE getein(nshape,nel,ein_out,dt,elfx,elfy,elu,elv)
 
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel1
     USE pointers_mod, ONLY: elmass,ein
     USE reals_mod,    ONLY: zerocut
-    USE timing_stats, ONLY: bookleaf_times
+    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                    INTENT(IN)  :: nshape,nel
-    REAL(KIND=rlk),DIMENSION(nel1),       INTENT(OUT) :: ein_out
-    REAL(KIND=rlk),                       INTENT(IN)  :: dt
-    REAL(KIND=rlk),DIMENSION(nshape,nel1),INTENT(IN)  :: elfx,elfy,elu,  &
-&                                                        elv
+    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel
+    REAL(KIND=rlk),DIMENSION(nel),       INTENT(OUT) :: ein_out
+    REAL(KIND=rlk),                      INTENT(IN)  :: dt
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)  :: elfx,elfy,elu,  &
+&                                                       elv
     ! Local
-    INTEGER(KIND=ink)                                 :: iel
-    REAL(KIND=rlk)                                    :: w1,t0,t1
+    INTEGER(KIND=ink)                                :: iel
+    REAL(KIND=rlk)                                   :: w1,t0,t1
 
     ! Timer
     t0=get_time()
@@ -54,15 +53,12 @@ CONTAINS
 &        elfx(2,iel)*elu(2,iel)+elfy(2,iel)*elv(2,iel)+                 &
 &        elfx(3,iel)*elu(3,iel)+elfy(3,iel)*elv(3,iel)+                 &
 &        elfx(4,iel)*elu(4,iel)+elfy(4,iel)*elv(4,iel)
-
       !# Missing code here that can't be merged
-
       w1=-w1/MAX(elmass(iel),zerocut)
       ein_out(iel)=ein(iel)+w1*dt
     ENDDO
 
     !# Missing code here that can't be merged
-
 
     ! Timing data
     t1=get_time()
