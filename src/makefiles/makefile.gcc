@@ -1,10 +1,10 @@
 # Compiler
 ifeq ($(NO_MPI),)
-FC=mpif90
-CC=mpicc
+  FC=mpif90
+  CC=mpicc
 else
-FC=gfortran
-CC=gcc
+  FC=gfortran
+  CC=gcc
 endif
 # Fortran to C interface
 F2C_DEF   = -DF2C_UNDERSCORE
@@ -16,6 +16,12 @@ FORM        = -ffree-form -std=f2003
 BIG_ENDIAN  = -fconvert=big-endian
 AUTO_ARRAYS = -fmax-stack-var-size=32768
 IEEE        =
+# Open MP
+ifeq ($(NO_OMP),)
+  OPENMP    = -fopenmp
+else
+  OPENMP    =
+endif
 # Debug flags
 ifeq ($(LEV),MEMDEBUG)
   DBG     = -g -O -Wunused -Wuninitialized -fbacktrace
@@ -52,6 +58,9 @@ ifeq ($(LEV),RELEASE)
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
-	 $(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+	 $(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)      \
+	 $(OPENMP)
 
 CFLAGS = -c $(CDBG) $(COPT)
+
+LFLAGS = $(DBG) $(OPT) $(OPENMP) -o

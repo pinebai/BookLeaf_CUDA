@@ -190,7 +190,7 @@ CONTAINS
 &                          accut,pcut,ccut,eos_param,mat_rho,mat_ein
     USE logicals_mod,ONLY: zdtnotreg,zmidlength
     USE strings_mod, ONLY: sfile
-    USE paradef_mod, ONLY: MprocW,NprocW
+    USE paradef_mod, ONLY: MprocW,NprocW,Nthread
     USE mesh_mod,    ONLY: mesh_print,regions
 
     ! Argument list
@@ -218,6 +218,11 @@ CONTAINS
 #else
       PRINT*,' MPI parallelism included'
       WRITE(6,'(a14,i5,a10)') '  Running on: ',NprocW,' MPI tasks'
+#endif
+#ifdef NOOMP
+      PRINT*,' No OpenMP threads used'
+#else
+      WRITE(6,'(a9,i5,a16)') '  Using: ',Nthread,' Open MP threads'
 #endif
 #ifdef MOD
       PRINT*,' Additional problem specific initialisation used'

@@ -1,10 +1,10 @@
 # Compiler
 ifeq ($(NO_MPI),)
-FC = mpif90
-CC = mpicc
+  FC = mpif90
+  CC = mpicc
 else
-FC = ifort
-CC = icc
+  FC = ifort
+  CC = icc
 endif
 # Fortran to C interface
 F2C_DEF   = -DF2C_UNDERSCORE
@@ -18,6 +18,12 @@ AUTO_ARRAYS  = -heap-arrays 64
 SHARED_INTEL = -shared-intel 
 #IEEE         = -fp-model precise -fp-model source #-mP2OPT_hlo_loop_unroll=false
 IEEE         = -fltconsistency
+# Open MP
+ifeq ($(NO_OMP),)
+  OPENMP = -openmp
+else
+  OPENMP =
+endif
 # Debug flags
 ifeq ($(LEV),MEMDEBUG)
   DBG     = -g -O0 -warn all -traceback
@@ -61,7 +67,9 @@ ifeq ($(LEV),RELEASE)
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
-	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)       \
+	$(OPENMP)
 
 CFLAGS = -c $(CDBG) $(COPT)
 
+LFLAGS = $(DBG) $(OPT) $(OPENMP) -o

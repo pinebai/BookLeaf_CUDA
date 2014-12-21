@@ -18,9 +18,11 @@
 
 PROGRAM main
 
+! Internal
+  USE kinds_mod,    ONLY: ink
   USE comms_mod,    ONLY: register
   USE error_mod,    ONLY: halt
-  USE paradef_mod,  ONLY: zparallel,MProcW
+  USE paradef_mod,  ONLY: zparallel,MProcW,Nthread
   USE timing_mod,   ONLY: bookleaf_times
   USE timers_mod,   ONLY: start_timers
   USE TYPH_util_mod,ONLY: get_time
@@ -29,17 +31,29 @@ PROGRAM main
 #ifdef SILO
   USE silo_mod,     ONLY: write_silo_dump
 #endif
+! External
+!#ifndef NOOMP
+  USE omp_lib
+!#endif
 
   IMPLICIT NONE
 
   ! mesh data
-  TYPE(regions),    DIMENSION(:),  ALLOCATABLE :: reg
+  TYPE(regions),DIMENSION(:),ALLOCATABLE :: reg
 
 ! ###################
 ! Parallelism
 ! ###################
 
+! MPI
   CALL init_parallel()
+
+! OpenMP
+#ifdef NOOMP
+  Nthread=1_ink
+#else
+  Nthread=OMP_Get_Max_Threads()
+#endif
 
 ! ###################
 ! TIMERS

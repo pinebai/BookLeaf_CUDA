@@ -28,6 +28,7 @@ SCPDIR  = $(SRCDIR)/putils
 
 # build info
 NO_MPI  =
+NO_OMP  =
 SILO    =
 DEP     =
 # Version
@@ -60,6 +61,7 @@ help:
 	#                DEFAULT RELEASE
 	#  MOD         - include problem specific initialisation modification, DEFAULT none
 	#  NO_MPI      - Do not compile MPI routines
+	#  NO_OMP      - Do not use OpenMP threads
 	#  SILO        - Compile Silo routines
 	#
 	# Commands:
@@ -113,6 +115,13 @@ else
     include $(SRCDIR)/comms/makefile.T1
   endif
 endif
+ifneq ($(NO_OMP),)
+  ifeq ($(MKFILEC), makefile.xl)
+    PP_OMP=-WF,-DNOOMP
+  else
+    PP_OMP=-DNOOMP
+  endif
+endif
 
 # Include dependencies
 ifneq (,$(findstring $(EXE),$(MAKECMDGOALS)))
@@ -126,6 +135,7 @@ VPATH=$(SRCDIR):$(MODDIR):$(SRCDIR)/comms:$(SRCDIR)/cutils
 PREPRO = $(PP_MOD)   \
 	 $(PP_MPI)   \
 	 $(PP_SILO)  \
+	 $(PP_OMP)
 
 CPREPRO = $(F2C_DEF)
 
@@ -149,13 +159,18 @@ LIB = 	$(SILOLIB)   \
 	$(CC) $(CFLAGS) $(CPREPRO) $<
 
 # Dependencies
+$(OBJ): | makefile.dep
+DEP+=makefile.dep
 
 # Commands
 $(EXE): $(DEP) $(OBJ)
-	$(FC) $(OBJ) $(LIB) -o $(EXENAME)
+	$(FC) $(OBJ) $(LIB) $(LFLAGS) $(EXENAME)
 
 clean:
 	- rm -f *.o
 	- rm -f *.mod
-	- rm -f $(EXE)
+	- rm -f $(EXENAME)
+	- rm -f makefile.dep
 
+makefile.dep:
+	$(SCPDIR)/depend.py -d $(SRCDIR) $(OBJ)

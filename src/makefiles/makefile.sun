@@ -1,10 +1,10 @@
 # Compiler
 ifeq ($(NO_MPI),)
-FC = mpif90
-CC = mpicc
+  FC = mpif90
+  CC = mpicc
 else
-FC = f90
-CC = cc
+  FC = f90
+  CC = cc
 endif
 
 # General flags
@@ -15,6 +15,12 @@ BIG_ENDIAN   = #-xfilebyteorder=big8
 AUTO_ARRAYS  = 
 SHARED_INTEL = 
 IEEE         = -fsimple=0 -fns=no
+# Open MP
+ifeq ($(NO_OMP),)
+  OPENMP = -xopenmp=parallel -vpara
+else
+  OPENMP = 
+endif
 # Debug flags
 ifeq ($(LEV),MEMDEBUG)
   DBG     = -g -O0
@@ -58,6 +64,9 @@ ifeq ($(LEV),RELEASE)
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
-	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)
+	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)       \
+	$(OPENMP)
 
 CFLAGS = -c $(CDBG) $(COPT)
+
+LFLAGS = $(DBG) $(OPT) $(OPENMP) -o

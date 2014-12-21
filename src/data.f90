@@ -43,6 +43,7 @@ MODULE integers_mod
   INTEGER(KIND=ink)               :: nel,nnod,nshape,nmat,nreg,nstep,   &
 &                                    nel1,nnod1,idtel,max_seg,max_subseg
   INTEGER(KIND=ink),DIMENSION(LI) :: eos_type
+
 END MODULE integers_mod
 
 MODULE reals_mod
@@ -89,7 +90,7 @@ MODULE paradef_mod
   USE kinds_mod,ONLY: ink,lok,rlk
 
   INTEGER(KIND=ink)                            :: NprocW,rankW,CommS,   &
-&                                                 CommW
+&                                                 CommW,Nthread
   LOGICAL(KIND=lok)                            :: zparallel,MprocW
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: e_loc_glob,n_loc_glob,&
 &                                                 ielsort1
