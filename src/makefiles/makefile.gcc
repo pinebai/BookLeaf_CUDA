@@ -14,7 +14,7 @@ REAL_SIZE   = -fdefault-real-8
 INT_SIZE    = 
 FORM        = -ffree-form -std=f2003
 BIG_ENDIAN  = -fconvert=big-endian
-AUTO_ARRAYS = -fmax-stack-var-size=32768
+AUTO_ARRAYS = 
 IEEE        =
 # Open MP
 ifeq ($(NO_OMP),)

@@ -64,6 +64,8 @@ MODULE reals_mod
   ! hourglass
   REAL(KIND=rlk)                 :: kappaall,pmeritall
   REAL(KIND=rlk),DIMENSION(LI)   :: kappareg,pmeritreg
+  ! ale
+  REAL(KIND=rlk)                 :: time_alemin,time_alemax
 
 END MODULE reals_mod  
 
@@ -80,7 +82,7 @@ MODULE logicals_mod
   USE kinds_mod,     ONLY: lok
   USE parameters_mod,ONLY: LI
 
-  LOGICAL(KIND=lok)               :: zhg,zsp
+  LOGICAL(KIND=lok)               :: zhg,zsp,zale,zaleon,zeul
   LOGICAL(KIND=lok),DIMENSION(LI) :: zdtnotreg,zmidlength
 
 END MODULE logicals_mod
@@ -106,7 +108,7 @@ MODULE pointers_mod
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE        :: ielreg,ielmat, &
 &                                                        indtype
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd
-  INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,TARGET :: ielnod
+  INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,TARGET :: ielnd
   REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE        :: rho,qq,csqrd,  &
 &                                                        pre,ein,elmass,&
 &                                                        elvol,a1,a2,a3,&

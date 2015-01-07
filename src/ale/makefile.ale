@@ -17,7 +17,9 @@
 #! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
 
-OBJ+= utils.o      \
-      utils_f.o
-#! explicit fortran to C dependency
-utils_f.o: utils.o
+OBJ+= ale_advect.o       \
+      ale_getmesh.o      \
+      ale_getvel.o       \
+      ale_update.o       \
+      alestep.o
+

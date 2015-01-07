@@ -970,7 +970,7 @@ CONTAINS
   SUBROUTINE mesh_transfer(reg)
 
     USE integers_mod,ONLY: nreg,nel,nnod
-    USE pointers_mod,ONLY: ndx,ndy,ielnod,ielreg,indtype,ielmat,ndu,ndv
+    USE pointers_mod,ONLY: ndx,ndy,ielnd,ielreg,indtype,ielmat,ndu,ndv
     USE error_mod,   ONLY: halt
 
     ! Argument list
@@ -1075,10 +1075,10 @@ CONTAINS
       DO kk=k1,k2-1
         DO ll=l1,l2-1
           ele_count=ele_count+1_ink
-          ielnod(1,ele_count)= ll       +(kk-1_ink)*l2
-          ielnod(3,ele_count)=(ll+1_ink)+ kk       *l2
-          ielnod(i1,ele_count)=ielnod(1,ele_count)+1_ink
-          ielnod(i2,ele_count)=ielnod(3,ele_count)-1_ink
+          ielnd(1,ele_count)= ll       +(kk-1_ink)*l2
+          ielnd(3,ele_count)=(ll+1_ink)+ kk       *l2
+          ielnd(i1,ele_count)=ielnd(1,ele_count)+1_ink
+          ielnd(i2,ele_count)=ielnd(3,ele_count)-1_ink
           ielreg(ele_count)=ireg
         ENDDO 
       ENDDO
@@ -1325,8 +1325,9 @@ CONTAINS
     USE error_mod,ONLY: halt
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
-    INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
+    TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,&
+&                                               k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,il,lm,lp,ll,li,l3,l4
     INTEGER(KIND=ink) :: kmin,kmax,ik,km,kp,kk,ki,k3,k4
@@ -1432,8 +1433,9 @@ CONTAINS
     USE parameters_mod,ONLY: two_pi,pi
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
-    INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
+    TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,&
+&                                               k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,ll,il,li,l3,l4,lm,lp
     INTEGER(KIND=ink) :: kmin,kmax,kk,ik,ki,k3,k4,km,kp

@@ -23,11 +23,11 @@ SUBROUTINE init_memory()
   USE logicals_mod,ONLY: zsp
   USE error_mod,   ONLY: halt
   USE paradef_mod, ONLY: ielsort1
-  USE pointers_mod,ONLY: ielreg,ielmat,ielnod,rho,qq,csqrd,pre,ein,cnwt, &
-&                        elmass,elvol,ndu,ndv,a1,a2,a3,b1,b2,b3,ndx,ndy, &
+  USE pointers_mod,ONLY: ielreg,ielmat,ielnd,rho,qq,csqrd,pre,ein,cnwt, &
+&                        elmass,elvol,ndu,ndv,a1,a2,a3,b1,b2,b3,ndx,ndy,&
 &                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,ielsd
-  USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,    &
-&                        rscratch25,rscratch26,rscratch27,rscratch11,    &
+  USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
+&                        rscratch25,rscratch26,rscratch27,rscratch11,   &
 &                        rscratch12,rscratch13,rscratch14,rscratch15
 
   IMPLICIT NONE
@@ -35,14 +35,15 @@ SUBROUTINE init_memory()
   ! Local
   INTEGER(KIND=ink) :: ierr,isz
 
-  ALLOCATE(ielreg(0:nel1),ielmat(0:nel1),ielnod(nshape,0:nel1),rho(0:nel1), &
-&          qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),elmass(0:nel1), &
-&          elvol(0:nel1),ndu(0:nnod1),ndv(0:nnod1),a1(0:nel1),a2(0:nel1),   &
-&          a3(0:nel1),b1(0:nel1),b2(0:nel1),b3(0:nel1),cnwt(nshape,0:nel1), &
-&          ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),ielel(nshape,0:nel1), &
-&          cnmass(nshape,0:nel1),elx(nshape,0:nel1),ely(nshape,0:nel1),     &
-&          qx(nshape,0:nel1),qy(nshape,0:nel1),ielsort1(nel1),              &
-&          ielsd(nshape,0:nel1),STAT=ierr)
+  ALLOCATE(ielreg(0:nel1),ielmat(0:nel1),ielnd(nshape,0:nel1),          &
+&          rho(0:nel1),qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),&
+&          elmass(0:nel1),elvol(0:nel1),ndu(0:nnod1),ndv(0:nnod1),      &
+&          a1(0:nel1),a2(0:nel1),a3(0:nel1),b1(0:nel1),b2(0:nel1),      &
+&          b3(0:nel1),ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),       &
+&          cnwt(nshape,0:nel1),cnmass(nshape,0:nel1),elx(nshape,0:nel1),&
+&          ely(nshape,0:nel1),qx(nshape,0:nel1),qy(nshape,0:nel1),      &
+&          ielel(nshape,0:nel1),ielsd(nshape,0:nel1),ielsort1(nel1),    &
+&          STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   isz=MAX(nel1,nnod1)
   ALLOCATE(rscratch11(0:isz),rscratch12(0:isz),rscratch13(0:isz),       &
@@ -65,7 +66,7 @@ SUBROUTINE init()
   USE logicals_mod, ONLY: zsp
   USE reals_mod,    ONLY: time,time_start,mat_rho,mat_ein
   USE pointers_mod, ONLY: ielmat,rho,ein,elmass,elvol,qq,qx,qy,pre,     &
-&                         csqrd,ndx,ndy,elx,ely,ielel,ielnod,ielsd,cnwt,&
+&                         csqrd,ndx,ndy,elx,ely,ielel,ielnd,ielsd,cnwt, &
 &                         cnmass,spmass,indtype
   USE geometry_mod, ONLY: getgeom
   USE getpc_mod,    ONLY: getpc
@@ -127,12 +128,12 @@ SUBROUTINE init()
   qy=0.0_rlk
 
   ! initialise connectivity
-  ielel(1:,1:nel1)=getconn(nel1,nshape,ielnod(1:,1:nel1))
+  ielel(1:,1:nel1)=getconn(nel1,nshape,ielnd(1:,1:nel1))
   ielsd(1:,1:nel1)=getsconn(nel1,nshape,ielel(1:,1:nel1))
 
   ! initialise node type
   DO iel=1,nel1
-    nodes(0:nshape-1)=ielnod(1:nshape,iel)
+    nodes(0:nshape-1)=ielnd(1:nshape,iel)
     IF (COUNT(indtype(nodes).LT.0_ink).EQ.3_ink) THEN
       l1:DO ii=0,nshape-1
         IF (indtype(nodes(ii)).GT.0_ink) EXIT l1
@@ -218,6 +219,7 @@ SUBROUTINE init_defaults()
   ! meshgen
   max_seg=50_ink
   max_subseg=5_ink
+  ! ale
 
 END SUBROUTINE init_defaults
 
@@ -248,7 +250,7 @@ SUBROUTINE init_parameters()
 
   USE kinds_mod,   ONLY: rlk,ink
   USE reals_mod,   ONLY: kappaall,kappareg,pmeritall,pmeritreg
-  USE logicals_mod,ONLY: zhg,zsp
+  USE logicals_mod,ONLY: zhg,zsp,zale
   USE integers_mod,ONLY: nreg,nshape
 
   IMPLICIT NONE
@@ -261,5 +263,13 @@ SUBROUTINE init_parameters()
   zsp=ANY(pmeritreg(1:nreg).GT.0.0_rlk)
   ! geometry
   nshape=4_ink
+  ! ale
+  zale=(time_alemin.LT.time_end).AND.(time_alemax.GT.time_start).AND.   &
+&      (time_alemax.GT.time_alemin)
+  IF (zale) THEN
+!    zeul=
+  ELSE
+    zeul=.FALSE._lok
+  ENDIF
 
 END SUBROUTINE init_parameters  

@@ -104,7 +104,7 @@ CONTAINS
 
     USE kinds_mod,     ONLY: ink,rlk
     USE utilities_mod, ONLY: gather
-    USE pointers_mod,  ONLY: a1,a2,a3,b1,b2,b3,elvol,cnwt,ielnod
+    USE pointers_mod,  ONLY: a1,a2,a3,b1,b2,b3,elvol,cnwt,ielnd
     USE error_mod,     ONLY: halt
     USE parameters_mod,ONLY: ONEBYNINE
     USE timing_mod,    ONLY: bookleaf_times
@@ -122,8 +122,8 @@ CONTAINS
     t0=get_time()
 
     ! Gather position to element
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndx(1),elx(1,1))
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndy(1),ely(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndx(1),elx(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndy(1),ely(1,1))
 
     ! Calculate volume and iso-parametric terms
     DO iel=1,nel

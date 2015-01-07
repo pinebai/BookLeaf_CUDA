@@ -30,7 +30,7 @@ CONTAINS
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE geometry_mod, ONLY: getgeom
     USE pointers_mod, ONLY: rho,elmass,elvol,ielmat,ein,pre,csqrd,      &
-&                           ndx,ndy,elx,ely,ndu,ndv,ielnod
+&                           ndx,ndy,elx,ely,ndu,ndv,ielnd
     USE getacc_mod,   ONLY: getacc
     USE getq_mod,     ONLY: getq
     USE getpc_mod,    ONLY: getpc
@@ -59,8 +59,8 @@ CONTAINS
     ! Predictor
     ! ##############
     dt05=0.5_rlk*dt
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndu(1),elu(1,1))
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndv(1),elv(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),elu(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),elv(1,1))
     ! Artificial viscosity
     CALL getq(nshape,nel,elx(1,1),ely(1,1),elu(1,1),elv(1,1),rho(1),    &
 &             pre(1),dx,dy,elfx,elfy,scratch)

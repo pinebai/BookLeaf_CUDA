@@ -75,6 +75,7 @@ SUBROUTINE read_files()
 &  pmeritall,pmeritreg
   NAMELIST /EOS/ eos_type,eos_param,mat_rho,mat_ein
   NAMELIST /CUTOFF/ ccut,zcut,zerocut,pcut,dencut,accut
+!  NAMELIST /ALE/
 
   ! Open control file
   OPEN(UNIT=IUNIT,FILE=sfile,ACTION='read',STATUS='old',                &
@@ -110,6 +111,14 @@ SUBROUTINE read_files()
   IF (zflag) THEN
     REWIND(UNIT=IUNIT)
     READ(UNIT=IUNIT,NML=CUTOFF,IOSTAT=ierr,IOMSG=str)
+    IF (ierr.NE.0_ink) CALL halt("ERROR: "//TRIM(str),0)
+  ENDIF
+
+  ! Find ale
+  zflag=findstr('ale',IUNIT)
+  IF (zflag) THEN
+    REWIND(UNIT=IUNIT)
+    READ(UNIT=IUNIT,NML=ALE,IOSTAT=ierr,IOMSG=str)
     IF (ierr.NE.0_ink) CALL halt("ERROR: "//TRIM(str),0)
   ENDIF
 

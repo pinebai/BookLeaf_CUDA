@@ -28,7 +28,7 @@ CONTAINS
 
     USE kinds_mod,   ONLY: ink
     USE integers_mod,ONLY: nMat,nEl,nNod
-    USE pointers_mod,ONLY: iElNod,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
+    USE pointers_mod,ONLY: iElNd,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
     USE error_mod,   ONLY: halt
     USE paradef_mod, ONLY: NprocW,MprocW,rankW
     USE utils_f_mod, ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
@@ -167,7 +167,7 @@ CONTAINS
     kk=1_ink
     DO ii=1,nEl
       DO jj=1,4
-        iNodeList(kk)=iElNod(jj,ii)
+        iNodeList(kk)=iElNd(jj,ii)
         kk=kk+1_ink
       ENDDO
     ENDDO

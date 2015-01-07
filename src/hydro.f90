@@ -20,7 +20,9 @@ SUBROUTINE hydro()
 
   USE kinds_mod,    ONLY: ink,rlk
   USE integers_mod, ONLY: nel,nstep,idtel
-  USE reals_mod,    ONLY: time,time_end,dt_initial
+  USE logicals_mod, ONLY: zale,zaleon
+  USE reals_mod,    ONLY: time,time_end,dt_initial,time_alemin,         &
+&                         time_alemax
   USE getdt_mod,    ONLY: getdt
   USE lagstep_mod,  ONLY: lagstep
   USE paradef_mod,  ONLY: MProcW
@@ -51,6 +53,9 @@ SUBROUTINE hydro()
     !# Code here that can't be taken out
     ! lagrangian step
     CALL lagstep(dt)
+    ! ale step
+    IF (zale) zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
+    IF (zaleon) CALL alestep(dt)
     !# Missing code here that can't be merged
     t1=get_time()
     grind=(t1-t0)*1.0e6_rlk/nel

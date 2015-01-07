@@ -23,6 +23,9 @@ MKFILEC = makefile.gcc
 MKFILEV = $(SRCDIR)/makefiles/makefile.VER
 # paths
 SRCDIR  = .
+ALEDIR  = $(SRCDIR)/ale
+COMDIR  = $(SRCDIR)/comms
+UTLDIR  = $(SRCDIR)/cutils
 MODDIR  = $(SRCDIR)/mods
 SCPDIR  = $(SRCDIR)/putils
 
@@ -79,6 +82,7 @@ endif
 # Include object list
 ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
   include $(SRCDIR)/makefile.OBJ
+  include $(ALEDIR)/makefile.ale
 endif
 
 # set pre-processor flags, adjust object list and dependency list
@@ -90,7 +94,7 @@ ifneq ($(SILO),)
   endif
   OBJ+=silo.o
   ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
-    include $(SRCDIR)/cutils/makefile.cutils
+    include $(UTLDIR)/makefile.cutils
   endif
 endif
 ifneq ($(MOD),)
@@ -103,7 +107,7 @@ ifneq ($(MOD),)
 endif
 ifeq ($(NO_MPI),)
   ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
-    include $(SRCDIR)/comms/makefile.T3
+    include $(COMDIR)/makefile.T3
   endif
 else
   ifeq ($(MKFILEC), makefile.xl)
@@ -112,7 +116,7 @@ else
     PP_MPI=-DNOMPI
   endif
   ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
-    include $(SRCDIR)/comms/makefile.T1
+    include $(COMDIR)/makefile.T1
   endif
 endif
 ifneq ($(NO_OMP),)
@@ -129,7 +133,7 @@ ifneq (,$(findstring $(EXE),$(MAKECMDGOALS)))
 endif
 
 # Source paths
-VPATH=$(SRCDIR):$(MODDIR):$(SRCDIR)/comms:$(SRCDIR)/cutils
+VPATH=$(SRCDIR):$(MODDIR):$(COMDIR):$(UTLDIR):$(ALEDIR)
 
 # Collect all pre-processor options
 PREPRO = $(PP_MOD)   \

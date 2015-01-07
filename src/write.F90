@@ -35,7 +35,7 @@ CONTAINS
 &                              TYPH_OP_MAX
     USE typh_util_mod,   ONLY: get_time
     USE paradef_mod,     ONLY: CommS,MProcW
-    USE pointers_mod,    ONLY: ielnod,ein,pre,rho,elvol,elmass,cnmass,  &
+    USE pointers_mod,    ONLY: ielnd,ein,pre,rho,elvol,elmass,cnmass,   &
 &                              ndu,ndv,ielreg,cnwt
 
     INTEGER(KIND=ink)                :: iel,ireg,ii,inod,ierr
@@ -94,7 +94,7 @@ CONTAINS
         IF (w4.LT.reg_dmn(ireg)) reg_dmn(ireg)=w4
       ENDIF
       DO ii=1,nshape
-        inod=ielnod(ii,iel)
+        inod=ielnd(ii,iel)
         w2=ndu(inod)
         w3=ndv(inod)
         IF (elmass(iel).GT.c1) THEN

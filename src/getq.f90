@@ -31,7 +31,7 @@ CONTAINS
     USE reals_mod,    ONLY: zerocut,cq1,cq2
     USE comms_mod,    ONLY: exchange,VISCOSITY
     USE paradef_mod,  ONLY: zparallel
-    USE pointers_mod, ONLY: ielnod,ielel,ielsd,indtype,qq,qx,qy,csqrd
+    USE pointers_mod, ONLY: ielnd,ielel,ielsd,indtype,qq,qx,qy,csqrd
     USE timing_mod,   ONLY: bookleaf_times
     USE typh_util_mod,ONLY: get_time
 
@@ -164,8 +164,8 @@ CONTAINS
         in1=ielel(iside,iel)
         in2=ielel(ins,iel)
         IF (in1.EQ.0_ink) THEN
-          ic1=ielnod(iside,iel)
-          ic2=ielnod(MOD(iside,nshape)+1_ink,iel)
+          ic1=ielnd(iside,iel)
+          ic2=ielnd(MOD(iside,nshape)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
 &          (in2.NE.0_ink)) THEN
             scratch(1,iel)=1.0_rlk
@@ -176,8 +176,8 @@ CONTAINS
           ENDIF
         ENDIF
         IF (in2.EQ.0_ink) THEN
-          ic1=ielnod(ins,iel)
-          ic2=ielnod(MOD(ins,nshape)+1_ink,iel)
+          ic1=ielnd(ins,iel)
+          ic2=ielnd(MOD(ins,nshape)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
 &          (in1.NE.0_ink)) THEN
             scratch(2,iel)=1.0_rlk

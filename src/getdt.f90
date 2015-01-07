@@ -33,7 +33,7 @@ CONTAINS
     USE logicals_mod,    ONLY: zdtnotreg,zmidlength
     USE paradef_mod,     ONLY: CommS,NProcW,zparallel
     USE pointers_mod,    ONLY: ielreg,rho,qq,csqrd,elx,ely,a1,a3,b1,b3, &
-&                              ielnod,elvol,ndu,ndv
+&                              ielnd,elvol,ndu,ndv
     USE scratch_mod,     ONLY: rscratch11,elu=>rscratch21,elv=>rscratch22
     USE geometry_mod,    ONLY: dlm,dln
     USE error_mod,       ONLY: halt
@@ -79,8 +79,8 @@ CONTAINS
     idtel=ii
     ! Divergence
     w2=TINY(1.0_rlk)
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndu(1),elv(1,1))
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndv(1),elu(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),elv(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),elu(1,1))
     DO iel=1,nel
       w1=elu(1,iel)*(-b3(iel)+b1(iel))+elv(1,iel)*( a3(iel)-a1(iel))+   &
 &        elu(2,iel)*( b3(iel)+b1(iel))+elv(2,iel)*(-a3(iel)-a1(iel))+   &

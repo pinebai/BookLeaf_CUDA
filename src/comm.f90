@@ -38,7 +38,7 @@ CONTAINS
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE paradef_mod,  ONLY: e_owner_proc,n_owner_proc,e_loc_glob,      &
 &                           n_loc_glob
-    USE pointers_mod, ONLY: cnmass,cnwt,ielnod
+    USE pointers_mod, ONLY: cnmass,cnwt,ielnd
     USE error_mod,    ONLY: halt
     USE scratch_mod,  ONLY: rscratch11,rscratch23,rscratch24,rscratch25,&
 &                           rscratch26
@@ -69,7 +69,7 @@ CONTAINS
     nnod_tot(0)=nnod
     nel_tot(1)=nel1
     nnod_tot(1)=nnod1
-    conn=>ielnod(:,1:)
+    conn=>ielnd(:,1:)
     ierr=TYPH_Set_Partition_Info(WHOLEMESH,4_TSIZEK,nglayer,nel_tot,    &
 &                                nnod_tot,e_owner_proc,n_owner_proc,    &
 &                                e_loc_glob,n_loc_glob,conn)

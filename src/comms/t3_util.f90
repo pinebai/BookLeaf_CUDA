@@ -531,11 +531,9 @@ contains
 
   end function ty_MemCheck
 
-  real(kind=rlk) function get_time()
+  real(kind=REALK) function get_time()
 
     use mpi
-    use kinds_mod, only: rlk
-
 
     get_time = MPI_WTIME()
 

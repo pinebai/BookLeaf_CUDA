@@ -31,7 +31,7 @@ CONTAINS
     USE reals_mod,    ONLY: zerocut,dencut,accut
     USE comms_mod,    ONLY: HALFSTEP,exchange
     USE paradef_mod,  ONLY: zparallel,ielsort1
-    USE pointers_mod, ONLY: ielnod,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy
+    USE pointers_mod, ONLY: ielnd,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy
     USE utilities_mod,ONLY: gather
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
@@ -70,7 +70,7 @@ CONTAINS
         ELSE
           iel=kk
         ENDIF
-        inod=ielnod(jj,iel)
+        inod=ielnd(jj,iel)
         IF (cnmass(jj,iel).GT.zerocut) THEN
           ndmass(inod)=ndmass(inod)+cnmass(jj,iel)
         ELSE
@@ -130,8 +130,8 @@ CONTAINS
       ndub(inod)=w1+dt05*ndub(inod)
       ndvb(inod)=w2+dt05*ndvb(inod)
     ENDDO
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndub(1),elu(1,1))
-    CALL gather(nshape,nel,nnod,ielnod(1,1),ndvb(1),elv(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndub(1),elu(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndvb(1),elv(1,1))
     !# Missing code here that can't be merged
     ! Update position
     DO inod=1,nnod
