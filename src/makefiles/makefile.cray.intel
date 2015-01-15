@@ -17,10 +17,10 @@ FORM         = -free
 #AUTO_ARRAYS  = -heap-arrays 64
 #SHARED_INTEL = -shared-intel 
 #IEEE         = -fp-model precise -fp-model source #-mP2OPT_hlo_loop_unroll=false
-IEEE         = -fltconsistency
+#IEEE         = -fltconsistency
 # Open MP
 ifeq ($(NO_OMP),)
-  OPENMP = -openmp
+  OPENMP =# -openmp
 else
   OPENMP =
 endif
@@ -61,8 +61,8 @@ ifeq ($(LEV),OPTDEBUG)
   IEEE   += -no-ftz
 endif
 ifeq ($(LEV),RELEASE)
-  OPT     = -O3#-O2 -finline-functions -unroll-aggressive -vec-report3 -opt-report 3
-  COPT    = -O3#-O2 -vec-report3 -opt-report 3
+  OPT     = #-O2 -finline-functions -unroll-aggressive -vec-report3 -opt-report 3
+  COPT    = #-O2 -vec-report3 -opt-report 3
 #  IEEE   += -no-ftz
 endif
 
