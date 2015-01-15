@@ -20,7 +20,7 @@ FORM         = -free
 #IEEE         = -fltconsistency
 # Open MP
 ifeq ($(NO_OMP),)
-  OPENMP =# -openmp
+  OPENMP = -openmp
 else
   OPENMP =
 endif
