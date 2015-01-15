@@ -29,6 +29,7 @@ CONTAINS
 
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: zerocut,cq1,cq2
+    USE parameters_mod,ONLY: N_SHAPE
     USE comms_mod,    ONLY: exchange,VISCOSITY
     USE paradef_mod,  ONLY: zparallel
     USE pointers_mod, ONLY: ielnod,ielel,ielsd,indtype,qq,qx,qy,csqrd
@@ -94,8 +95,8 @@ CONTAINS
     ENDIF
 
     ! Christiensen monotonic limit
-    DO iside=1,nshape/2_ink
-      is1=MOD(iside+2_ink,nshape)+1_ink
+    DO iside=1,N_SHAPE/2_ink
+      is1=MOD(iside+2_ink,N_SHAPE)+1_ink
       is2=iside+1_ink
       DO iel=1,nel
         ! connectivity
@@ -118,13 +119,13 @@ CONTAINS
         w1=(w1*uhat+w2*vhat)/SIGN(MAX(ABS(den),zerocut),den)
         w1=1.0_rlk/SIGN(MAX(ABS(w1),zerocut),w1)
         ins=ielsd(iside,iel)
-        ins=MOD(ins,nshape)+1_ink
+        ins=MOD(ins,N_SHAPE)+1_ink
         den=dx(ins,in1)*xhat+dy(ins,in1)*yhat
         w2=(du(ins,in1)*uhat+dv(ins,in1)*vhat)/                        &
 &        SIGN(MAX(ABS(den),zerocut),den)
         scratch(1,iel)=w2*w1
         ins=ielsd(iside+2_ink,iel)
-        ins=MOD(ins+2_ink,nshape)+1_ink
+        ins=MOD(ins+2_ink,N_SHAPE)+1_ink
         den=dx(ins,in2)*xhat+dy(ins,in2)*yhat
         w3=(du(ins,in2)*uhat+dv(ins,in2)*vhat)/                        &
 &        SIGN(MAX(ABS(den),zerocut),den)
@@ -146,13 +147,13 @@ CONTAINS
         w1=(w1*uhat+w2*vhat)/SIGN(MAX(ABS(den),zerocut),den)
         w1=1.0_rlk/SIGN(MAX(ABS(w1),zerocut),w1)
         ins=ielsd(iside,iel)
-        ins=MOD(ins+2_ink,nshape)+1_ink
+        ins=MOD(ins+2_ink,N_SHAPE)+1_ink
         den=dx(ins,in1)*xhat+dy(ins,in1)*yhat
         w2=(du(ins,in1)*uhat+dv(ins,in1)*vhat)/                         &
 &        SIGN(MAX(ABS(den),zerocut),den)
         scratch(3,iel)=w2*w1
         ins=ielsd(iside+2_ink,iel)
-        ins=MOD(ins,nshape)+1_ink
+        ins=MOD(ins,N_SHAPE)+1_ink
         den=dx(ins,in2)*xhat+dy(ins,in2)*yhat
         w3=(du(ins,in2)*uhat+dv(ins,in2)*vhat)/                         &
 &        SIGN(MAX(ABS(den),zerocut),den)
@@ -165,7 +166,7 @@ CONTAINS
         in2=ielel(ins,iel)
         IF (in1.EQ.0_ink) THEN
           ic1=ielnod(iside,iel)
-          ic2=ielnod(MOD(iside,nshape)+1_ink,iel)
+          ic2=ielnod(MOD(iside,N_SHAPE)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
 &          (in2.NE.0_ink)) THEN
             scratch(1,iel)=1.0_rlk
@@ -177,7 +178,7 @@ CONTAINS
         ENDIF
         IF (in2.EQ.0_ink) THEN
           ic1=ielnod(ins,iel)
-          ic2=ielnod(MOD(ins,nshape)+1_ink,iel)
+          ic2=ielnod(MOD(ins,N_SHAPE)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
 &          (in1.NE.0_ink)) THEN
             scratch(2,iel)=1.0_rlk
@@ -215,8 +216,8 @@ CONTAINS
     ENDDO
 
     ! Final Q calculation
-    DO iside=1,nshape
-      ins=MOD(iside,nshape)+1_ink
+    DO iside=1,N_SHAPE
+      ins=MOD(iside,N_SHAPE)+1_ink
       DO iel=1,nel
         w1=elx(iside,iel)
         w2=elx(ins,iel)
