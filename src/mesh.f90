@@ -1223,7 +1223,7 @@ CONTAINS
       WRITE(6,'(a63,1X,i4,a1,i4)') '   Region dimension:               '&
 &      //'                 region_dim ',reg(ii)%dim(2),'x',             &
 &      reg(ii)%dim(1)
-      WRITE(6,'(a63,e10.4)') '   Convergence tolerance:                '&
+      WRITE(6,'(a63,e28.4)') '   Convergence tolerance:                '&
 &      //'           region_tol ',reg(ii)%tol
       WRITE(6,'(a63,f10.6)') '   Convergence scaling factor:           '&
 &      //'            region_om ',reg(ii)%om
@@ -1233,18 +1233,18 @@ CONTAINS
         CASE(1_ink)
           WRITE(6,'(a63,i10)') '   Cartesian region velocity:          '&
 &          //'         region_vel_typ ',reg(ii)%vel_typ
-          WRITE(6,'(a63,e10.4)') '   X velocity:                       '&
+          WRITE(6,'(a63,e18.4)') '   X velocity:                       '&
 &          //'            region_vel(1) ',reg(ii)%vel(1)
-          WRITE(6,'(a63,e10.4)') '   Y velocity:                       '&
+          WRITE(6,'(a63,e180.4)') '   Y velocity:                       '&
 &          //'            region_vel(2) ',reg(ii)%vel(2)
         CASE(2_ink)
           WRITE(6,'(a63,i10)') '   Radial region velocity:             '&
 &          //'         region_vel_typ ',reg(ii)%vel_typ
-          WRITE(6,'(a63,e10.4)') '   Velocity:                         '&
+          WRITE(6,'(a63,e16.4)') '   Velocity:                         '&
 &          //'            region_vel(1) ',reg(ii)%vel(1)
-          WRITE(6,'(a63,e10.4)') '   X centre:                         '&
+          WRITE(6,'(a63,e16.4)') '   X centre:                         '&
 &          //'            region_vel(2) ',reg(ii)%vel(2)
-          WRITE(6,'(a63,e10.4)') '   Y centre:                         '&
+          WRITE(6,'(a63,e16.4)') '   Y centre:                         '&
 &          //'            region_vel(3) ',reg(ii)%vel(3) 
       END SELECT
       DO is=1,4
@@ -1256,7 +1256,7 @@ CONTAINS
               WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
 &               //'                ','      LINE'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',reg(ii)%side(is)%seg(it)%point(1),',',     &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
@@ -1265,33 +1265,33 @@ CONTAINS
               WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
 &               //'                ','     ARC_C'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(3_ink)
               WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
 &               //'                ','     ARC_A'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(4_ink)
               WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
 &               //'                ','     POINT'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    At    (',         &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    At    (',         &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),')'
             CASE(5_ink)
