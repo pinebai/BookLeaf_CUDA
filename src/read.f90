@@ -118,7 +118,7 @@ SUBROUTINE read_files()
   zflag=findstr('ale',IUNIT)
   IF (zflag) THEN
     REWIND(UNIT=IUNIT)
-    READ(UNIT=IUNIT,NML=ALE,IOSTAT=ierr,IOMSG=str)
+!    READ(UNIT=IUNIT,NML=ALE,IOSTAT=ierr,IOMSG=str)
     IF (ierr.NE.0_ink) CALL halt("ERROR: "//TRIM(str),0)
   ENDIF
 

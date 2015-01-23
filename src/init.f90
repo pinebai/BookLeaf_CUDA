@@ -20,7 +20,7 @@ SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
   USE integers_mod,ONLY: nshape,nel1,nnod1
-  USE logicals_mod,ONLY: zsp
+  USE logicals_mod,ONLY: zsp,zale
   USE error_mod,   ONLY: halt
   USE paradef_mod, ONLY: ielsort1
   USE pointers_mod,ONLY: ielreg,ielmat,ielnd,rho,qq,csqrd,pre,ein,cnwt, &
@@ -28,7 +28,8 @@ SUBROUTINE init_memory()
 &                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,ielsd
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
 &                        rscratch25,rscratch26,rscratch27,rscratch11,   &
-&                        rscratch12,rscratch13,rscratch14,rscratch15
+&                        rscratch12,rscratch13,rscratch14,rscratch15,   &
+&                        iscratch11
 
   IMPLICIT NONE
 
@@ -54,6 +55,10 @@ SUBROUTINE init_memory()
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   IF (zsp) THEN
     ALLOCATE(spmass(nshape,0:nel1),STAT=ierr)
+    IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
+  ENDIF
+  IF (zale) THEN
+    ALLOCATE(iscratch11(0:isz),STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
 
@@ -248,9 +253,10 @@ END SUBROUTINE init_parallel
 
 SUBROUTINE init_parameters()
 
-  USE kinds_mod,   ONLY: rlk,ink
-  USE reals_mod,   ONLY: kappaall,kappareg,pmeritall,pmeritreg
-  USE logicals_mod,ONLY: zhg,zsp,zale
+  USE kinds_mod,   ONLY: rlk,ink,lok
+  USE reals_mod,   ONLY: kappaall,kappareg,pmeritall,pmeritreg,time_end,&
+&                        time_start,time_alemin,time_alemax
+  USE logicals_mod,ONLY: zhg,zsp,zale,zeul
   USE integers_mod,ONLY: nreg,nshape
 
   IMPLICIT NONE

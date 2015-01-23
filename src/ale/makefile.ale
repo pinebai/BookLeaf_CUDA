@@ -18,8 +18,9 @@
 
 
 OBJ+= ale_advect.o       \
+      ale_advectors.o    \
+      ale_getfvol.o      \
       ale_getmesh.o      \
-      ale_getvel.o       \
       ale_update.o       \
       alestep.o
 

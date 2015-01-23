@@ -122,20 +122,21 @@ END MODULE pointers_mod
 
 MODULE scratch_mod
 
-  USE kinds_mod,ONLY: rlk
+  USE kinds_mod,ONLY: rlk,ink
 
-  REAL(KIND=rlk),DIMENSION(:),  ALLOCATABLE,TARGET :: rscratch11,       &
-&                                                     rscratch12,       &
-&                                                     rscratch13,       &
-&                                                     rscratch14,       &
-&                                                     rscratch15
-  REAL(KIND=rlk),DIMENSION(:,:),ALLOCATABLE,TARGET :: rscratch21,       &
-&                                                     rscratch22,       &
-&                                                     rscratch23,       &
-&                                                     rscratch24,       &
-&                                                     rscratch25,       &
-&                                                     rscratch26,       &
-&                                                     rscratch27
+  REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE,TARGET :: rscratch11,    &
+&                                                        rscratch12,    &
+&                                                        rscratch13,    &
+&                                                        rscratch14,    &
+&                                                        rscratch15
+  REAL(KIND=rlk),   DIMENSION(:,:),ALLOCATABLE,TARGET :: rscratch21,    &
+&                                                        rscratch22,    &
+&                                                        rscratch23,    &
+&                                                        rscratch24,    &
+&                                                        rscratch25,    &
+&                                                        rscratch26,    &
+&                                                        rscratch27
+  INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE,TARGET :: iscratch11
 
 END MODULE scratch_mod
 

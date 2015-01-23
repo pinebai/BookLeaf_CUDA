@@ -24,7 +24,36 @@ MODULE ale_update_mod
 
 CONTAINS
 
-  SUBROUTINE aleupdate
+  SUBROUTINE aleupdate(nshape,nel,nnod,ndx,ndy,elx,ely,elmass,rho,pre,  &
+&                      ein,csqrd,ielmat)    
+
+    USE kinds_mod,   ONLY: ink,rlk
+    USE pointers_mod,ONLY: elvol
+    USE geometry_mod,ONLY: getgeom
+    USE getpc_mod,   ONLY: getpc
+
+    ! Argument list
+    INTEGER(KIND=ink),                      INTENT(IN)  :: nshape,nel,  &
+&                                                          nnod
+    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(IN)  :: ndx,ndy
+    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: elx,ely
+    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(IN)  :: elmass,ein
+    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(OUT) :: rho,pre,csqrd
+    INTEGER(KIND=ink),DIMENSION(nel),       INTENT(IN)  :: ielmat
+    ! Local
+    INTEGER(KIND=ink) :: iel
+
+    ! update geometry
+    CALL getgeom(nshape,nel,nnod,ndx,ndy,elx,ely)
+
+    ! update density to be consistent with geometry
+    DO iel=1,nel
+      rho(iel)=elmass(iel)/elvol(iel)
+    ENDDO
+
+    ! update EoS
+    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1))
+
   END SUBROUTINE aleupdate
 
 END MODULE ale_update_mod

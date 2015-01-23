@@ -26,7 +26,7 @@ CONTAINS
 
   SUBROUTINE alegetmesh(nnod,indstatus)
 
-    USE kinds_mod,   ONLY: nnod
+    USE kinds_mod,   ONLY: ink
     USE logicals_mod,ONLY: zeul
 
     ! Argument list
@@ -37,7 +37,7 @@ CONTAINS
 
     IF (zeul) THEN
       DO inod=1,nnod
-        indstatus(inod)=1_ink
+        indstatus(inod)=2_ink
       ENDDO
     ELSE
     ENDIF

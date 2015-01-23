@@ -25,6 +25,7 @@ SUBROUTINE hydro()
 &                         time_alemax
   USE getdt_mod,    ONLY: getdt
   USE lagstep_mod,  ONLY: lagstep
+  USE alestep_mod,  ONLY: alestep
   USE paradef_mod,  ONLY: MProcW
   USE timing_mod,   ONLY: bookleaf_times
   USE TYPH_util_mod,ONLY: get_time
@@ -54,8 +55,10 @@ SUBROUTINE hydro()
     ! lagrangian step
     CALL lagstep(dt)
     ! ale step
-    IF (zale) zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
-    IF (zaleon) CALL alestep(dt)
+    IF (zale) THEN
+      zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
+      IF (zaleon) CALL alestep(nstep,dt)
+    ENDIF
     !# Missing code here that can't be merged
     t1=get_time()
     grind=(t1-t0)*1.0e6_rlk/nel
