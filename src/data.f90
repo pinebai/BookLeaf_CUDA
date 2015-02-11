@@ -42,7 +42,8 @@ MODULE integers_mod
   USE parameters_mod,ONLY: LI
 
   INTEGER(KIND=ink)               :: nel,nnod,nshape,nmat,nreg,nstep,   &
-&                                    nel1,nnod1,idtel,max_seg,max_subseg
+&                                    nel1,nnod1,nel2,nnod2,idtel,       &
+&                                    max_seg,max_subseg
   INTEGER(KIND=ink),DIMENSION(LI) :: eos_type
 
 END MODULE integers_mod

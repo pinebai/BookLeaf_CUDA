@@ -40,7 +40,7 @@ PROGRAM main
 
   ! mesh data
   TYPE(regions),DIMENSION(:),ALLOCATABLE :: reg
-
+  INTEGER(kind=ink)                      :: ink
 ! ###################
 ! Parallelism
 ! ###################
@@ -102,10 +102,16 @@ PROGRAM main
   CALL init_parameters()
 
 ! setup memory
-  CALL init_memory()
+  CALL init_mesh_memory()
 
 ! Transfer mesh onto solution arrays, populate connectivity arrays
   CALL mesh_transfer(reg)
+
+! partition the mesh and transfer the data to the new chunks
+  CALL partition_mesh(nl,nk)
+ 
+! setup memory
+  CALL init_memory()
 
 ! register comms
   IF (zparallel) THEN

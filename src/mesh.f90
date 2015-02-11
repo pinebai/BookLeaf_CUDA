@@ -61,13 +61,13 @@ MODULE mesh_mod
 
 CONTAINS
 
-  SUBROUTINE mesh_gen(reg)
+  SUBROUTINE mesh_gen(reg,nk,nl)
     
     USE integers_mod,ONLY: nel,nel1,nnod,nnod1
 
     ! Argument list
-    TYPE(regions),    DIMENSION(:),  ALLOCATABLE   :: reg
-
+    TYPE(regions), DIMENSION(:), ALLOCATABLE :: reg
+    INTEGER(kind=ink),           INTENT(OUT) :: nk,nl
     ! read control file
     CALL read_input(reg)
 
@@ -75,7 +75,7 @@ CONTAINS
     CALL check_input(reg)
 
     ! Generate region meshes
-    CALL reg_mesh(reg)
+    CALL reg_mesh(reg,nk,nl)
 
     ! Until decomposition, copy size
     nel1=nel
@@ -496,7 +496,7 @@ CONTAINS
 
   END SUBROUTINE check_input
 
-  SUBROUTINE reg_mesh(reg)
+  SUBROUTINE reg_mesh(reg,no_k,no_l)
 
     USE integers_mod, ONLY: nreg,nel,nnod
     USE reals_mod,    ONLY: zerocut
@@ -504,8 +504,8 @@ CONTAINS
 
     ! Argument list
     TYPE(regions),DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: reg
-    ! Local
-    INTEGER(KIND=ink) :: no_l,no_k,ll,kk,lm,lp,km,kp,no_seg,no_it,      &
+    INTEGER(KIND=ink),                     INTENT(OUT)   :: no_k,no_l
+    INTEGER(KIND=ink) :: ll,kk,lm,lp,km,kp,no_seg,no_it,       &
 &                        max_no_it,ireg,ind,i1,i2,l1,l2,k1,k2
     REAL(KIND=rlk)    :: tl0,tl1,tk0,tk1,wl0,wl1,wk0,wk1,ww,fac,dr,ds,  &
 &                        tol,om,r1,r2,r3,r4,r5,r6,r7,r8,s1,s2,s3,s4,s5, &
@@ -519,7 +519,7 @@ CONTAINS
       ALLOCATE(reg(ireg)%rr(1:no_l,1:no_k))
       ALLOCATE(reg(ireg)%ss(1:no_l,1:no_k))
       ALLOCATE(reg(ireg)%bc(1:no_l,1:no_k))
-      reg(ireg)%rr(1:no_l,1:no_k)=0.0_rlk
+      reg(ireg)%rr(1:no_l,1:no_k)=0.0_rlks
       reg(ireg)%ss(1:no_l,1:no_k)=0.0_rlk
       reg(ireg)%bc(1:no_l,1:no_k)=0_ink
       ALLOCATE(reg(ireg)%merged(1:no_l,1:no_k))

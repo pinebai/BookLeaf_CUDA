@@ -16,6 +16,26 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
+SUBROUTINE init_mesh_memory()
+
+  ! initialises temporary memory to hold the full unpartitioned mesh
+  ! these will be reallocated once the mesh is partitioned
+  USE kinds_mod,   ONLY: ink
+  USE integers_mod,ONLY: nshape,nel,nnod
+  USE error_mod,   ONLY: halt
+  USE pointers_mod,ONLY: ielreg,ielmat,ielnod,ndu,ndv,ndx,ndy,indtype
+
+  IMPLICIT NONE
+
+  ! Local
+  INTEGER(KIND=ink) :: ierr
+
+  ALLOCATE(ielreg(0:nel),ielmat(0:nel),ielnod(nshape,0:nel),ndu(0:nnod), &
+&          ndv(0:nnod),ndx(0:nnod),ndy(0:nnod),indtype(0:nnod),STAT=ierr)
+  IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
+
+END SUBROUTINE init_mesh_memory
+
 SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
@@ -35,14 +55,17 @@ SUBROUTINE init_memory()
   ! Local
   INTEGER(KIND=ink) :: ierr,isz
 
-  ALLOCATE(ielreg(0:nel1),ielmat(0:nel1),ielnod(nshape,0:nel1),rho(0:nel1), &
-&          qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),elmass(0:nel1), &
-&          elvol(0:nel1),ndu(0:nnod1),ndv(0:nnod1),a1(0:nel1),a2(0:nel1),   &
-&          a3(0:nel1),b1(0:nel1),b2(0:nel1),b3(0:nel1),cnwt(nshape,0:nel1), &
-&          ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),ielel(nshape,0:nel1), &
-&          cnmass(nshape,0:nel1),elx(nshape,0:nel1),ely(nshape,0:nel1),     &
-&          qx(nshape,0:nel1),qy(nshape,0:nel1),ielsort1(nel1),              &
-&          ielsd(nshape,0:nel1),STAT=ierr)
+!   ALLOCATE(ielreg(0:nel1),ielmat(0:nel1),ielnod(nshape,0:nel1),rho(0:nel1), &
+! &          qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),elmass(0:nel1), &
+! &          elvol(0:nel1),ndu(0:nnod1),ndv(0:nnod1),a1(0:nel1),a2(0:nel1),   &
+! &          a3(0:nel1),b1(0:nel1),b2(0:nel1),b3(0:nel1),cnwt(nshape,0:nel1), &
+! &          ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),ielel(nshape,0:nel1), &
+  ALLOCATE(rho(0:nel1),qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),    &
+&          elmass(0:nel1),elvol(0:nel1),a1(0:nel1),a2(0:nel1),a3(0:nel1),   &
+&          b1(0:nel1),b2(0:nel1),b3(0:nel1),cnwt(nshape,0:nel1),            &
+&          ielel(nshape,0:nel1),cnmass(nshape,0:nel1),elx(nshape,0:nel1),   &
+&          ely(nshape,0:nel1),qx(nshape,0:nel1),qy(nshape,0:nel1),          &
+&          ielsort1(nel1),ielsd(nshape,0:nel1),STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   isz=MAX(nel1,nnod1)
   ALLOCATE(rscratch11(0:isz),rscratch12(0:isz),rscratch13(0:isz),       &
