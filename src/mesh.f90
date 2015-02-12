@@ -1325,7 +1325,7 @@ CONTAINS
     USE error_mod,ONLY: halt
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
+    TYPE(regions),DIMENSION(:) :: reg
     INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,il,lm,lp,ll,li,l3,l4
@@ -1432,7 +1432,7 @@ CONTAINS
     USE parameters_mod,ONLY: two_pi,pi
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
+    TYPE(regions),DIMENSION(:) :: reg
     INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,ll,il,li,l3,l4,lm,lp
