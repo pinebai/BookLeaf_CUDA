@@ -56,6 +56,15 @@ ifeq ($(LEV),RELEASE)
   OPT     = -O2 -funroll-loops -ftree-vectorize
   COPT    = -O2 -ftree-vectorize
 endif
+ifeq ($(LEV),OPT)
+  OPT     =
+  COPT    =
+#Disable following for OPT
+  BIG_ENDIAN   =
+  AUTO_ARRAYS  =
+  SHARED_INTEL =
+  IEEE         =
+endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
 	 $(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)      \
