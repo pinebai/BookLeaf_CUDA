@@ -53,6 +53,16 @@ ifeq ($(LEV),RELEASE)
   COPT    =
   IEEE   += 
 endif
+ifeq ($(LEV),OPT)
+  OPT     = -ra
+  COPT    = -ra
+#Disable following for OPT
+  BIG_ENDIAN   =
+  AUTO_ARRAYS  =
+  SHARED_INTEL =
+  IEEE         =
+endif
+
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \
 	$(SHARED_INTEL) $(IEEE) $(DBG) $(CHECK) $(OPT) $(FLTTRAP)       \
