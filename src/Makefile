@@ -42,9 +42,9 @@ endif
 
 # Determine level
 ifeq ($(LEV),)
-  LEV=RELEASE
+  LEV=OPT
 endif
-FIND_LEV=$(findstring $(LEV),MEMDEBUG DEBUG TV MEMTV OPTDEBUG RELEASE)
+FIND_LEV=$(findstring $(LEV),MEMDEBUG DEBUG TV MEMTV OPTDEBUG RELEASE OPT)
 ifeq ($(FIND_LEV),)
   $(error Unknown build level)
 endif
@@ -57,8 +57,8 @@ help:
 	#  MKFILEC     - compiler specific makefile, DEFAULT makefile.intel
 	#  MKFILEV     - override default list of library versions
 	#  SRCDIR      - path to source directory,   DEFAULT .
-	#  LEV         - build level, options: MEMDEBUG,DEBUG,TV,MEMTV,OPTDEBUG,RELEASE,
-	#                DEFAULT RELEASE
+	#  LEV         - build level, options: MEMDEBUG,DEBUG,TV,MEMTV,OPTDEBUG,RELEASE,OPT
+	#                DEFAULT OPT
 	#  MOD         - include problem specific initialisation modification, DEFAULT none
 	#  NO_MPI      - Do not compile MPI routines
 	#  NO_OMP      - Do not use OpenMP threads
