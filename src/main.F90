@@ -20,7 +20,11 @@ PROGRAM main
 
 ! Internal
   USE kinds_mod,    ONLY: ink
+#ifdef NOMPI
+  USE comms_mod,    ONLY: register
+#else
   USE comms_mod,    ONLY: register,partition_mesh
+#endif
   USE error_mod,    ONLY: halt
   USE paradef_mod,  ONLY: zparallel,MProcW,Nthread,NprocW
   USE timing_mod,   ONLY: bookleaf_times
@@ -108,10 +112,12 @@ PROGRAM main
 ! Transfer mesh onto solution arrays, populate connectivity arrays
   CALL mesh_transfer(reg)
 
+#ifndef NOMPI
 ! partition the mesh and transfer the data to the new chunks
   IF (zparallel) THEN
     CALL partition_mesh(nl,nk,nprocW)
   ENDIF
+#endif
 
 ! setup memory
   CALL init_memory()

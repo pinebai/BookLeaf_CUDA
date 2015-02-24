@@ -32,7 +32,10 @@ MODULE comms_mod
   INTEGER(KIND=ink), PARAMETER                 :: NGSTLAY=2_ink
 
   PRIVATE
-  PUBLIC :: register,exchange,rcb,VISCOSITY,HALFSTEP,partition_mesh
+  PUBLIC :: register,exchange,VISCOSITY,HALFSTEP
+#ifndef NOMPI
+  PUBLIC :: partition_mesh
+#endif
 
 CONTAINS
 
@@ -172,6 +175,7 @@ CONTAINS
 
   END SUBROUTINE exchange
 
+#ifndef NOMPI
   SUBROUTINE partition_mesh(nl,nk,nprocW)
     USE integers_mod, ONLY: nel,nel1,nnod,nnod1
     USE timing_mod,   ONLY: bookleaf_times
@@ -248,9 +252,7 @@ CONTAINS
 &                           n_loc_glob,rankW,MprocW,zparallel
     USE pointers_mod, ONLY: ielnod
     USE error_mod,    ONLY: halt
-#ifndef NOMPI
     USE mpi
-#endif
 
     INTEGER(KIND=ink),              INTENT(IN)   :: nl,nk,nprocW
     INTEGER(KIND=ink),DIMENSION(nl,nk),INTENT(IN):: icolour
@@ -270,8 +272,7 @@ CONTAINS
     INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE :: pariel,parnod,nodiel,nodbdy,ielnodg
     INTEGER(KIND=ink),DIMENSION(3,0:NprocW-1)    :: n_on_proc,n_on_proc_t
 
-!   NEED TO CONVERT COLOUR to local cell ID
-
+!   convert rcb output to 1D array
     ALLOCATE(ielpar(nl*nk))
     k=0
     DO jj=1,nk
@@ -302,6 +303,7 @@ CONTAINS
     ielnodg=ielnod(:,1:neltot)
     DEALLOCATE(ielnod)
 
+    ! calculate parllel loop extents
     nelavg=neltot/NProcW
     nnodavg=nnodtot/NProcW
     IF (zparallel) THEN
@@ -321,9 +323,8 @@ CONTAINS
       nnodhigh=nnodtot
     ENDIF
 
-    ! calculate element to node connectivity
+    ! calculate node to element connectivity
     ALLOCATE(nodiel(nnodtot,nshape))
-    ! now calculate connectivity
     nnodiel=0_ink
     nodiel =0_ink
     DO iel=1,neltot
@@ -335,7 +336,7 @@ CONTAINS
     ENDDO
 
     nnod_on_proc =0_ink
-    nnod0_on_proc =0_ink
+    nnod0_on_proc=0_ink
     nel_on_proc  =0_ink
 
     DO iproc=0,NProcW-1
@@ -406,7 +407,6 @@ CONTAINS
       ENDDO
     ENDDO
 
-#ifndef NOMPI
     IF (zparallel) THEN
       n_on_proc(1,:)=nel_on_proc
       n_on_proc(2,:)=nnod_on_proc
@@ -417,7 +417,6 @@ CONTAINS
       nnod_on_proc=n_on_proc_t(2,:)
       nnod0_on_proc=n_on_proc_t(3,:)
     ENDIF
-#endif
     nnod=nnod0_on_proc(rankW)
 
     DEALLOCATE(nod_on_proc,nod_tmp,nnod0_on_proc)
@@ -776,6 +775,7 @@ CONTAINS
     DEALLOCATE(gndx,gndy,gndu,gndv,gielreg,gindtype,gielmat)
 
   END SUBROUTINE transfer_partition
+#endif
 
 END MODULE comms_mod
 
