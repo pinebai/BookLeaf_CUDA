@@ -7,8 +7,7 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
-Currently Bookleaf is a serial application, although MPI routines are included.
-A mesh partitioning routine is yet to be added.
+The partitioner branch of Bookleaf allows for in-situ mesh partitioning.
 
 
 ## BookLeaf Build Procedure
