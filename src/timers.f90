@@ -47,6 +47,8 @@ CONTAINS
     bookleaf_times%time_in_getein= 0.0_rlk
     bookleaf_times%time_in_eos   = 0.0_rlk
     bookleaf_times%time_in_geom  = 0.0_rlk
+    bookleaf_times%time_in_mshgen= 0.0_rlk
+    bookleaf_times%time_in_mshprt= 0.0_rlk
     bookleaf_times%time_in_comreg= 0.0_rlk
     bookleaf_times%time_in_comms = 0.0_rlk
     bookleaf_times%time_in_colls = 0.0_rlk
@@ -78,6 +80,10 @@ CONTAINS
         w3=bookleaf_times%time_in_comreg
         WRITE(6,ft) '   time in register         ',w3,w3*fac,' %'
       ENDIF
+      w3=bookleaf_times%time_in_mshgen
+      WRITE(6,ft) '   time in mesh gen         ',w3,w3*fac,' %'
+      w3=bookleaf_times%time_in_mshprt
+      WRITE(6,ft) '   time in mesh partition   ',w3,w3*fac,' %'
       WRITE(6,ft) ' time in main loop          ',w1,w1*fac,' %'
       w3=bookleaf_times%time_in_getdt
       WRITE(6,ft) '   time in getdt            ',w3,w3*fac,' %'

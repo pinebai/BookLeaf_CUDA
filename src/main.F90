@@ -20,9 +20,9 @@ PROGRAM main
 
 ! Internal
   USE kinds_mod,    ONLY: ink
-  USE comms_mod,    ONLY: register
+  USE comms_mod,    ONLY: register,partition_mesh
   USE error_mod,    ONLY: halt
-  USE paradef_mod,  ONLY: zparallel,MProcW,Nthread
+  USE paradef_mod,  ONLY: zparallel,MProcW,Nthread,NprocW
   USE timing_mod,   ONLY: bookleaf_times
   USE timers_mod,   ONLY: start_timers
   USE TYPH_util_mod,ONLY: get_time
@@ -40,7 +40,8 @@ PROGRAM main
 
   ! mesh data
   TYPE(regions),DIMENSION(:),ALLOCATABLE :: reg
-  INTEGER(kind=ink)                      :: ink
+  INTEGER(kind=ink)                      :: nk,nl
+
 ! ###################
 ! Parallelism
 ! ###################
@@ -89,7 +90,7 @@ PROGRAM main
   CALL read_files()
 
 ! generate mesh from input
-  CALL mesh_gen(reg)
+  CALL mesh_gen(reg,nk,nl)
 
 ! print input
   CALL write_iprint(reg)
@@ -108,8 +109,10 @@ PROGRAM main
   CALL mesh_transfer(reg)
 
 ! partition the mesh and transfer the data to the new chunks
-  CALL partition_mesh(nl,nk)
- 
+  IF (zparallel) THEN
+    CALL partition_mesh(nl,nk,nprocW)
+  ENDIF
+
 ! setup memory
   CALL init_memory()
 
@@ -127,7 +130,7 @@ PROGRAM main
   ENDIF
 
 ! problem specific modifications
-#ifdef MOD
+#ifdef MODY
   CALL modify()
 #endif
 

@@ -19,23 +19,25 @@
 MODULE comms_mod
 
   USE Typhon
+  USE kinds_mod,    ONLY: rlk,ink,lok
 
   IMPLICIT NONE
 
+  INTEGER(KIND=ink)    :: neltot,nnodtot
   INTEGER(KIND=TSIZEK) :: VISCOSITY,HALFSTEP
   INTEGER(KIND=TSIZEK) :: key_comm_cells,key_comm_nodes
-  INTEGER(KIND=TSIZEK) :: cnmassID,cnwtID,elfxID,elfyID,rho05ID,duID,   &
+  INTEGER(KIND=TSIZEK) :: cnmassID,cnwtID,elfxID,elfyID,rho05ID,duID,  &
 &                         dvID,dxID,dyID
   INTEGER(KIND=ink),DIMENSION(:),ALLOCATABLE   :: nodproc,nnodiel
+  INTEGER(KIND=ink), PARAMETER                 :: NGSTLAY=2_ink
 
   PRIVATE
-  PUBLIC :: register,exchange,rcb,VISCOSITY,HALFSTEP
+  PUBLIC :: register,exchange,rcb,VISCOSITY,HALFSTEP,partition_mesh
 
 CONTAINS
 
   SUBROUTINE register()
 
-    USE kinds_mod,    ONLY: rlk,ink
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE paradef_mod,  ONLY: e_owner_proc,n_owner_proc,e_loc_glob,      &
 &                           n_loc_glob
@@ -150,7 +152,6 @@ CONTAINS
 
   SUBROUTINE exchange(comm_phase)
 
-    USE kinds_mod,    ONLY: rlk
     USE typh_util_mod,ONLY: get_time
     USE timing_mod,   ONLY: bookleaf_times
 
@@ -171,23 +172,33 @@ CONTAINS
 
   END SUBROUTINE exchange
 
-  SUBROUTINE partition_mesh(nl,nk)
-    INTEGER(KIND=ink), INTENT(IN) :: nl,nk
-    INTEGER(KIND=ink) :: npartl,nparth,ipart
+  SUBROUTINE partition_mesh(nl,nk,nprocW)
+    USE integers_mod, ONLY: nel,nel1,nnod,nnod1
+    USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod,ONLY: get_time
+    INTEGER(KIND=ink), INTENT(INOUT) :: nl,nk,nprocW
+    INTEGER(KIND=ink) :: npartl,nparth,ipart,neltot,nnodtot
     INTEGER(KIND=ink),DIMENSION(nl,nk) :: icolour
+    REAL(KIND=rlk)                     :: t0,t1
+
+    t0 = get_time()
 
     npartl=0_ink
-    npartl=NProcW-1
+    nparth=nprocW-1
     ipart=-1_ink
     icolour=-1_ink
-    CALL rcb(nl,nk,npartl,nparth,ipart,icolour)
-    CALL partition(nl,nk,icolour)
-    CALL transfer_partition(nel1,nnod1)
+    CALL rcb((nl-1_ink),(nk-1_ink),npartl,nparth,ipart,icolour)
+    CALL partition((nl-1_ink),(nk-1_ink),icolour,nprocW)
+    CALL transfer_partition(nel,nel1,nnod,nnod1)
+
+    ! Timing data
+    t1 = get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_mshprt=bookleaf_times%time_in_mshprt+t1
+
   END SUBROUTINE partition_mesh
 
   RECURSIVE SUBROUTINE rcb(nl,nk,npartl,nparth,ipart,icolour)
-
-    USE kinds_mod,ONLY: ink
 
     ! Argument list
     INTEGER(KIND=ink),                 INTENT(IN)    :: nl,nk,npartl,   &
@@ -230,175 +241,214 @@ CONTAINS
 
   END SUBROUTINE rcb
 
-  SUBROUTINE partition(nl,nk,icolour)
+  SUBROUTINE partition(nl,nk,icolour,nprocW)
 
+    USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE paradef_mod,  ONLY: e_owner_proc,n_owner_proc,e_loc_glob,      &
-&                           n_loc_glob
+&                           n_loc_glob,rankW,MprocW,zparallel
     USE pointers_mod, ONLY: ielnod
-    INTEGER(KIND=ink),                 INTENT(IN):: nl,nk
+    USE error_mod,    ONLY: halt
+#ifndef NOMPI
+    USE mpi
+#endif
+
+    INTEGER(KIND=ink),              INTENT(IN)   :: nl,nk,nprocW
     INTEGER(KIND=ink),DIMENSION(nl,nk),INTENT(IN):: icolour
     ! local
-    INTEGER(KIND=ink), PARAMETER                 :: NGSTLAY=2_ink
-    INTEGER(KIND=ink)                            :: iproc,ii,k,igst,node,np
-    INTEGER(KIND=ink)                            :: iel,inod
-    INTEGER(KIND=ink)                            :: inodp,nnodp
+    INTEGER(KIND=ink)                            :: iproc,ii,jj,k,kk,igst,node,nn,np
+    INTEGER(KIND=ink)                            :: iel,inod,iown,ierr
+    INTEGER(KIND=ink)                            :: nel_proc,nnod_proc
+    INTEGER(KIND=ink)                            :: nelavg,nellow,nelhigh
+    INTEGER(KIND=ink)                            :: nnodavg,nnodlow,nnodhigh
+    INTEGER(KIND=ink)                            :: inodp,nnodp,nnodbdy,iowner
     LOGICAL(KIND=lok),DIMENSION(:),  ALLOCATABLE :: el_on_proc,nod_on_proc
     LOGICAL(KIND=lok),DIMENSION(:),  ALLOCATABLE :: el_tmp,nod_tmp
-    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: nel_on_proc,nnod_on_proc
-    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: ielproc,inodproc,ielpar
-    INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE :: pariel,nodiel,nodbdy
-    LOGICAL(KIND=lok),DIMENSION(:,:),ALLOCATABLE :: nelghost,nnodghost
-    INTEGER(KIND=ink),DIMENSION(:,:),POINTER     :: ielnodg=>NULL()  ! global connectivity
+    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: nel_on_proc,nnod_on_proc,nnod0_on_proc
+    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: nnodproc,nodowner,nod_glob_loc
+    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: ielproc,ielpar
+    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: nelghost,nnodghost
+    INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE :: pariel,parnod,nodiel,nodbdy,ielnodg
+    INTEGER(KIND=ink),DIMENSION(3,0:NprocW-1)    :: n_on_proc,n_on_proc_t
 
 !   NEED TO CONVERT COLOUR to local cell ID
 
     ALLOCATE(ielpar(nl*nk))
     k=0
-    DO ii=1,nl
-      DO jj=1,nk
+    DO jj=1,nk
+      DO ii=1,nl
         k=k+1
         ielpar(k)=icolour(ii,jj) 
       ENDDO
     ENDDO
 
     ! calculate sizes on each proc
-    nel_tot = nel
-    nnod_tot= nnod
+    neltot = nel
+    nnodtot= nnod
 
-    ALLOCATE(nod_on_proc(nnod_tot))     ! node is on this proc?
-    ALLOCATE(nnod_on_proc(0:NProcW))    ! number of nodes on proc
-    ALLOCATE(nod_tmp(nnod_tot))         ! scratch
-    ALLOCATE(el_on_proc(nel_tot))       ! element is on this proc?
-    ALLOCATE(nel_on_proc(0:NProcW))     ! number of elements on proc
-    ALLOCATE(el_tmp(nel_tot))           ! scratch
-    ALLOCATE(pariel(0:NProcW,nel_tot))  ! global el  id across procs
-    ALLOCATE(parnod(0:NProcW,nnod_tot)) ! global nod id across procs 
-    ALLOCATE(nodproc(nnod_tot))         ! processor owning node
-    ALLOCATE(nnodiel(nnod_tot))         ! element to node connectivity
+    ALLOCATE(nod_on_proc(nnodtot))     ! node is on this proc?
+    ALLOCATE(nnod_on_proc(0:NProcW-1)) ! number of nodes on proc
+    ALLOCATE(nnod0_on_proc(0:NProcW-1)) ! number of non-ghost nodes on proc
+    ALLOCATE(nod_tmp(nnodtot))         ! scratch
+    ALLOCATE(el_on_proc(neltot))       ! element is on this proc?
+    ALLOCATE(nel_on_proc(0:NProcW-1))  ! number of elements on proc
+    ALLOCATE(el_tmp(neltot))           ! scratch
+    ALLOCATE(pariel(0:NProcW-1,neltot))  ! global el  id across procs
+    ALLOCATE(parnod(0:NProcW-1,nnodtot)) ! global nod id across procs 
+    ALLOCATE(nodproc(nnodtot))         ! processor owning node
+    ALLOCATE(nnodiel(nnodtot))         ! element to node connectivity
 
-    ! point to global ielnod. Will reuse ielnod itself for local data
-    ielnodg=>ielnod
-    NULLIFY(ielnod)
+    ! copy global ielnod. will reuse ielnod for local data
+    ALLOCATE(ielnodg(nshape,neltot))
+    ielnodg=ielnod(:,1:neltot)
+    DEALLOCATE(ielnod)
+
+    nelavg=neltot/NProcW
+    nnodavg=nnodtot/NProcW
+    IF (zparallel) THEN
+      nellow=(rankW*nelavg)+1
+      nnodlow=(rankW*nnodavg)+1
+      IF (rankW.NE.NprocW-1) THEN
+        nelhigh=(rankW*nelavg)+nelavg
+        nnodhigh=(rankW*nnodavg)+nnodavg
+      ELSE
+        nelhigh=neltot
+        nnodhigh=nnodtot
+      ENDIF
+    ELSE
+      nellow=1_ink
+      nelhigh=neltot
+      nnodlow=1_ink
+      nnodhigh=nnodtot
+    ENDIF
 
     ! calculate element to node connectivity
-!     nnodiel=0_ink
-!     ! first, get sizes for allocation
-!     DO ii=1,nel_tot
-!       DO k=1,nshape
-!         node=ielnodg(k,ii)
-!         nnodiel(node)=nnodiel(node)+1_ink
-!       ENDDO
-!     ENDDO
-!     ALLOCATE(nodiel(nnod_tot,MAXVAL(nnodiel)))  ! nnodiel = nshape?
-    ALLOCATE(nodiel(nnod_tot,nshape))  ! nnodiel = nshape?
+    ALLOCATE(nodiel(nnodtot,nshape))
     ! now calculate connectivity
     nnodiel=0_ink
-    DO ii=1,nel_tot
+    nodiel =0_ink
+    DO iel=1,neltot
       DO k=1,nshape
-        node=ielnodg(k,ii)
+        node=ielnodg(k,iel)
         nnodiel(node)=nnodiel(node)+1_ink
-        nodiel(node,nnodiel(node))=ii
+        nodiel(node,nnodiel(node))=iel
       ENDDO
     ENDDO
-        
-    nnod_on_proc=0_ink
-    nel_on_proc =0_ink
+
+    nnod_on_proc =0_ink
+    nnod0_on_proc =0_ink
+    nel_on_proc  =0_ink
 
     DO iproc=0,NProcW-1
       el_on_proc  =.FALSE.
       nod_on_proc =.FALSE.
       el_tmp      =.FALSE.
       nod_tmp     =.FALSE.
-      DO ii=1,nel_tot
-        IF (ielpar(ii)==iproc) THEN
-          el_on_proc(ii)=.TRUE.
+      DO iel=1,neltot
+        IF (ielpar(iel)==iproc) THEN
+          el_on_proc(iel)=.TRUE.
           nel_on_proc(iproc)=nel_on_proc(iproc)+1_ink
-          pariel(iproc,nel_on_proc(iproc)=ii
+          pariel(iproc,nel_on_proc(iproc))=iel
           DO k=1,nshape
-            node=ielnodg(k,ii)
-            nod_on_proc(iproc)=.TRUE.
+            node=ielnodg(k,iel)
+            nod_on_proc(node)=.TRUE.
           ENDDO
         ENDIF
       ENDDO
-      DO ii=1,nnod_tot
-        IF (nod_on_proc(iproc)) THEN
+      DO inod=nnodlow,nnodhigh
+        IF (nod_on_proc(inod)) THEN
           nnod_on_proc(iproc)=nnod_on_proc(iproc)+1_ink
         ENDIF
       ENDDO
+
       IF (rankW==iproc) THEN
-        nel  = nel_on_proc(iproc)
-        nnod = nnod_on_proc(iproc)
+        nel =nel_on_proc(iproc)
       ENDIF
-      IF (MProcW) THEN
-        WRITE(6,'(3(A8,I8))') "   Rank=",iproc,"    nel=", nel, "   nnod=",nnod
-      ENDIF
+      nnod0_on_proc(iproc)=nnod_on_proc(iproc)
 
     ! now redo count, but include ghosts
-      nnod_on_proc=0_ink
-      nel_on_proc =0_ink
-
+      nnod_on_proc(iproc)=0_ink
+      nel_on_proc(iproc) =0_ink
+      el_tmp=el_on_proc
       DO igst=1,NGSTLAY  ! two layers of ghosts
-        DO ii=1,nel_tot
+        DO iel=nellow,nelhigh
+          IF (el_tmp(iel)) CYCLE ! is existing real or prev level ghost
           DO k=1,nshape
-            node=ielnodg(k,ii)
-            IF (nod_on_proc(iproc)) THEN
-              el_tmp(ii)=.TRUE.
+            node=ielnodg(k,iel)
+            IF (nod_on_proc(node)) THEN
+              ! if any surrounding node is on proc element must be on proc
+              el_tmp(iel)=.TRUE.
+              EXIT
             ENDIF
           ENDDO
         ENDDO
-        DO ii=1,nel_tot
-          IF (el_tmp(ii)) THEN
+        DO iel=nellow,nelhigh
+          IF (el_tmp(iel)) THEN
             DO k=1,nshape
-              node=ielnodg(k,ii)
-              nod_tmp(ii)=.TRUE.
+              node=ielnodg(k,iel)
+              ! connected node must be on proc
+              nod_tmp(node)=.TRUE.
             ENDDO
           ENDIF
         ENDDO
-        nod_on_proc=nod_tmp
         el_on_proc =el_tmp
+        nod_on_proc=nod_tmp
       ENDDO
 
-      DO ii=1,nel_tot
-        IF (el_on_proc(ii)) THEN
+      DO iel=nellow,nelhigh
+        IF (el_on_proc(iel)) THEN
           nel_on_proc(iproc)=nel_on_proc(iproc)+1_ink
         ENDIF
       ENDDO
-      DO ii=1,nnod_tot
-        IF (nod_on_proc(ii)) THEN
+      DO inod=nnodlow,nnodhigh
+        IF (nod_on_proc(inod)) THEN
           nnod_on_proc(iproc)=nnod_on_proc(iproc)+1_ink
         ENDIF
       ENDDO
-      IF (MProcW) THEN
-        WRITE(6,'(3(A8,I8))') "   Rank=",iproc,"  nel+g=", nel_on_proc, " nnod+g=",nnod_on_proc
-      ENDIF
     ENDDO
-    ! Max no. elements and nodes
-    maxel  = MAX(nel_on_proc)
-    maxnod = MAX(nnod_on_proc)
 
-    DEALLOCATE(nod_on_proc,nod_tmp)
-    DEALLOCATE(el_on_proc,el_tmp)        
+#ifndef NOMPI
+    IF (zparallel) THEN
+      n_on_proc(1,:)=nel_on_proc
+      n_on_proc(2,:)=nnod_on_proc
+      n_on_proc(3,:)=nnod0_on_proc
+      CALL MPI_ALLREDUCE(n_on_proc,n_on_proc_t,3*NprocW,MPI_INTEGER, &
+                         MPI_SUM,MPI_COMM_WORLD,ierr)
+      nel_on_proc=n_on_proc_t(1,:)
+      nnod_on_proc=n_on_proc_t(2,:)
+      nnod0_on_proc=n_on_proc_t(3,:)
+    ENDIF
+#endif
+    nnod=nnod0_on_proc(rankW)
 
-    ALLOCATE(nnodproc(0:NprocW-1),nodbdy(nshape,nnod_tot),nodpart3(nnod_tot))
+    DEALLOCATE(nod_on_proc,nod_tmp,nnod0_on_proc)
+    DEALLOCATE(el_on_proc,el_tmp)
 
-    nnodbody=0_ink
-    nodbdy  =-1_ink  ! partitioner sanity checker
-    nodproc =0_ink
-    nodpart3(node)=-1_ink  ! holds node equivalent of ielpar
+    ALLOCATE(nnodproc(0:NprocW-1),nodbdy(nshape,nnodtot),nodowner(nnodtot))
+
+    nnodbdy=0_ink
+    nodbdy =-1_ink  ! partitioner sanity checker
+    nodproc=0_ink   ! processor that node is on (negative = boundary node, value=owner+/-1)
+    nnodproc=0_ink
+    nodowner=-1_ink  ! holds node equivalent of ielpar
 
     DO iproc=0,NProcW-1
-      DO ii=1,nel_tot
-        DO k=1,nshape
-          node=ielnodg(k,ii)
-          IF (ielpar(ii)==iproc) THEN
+      DO ii=1,neltot
+        IF (ielpar(ii)==iproc) THEN
+          shapeloop: DO k=1,nshape
+            node=ielnodg(k,ii)
             np=nodproc(node)
             ! has this node been registered on another partition (ie on a boundary?)
-            IF (np.NE.0_ink.AND.np.NE.iproc+1) THEN
-              nodproc(node)=-ABS(iproc+1)
+            IF (np.NE.0_ink.AND.np.NE.iproc+1) THEN  ! shared (boundary) node
+              IF (iproc.LT.(ABS(nodproc(node))-1)) THEN
+                iown=-(iproc+1_ink)
+              ELSE
+                iown=-ABS(nodproc(node))
+              ENDIF
+              nodproc(node)=iown ! lowest proc owns this boundary node
               np=nodproc(node)
               ! Check that it hasn't already been registered
-              DO nn=1,nnodproc(iproc-1)
-                IF (parnod(iproc,nn)==node) CYCLE
+              DO nn=1,nnodproc(iproc)
+                IF (parnod(iproc,nn)==node) CYCLE shapeloop
               ENDDO
               ! if not add it to the stack
               nnodproc(iproc)=nnodproc(iproc)+1_ink
@@ -409,7 +459,7 @@ CONTAINS
                 PRINT*,"ERROR: Node",node," on more than nshape procs"
                 CALL halt("Error in partitioner",1,zend=.true.)
               ENDIF
-              DO k=1,nshape
+              DO kk=1,nshape
                 IF (nodbdy(kk,nnodbdy)==-1_ink) THEN
                   nodbdy(kk,nnodbdy)=iproc
                   EXIT
@@ -421,12 +471,12 @@ CONTAINS
               nnodproc(iproc)=nnodproc(iproc)+1_ink
               parnod(iproc,nnodproc(iproc))=node
             ENDIF
-            ! if nodpart3 already has an entry assume lowest iproc owns node. Else:
-            IF (.NOT.(nodpart3(node).NE.-1_ink .AND. nodpart3(node).NE.iproc)) THEN
-              nodpart3(node)=iproc  
+            ! if nodowner already has an entry assume lowest iproc owns node. Else:
+            IF (.NOT.(nodowner(node).NE.-1_ink .AND. nodowner(node).NE.iproc)) THEN
+              nodowner(node)=iproc
             ENDIF
-          ENDIF
-        ENDDO
+          ENDDO shapeloop
+        ENDIF
       ENDDO
     ENDDO
 
@@ -434,33 +484,31 @@ CONTAINS
 
     ALLOCATE(nelghost(NGSTLAY))
     ALLOCATE(nnodghost(NGSTLAY))
-    DO iproc=0,NProcW-1
-      nel_proc=nel_on_proc(iproc)
-      nnod_proc=nnod_on_proc(iproc)
-      ALLOCATE(ielproc(nel_proc))
-      ALLOCATE(inodproc(nnod_proc))
-      ielproc =pariel(iproc,1:nel_proc)
-      inodproc=parnod(iproc,1:nnod_proc)
-      CALL get_ghosts(iproc,nelghost,nnodghost,ielproc,inodproc)
-      DEALLOCATE(ielproc,inodproc)
-    ENDDO
+    nelghost =0_ink
+    nnodghost=0_ink
+    nel_proc=nel_on_proc(rankW)
+    nnod_proc=nnod_on_proc(rankW)
+    CALL get_ghosts(nshape,rankW,nelghost,nnodghost, &
+&                   ielpar,nnodproc,nel_proc,   &
+&                   nnod_proc,pariel,parnod,nodiel,ielnodg)
 
-    nel1=nelghost(1)+nel
-!    nel2=nelghost(2)+nel1
-    nnod1=nnodghost(1)+nnod
-!    nnod2=nnodghost(2)+nnod1
+    nel1=nelghost(1)
+!    nel2=nelghost(2)
+    nnod1=nnodghost(1)
+!    nnod2=nnodghost(2)
     DEALLOCATE(nelghost,nnodghost)
     DEALLOCATE(nodiel,nnodiel,nodproc)
 
     ! New local connectivity
-    ALLOCATE(ielnod(nshape,nel_on_proc))
-    ALLOCATE(nod_glob_loc(nnod_tot))
+    ALLOCATE(ielnod(nshape,0:nel1))
+    ALLOCATE(nod_glob_loc(nnodtot))
+    ielnod=0_ink
     nod_glob_loc=0_ink
-    DO ii=1,nnod_on_proc(rankW)
+    DO ii=1,nnod1
       nod_glob_loc(parnod(rankW,ii))=ii
     ENDDO
     DO k=1,nshape
-      DO ii=1,nel_on_proc(rankW)
+      DO ii=1,nel1
         iel=pariel(rankW,ii)
         node=ielnodg(k,iel)
         jj=nod_glob_loc(node)
@@ -472,60 +520,72 @@ CONTAINS
 
     ! ownership of elements and nodes for comms and local to global mapping
 
-    ALLOCATE(e_owner_proc(2,nel_on_proc(rankW)))
-    ALLOCATE(e_loc_glob(nel_on_proc(rankW)))
-    DO iel=1,nel_on_proc(rankW)
+    ALLOCATE(e_owner_proc(2,nel1))
+    ALLOCATE(e_loc_glob(nel1))
+    e_owner_proc=-2000000_ink
+    e_loc_glob=-2000000_ink
+    DO iel=1,nel1
       e_loc_glob(iel)=pariel(rankW,iel)
       iowner=ielpar(e_loc_glob(iel))
       e_owner_proc(1,iel)=iowner
       IF (iowner==rankW) THEN
         e_owner_proc(2,iel)=iel
       ELSE
-        DO jj=1,nel_on_proc(iowner)
+        DO jj=1,neltot
           IF (pariel(iowner,jj)==e_loc_glob(iel)) THEN
             e_owner_proc(2,iel)=jj
+            EXIT
           ENDIF
         ENDDO
       ENDIF
     ENDDO
 
-    ALLOCATE(n_owner_proc(2,nnod_on_proc(rankW)))
-    ALLOCATE(n_loc_glob(nnod_on_proc(rankW)))
-    DO inod=1,nnod_on_proc(rankW)
+    ALLOCATE(n_owner_proc(2,nnod1))
+    ALLOCATE(n_loc_glob(nnod1))
+    n_owner_proc=-2000000_ink
+    n_loc_glob=-2000000_ink
+    DO inod=1,nnod1
       n_loc_glob(inod)=parnod(rankW,inod)
-      iowner=nodpart3(n_loc_glob(inod))
+      iowner=nodowner(n_loc_glob(inod))
       n_owner_proc(1,inod)=iowner
       IF (iowner==rankW) THEN
-        n_owner_proc(2,inod)=iel
+        n_owner_proc(2,inod)=inod
       ELSE
-        DO jj=1,nnod_on_proc(iowner)
+        DO jj=1,nnodtot
           IF (parnod(iowner,jj)==n_loc_glob(inod)) THEN
             n_owner_proc(2,inod)=jj
+            EXIT
           ENDIF
         ENDDO
       ENDIF
     ENDDO
 
-    DEALLOCATE(ielpar,pariel,nodpart3,parnod,nel_on_proc,nnod_on_proc)
+    DEALLOCATE(ielpar,pariel,nodowner,parnod,nel_on_proc,nnod_on_proc)
 
   END SUBROUTINE partition 
 
-  SUBROUTINE get_ghosts(iproc,nelghost,nnodghost,ielpar,ielproc,inodproc)
+  SUBROUTINE get_ghosts(nshape,iproc,nelghost,nnodghost,ielpar, &
+                        nnodproc,nel_proc,nnod_proc,pariel,parnod,nodiel,ielnod)
+    USE integers_mod, ONLY: nel,nnod
+    USE paradef_mod,  ONLY: rankW
     ! Find ghosts for this proc
-    INTEGER(KIND=ink), INTENT(IN) :: iproc
-    INTEGER(KIND=ink),DIMENSION(:),             INTENT(IN)  :: ielproc,inodproc,ielpar
-    INTEGER(KIND=ink),DIMENSION(:),ALLOCATABLE, INTENT(OUT) :: nelghost,nnodghost
+    INTEGER(KIND=ink), INTENT(IN) :: nshape,iproc,nel_proc,nnod_proc
+    INTEGER(KIND=ink),DIMENSION(:),              INTENT(IN)   :: ielpar
+    INTEGER(KIND=ink),DIMENSION(:),              INTENT(IN)   :: nnodproc
+    INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE,INTENT(INOUT):: nelghost,nnodghost
+    INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,INTENT(INOUT):: pariel,parnod,nodiel
+    INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,INTENT(IN)   :: ielnod
 
-    INTEGER(KIND=ink) :: ii,iel,jj,k,kk,node,nel_proc,nnod_proc
+    INTEGER(KIND=ink) :: ii,iel,jj,k,kk,node,nelprev,nnodprev,nelbnd
+    INTEGER(KIND=ink),DIMENSION(:),ALLOCATABLE :: ielprocbdy
     LOGICAL(KIND=lok),DIMENSION(:),ALLOCATABLE :: zelproc, znodproc
-    LOGICAL(KIND=lok),DIMENSION(:),ALLOCATABLE :: zelghost,znodghost
+    LOGICAL(KIND=lok),DIMENSION(:,:),ALLOCATABLE :: zelghost,znodghost
 
-    ALLOCATE(zelproc(nel_tot))
-    ALLOCATE(znodproc(nnod_tot))
-    nel_proc=nel_on_proc(iproc)
-    nnod_proc=nnod_on_proc(iproc)
-    ALLOCATE(zelghost(nel_proc))
-    ALLOCATE(znodghost(nnod_proc))
+    ALLOCATE(ielprocbdy(neltot))
+    ALLOCATE(zelproc(neltot))
+    ALLOCATE(znodproc(nnodtot))
+    ALLOCATE(zelghost(0:NGSTLAY-1,neltot))
+    ALLOCATE(znodghost(0:NGSTLAY-1,nnodtot))
 
     ielprocbdy=0_ink
     zelproc  =.FALSE.
@@ -535,13 +595,11 @@ CONTAINS
 
     ! find all elements at the processor boundary and put into ielprocbdy
     ielprocbdy=0_ink
-    DO iel=1,nel_tot
+    DO iel=1,neltot
       IF (ielpar(iel)==iproc) THEN
-        zelghost(0_ink,iel)=.TRUE.   ! zeroth level element. needed later
         zelproc(iel)=.TRUE.
         DO k=1,nshape
           node=ielnod(k,iel)
-          znodghost(0_ink,iel)=.TRUE.   ! zeroth level node. needed later
           znodproc(node)=.TRUE.
         ENDDO
       ENDIF
@@ -549,8 +607,8 @@ CONTAINS
 
     kk=0_ink
 
-    el_loop: DO ii=1,nel_proc
-      iel=ielproc(ii)
+    el_loop: DO ii=1,nel
+      iel=pariel(iproc,ii)
       DO k=1,nshape
         node=ielnod(k,iel)
         IF (nodproc(node).LT.0) THEN
@@ -563,32 +621,52 @@ CONTAINS
         ENDIF
       ENDDO
     ENDDO el_loop
-    nelprev=kk
-    call get_ghost_layer(1,nelprev,nnodprev,ielprocbdy,zelghost,znodghost)
-    nelghost(1,iproc)=nelprev
-    nnodghost(iproc)=nnodprev
-    call get_ghost_layer(2,nelprev,nnodprev,ielprocbdy,zelghost,znodghost)
-    nelghost(2,iproc)=nelprev
-    nnodghost(2,iproc)=nnodprev
+    nelprev=nel
+    nnodprev=nnod
+    nelbnd=kk
+    call get_ghost_layer(0,nel_proc,nnod_proc,nshape,nelprev,nnodprev,nelbnd,ielprocbdy,zelghost, &
+&                        znodghost,parnod,pariel,nodiel,nnodproc,ielnod,ielpar,znodproc)
+    nelghost(1)=nelprev
+    nnodghost(1)=nnodprev
+    call get_ghost_layer(1,nel_proc,nnod_proc,nshape,nelprev,nnodprev,nelbnd,ielprocbdy,zelghost, &
+&                        znodghost,parnod,pariel,nodiel,nnodproc,ielnod,ielpar,znodproc)
+    nelghost(2)=nelprev
+    nnodghost(2)=nnodprev
 
-    DEALLOCATE(ielproc,inodproc,zelghost,znodghost,ielprocbdy)
+    DEALLOCATE(zelghost,znodghost,ielprocbdy)
 
-  END SUBROUTINE get_ghosts  
+  END SUBROUTINE get_ghosts
 
-  SUBROUTINE get_ghost_layer(ilayer,nelprev,nnodprev,iboundlist,zelghost,znodghost)
-    INTEGER(KIND=ink),                INTENT(IN)    :: ilayer
-    INTEGER(KIND=ink),                INTENT(INOUT) :: nelprev
-    INTEGER(KIND=ink),                INTENT(OUT)   :: nnodprev
-    INTEGER(KIND=ink), DIMENSION(:),  INTENT(IN)    :: iboundlist
-    LOGICAL(KIND=lok), DIMENSION(:,:),INTENT(INOUT) :: zelghosts
-    LOGICAL(KIND=lok), DIMENSION(:,:),INTENT(INOUT) :: znodghosts
+  SUBROUTINE get_ghost_layer(ilayer,nel_proc,nnod_proc,nshape,nelprev,nnodprev,    &
+&                            nelbnd,iboundlist,zelghost,znodghost, &
+                             parnod,pariel,nodiel,nnodproc,ielnod,ielpar,znodproc)
+    USE integers_mod, ONLY: nel
+    USE paradef_mod,  ONLY: rankW
+
+    INTEGER(KIND=ink),                 INTENT(IN)    :: ilayer,nel_proc,nnod_proc,nshape
+    INTEGER(KIND=ink),                 INTENT(INOUT) :: nelprev  ! total no els so far
+    INTEGER(KIND=ink),                 INTENT(OUT)   :: nnodprev  ! total no nodes so far
+    INTEGER(KIND=ink),                 INTENT(INOUT) :: nelbnd    ! no. boundary els
+    INTEGER(KIND=ink), DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: iboundlist
+    LOGICAL(KIND=lok), DIMENSION(0:,:), INTENT(INOUT) :: zelghost
+    LOGICAL(KIND=lok), DIMENSION(0:,:), INTENT(INOUT) :: znodghost
+    INTEGER(KIND=ink),DIMENSION(0:,:),  INTENT(INOUT) :: parnod,pariel
+    INTEGER(KIND=ink),DIMENSION(:,:),   INTENT(IN)    :: nodiel,ielnod
+    INTEGER(KIND=ink),DIMENSION(0:),    INTENT(IN)    :: nnodproc
+    INTEGER(KIND=ink),DIMENSION(:),     INTENT(IN)    :: ielpar
+    LOGICAL(KIND=lok), DIMENSION(:),    INTENT(IN)    :: znodproc
+
+    INTEGER(KIND=ink) :: ii,iel,ielg,inodg,jj,k,kk,kkk,nnn,node
+    INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: ibndelnod  ! list of boundary cell nodes
+    INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: ibndelnod1 ! packed list of ibndelnod
+    INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: ghostel,ghostnod
 
     ! create connectivity list based on boundary elements
-    ALLOCATE(ibndelnod(nelprev*4_ink)
-    ibndelnod=RESHAPE(ielnod(:,iboundlist(1:nelprev)),[nelprev*4_ink])
-    DO ii=1,nelprev*4_ink
+    ALLOCATE(ibndelnod(nelbnd*4_ink))
+    ibndelnod=RESHAPE(ielnod(:,iboundlist(1:nelbnd)),(/nelbnd*4_ink/))
+    DO ii=1,nelbnd*4_ink
       IF (ibndelnod(ii)==0_ink) CYCLE
-      DO jj=ii+1,nelprev*4_ink
+      DO jj=ii+1,nelbnd*4_ink
         ! zero duplicates
         IF (ibndelnod(jj) == ibndelnod(ii)) ibndelnod(jj)=0_ink
       ENDDO
@@ -597,14 +675,14 @@ CONTAINS
     ALLOCATE(ibndelnod1(COUNT(ibndelnod.NE.0_ink)))
     ibndelnod1=PACK(ibndelnod,ibndelnod.NE.0_ink)
     ! find ghost elements
-    DO iel=1,SIZE(ibndelnod1)
-      node=ibndelnod1(iel)
+    DO jj=1,SIZE(ibndelnod1)
+      node=ibndelnod1(jj)
       midloop: DO ii=1,nnodiel(node)
-        jj=nodiel(node,ii)
+        iel=nodiel(node,ii)
         DO kk=0,ilayer
-          IF (zelghost(kk,node) CYCLE midloop
+          IF ((ielpar(iel)==rankW).OR.zelghost(kk,iel)) CYCLE midloop
         ENDDO
-        zelghost(ilayer,ii)=.TRUE.
+        zelghost(ilayer,iel)=.TRUE.
       ENDDO midloop
     ENDDO
     DEALLOCATE(ibndelnod,ibndelnod1)
@@ -612,88 +690,90 @@ CONTAINS
     kkk=0_ink
     nnn=0_ink
 
-    DO iel=1,nel_proc
+    ALLOCATE(ghostel(nel_proc),ghostnod(nnod_proc))
+
+    DO iel=1,neltot
       IF (zelghost(ilayer,iel)) THEN
         ! elements
         kkk=kkk+1_ink
-        ghostel(iproc,kkk)=iel
-        ilghostel(iproc,kkk)=1_ink
-        ielg=nelpar(iproc)+kkk
-        pariel(iproc,ielg)=iel
+        ghostel(kkk)=iel
+        ielg=nelprev+kkk
+        pariel(rankW,ielg)=iel
         ! nodes        
-        nodloop DO k=1,nshape
+        nodloop: DO k=1,nshape
           node=ielnod(k,iel)
-          DO jj=1,ilayer
-            IF (znodghost(jj,node)) CYCLE nodloop
-            nnn=nnn+1_ink
-            ghostnod(iproc,nnn)=node
-            ilghostnod(iproc,nnn)=1_ink
-            inodg=nnodproc(iproc)+nnn
-            parnod(iproc,inodg)=node
-            znodghost(ilayer,node)=.TRUE.
+          DO jj=0,ilayer
+            IF (znodproc(node).OR.znodghost(jj,node)) CYCLE nodloop
           ENDDO
+          nnn=nnn+1_ink
+          ghostnod(nnn)=node
+          inodg=nnodprev+nnn
+          parnod(rankW,inodg)=node
+          znodghost(ilayer,node)=.TRUE.
         ENDDO nodloop
       ENDIF
     ENDDO
 
-    nelprev=kkk
-    nnodprev=nnn
-    DEALLOCATE(iboundlist)
-    ALLOCATE(iboundlist(nelprev))
+    nelbnd=kkk
+    nelprev=kkk+nelprev
+    nnodprev=nnn+nnodprev
+    IF (ALLOCATED(iboundlist)) DEALLOCATE(iboundlist)
+    ALLOCATE(iboundlist(kkk))
     iboundlist=0_ink
-    DO iel=1,nelprev
-      iboundlist(iel)=ghostel(iproc,iel)
+    DO iel=1,kkk
+      iboundlist(iel)=ghostel(iel)
     ENDDO
+    DEALLOCATE(ghostel)
 
   END SUBROUTINE get_ghost_layer
 
-  SUBROUTINE transfer_partition(nel1,nnod1)
+  SUBROUTINE transfer_partition(nel,nel1,nnod,nnod1)
     USE paradef_mod,  ONLY: e_loc_glob,n_loc_glob
     USE pointers_mod,ONLY: ndx,ndy,ielreg,indtype,ielmat,ndu,ndv
 
-    INTEGER(KIND=ink), INTENT(IN) :: nel1,nnod1
+    INTEGER(KIND=ink), INTENT(IN) :: nel,nel1,nnod,nnod1
     ! local
     INTEGER(KIND=ink) :: ii,iig
-    REAL(KIND=rlk),    DIMENSION(:), POINTER :: pndx,pndy,pndu,pndv
-    INTEGER(KIND=ink), DIMENSION(:), POINTER :: pielreg,pindtype,pielmat
+    REAL(KIND=rlk),    DIMENSION(:), ALLOCATABLE :: gndx,gndy,gndu,gndv
+    INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: gielreg,gindtype,gielmat
 
-    NULLIFY(pndx,pndy,pndu,pndv,pielreg,pindtype,pielmat)
+    ! copy global data into temproaries then reallocate global arrays to local
+    ALLOCATE(gndx(0:nnodtot),gndy(0:nnodtot),gndu(0:nnodtot),gndv(0:nnodtot))
+    ALLOCATE(gindtype(0:nnodtot),gielreg(0:neltot),gielmat(0:neltot))
+    gndx=ndx
+    gndy=ndy
+    gndu=ndu
+    gndv=ndv
+    gielreg=ielreg
+    gielmat=ielmat
+    gindtype=indtype
 
-    ! Set pointers to global data then reallocate global arrays to local
-    pndx=>ndx
-    pndy=>ndy
-    pndu=>ndu
-    pndv=>ndv
-    pielreg=>ielreg
-    pindtype=>indtype
-    pielmat=>ielmat
     DEALLOCATE(ndx,ndy,ielreg,indtype,ielmat,ndu,ndv)
+    ALLOCATE(ndx(0:nnod1),ndy(0:nnod1),ndu(0:nnod1),ndv(0:nnod1))
+    ALLOCATE(indtype(0:nnod1),ielmat(0:nel1),ielreg(0:nel1))
 
-    ALLOCATE(ndx(nnod1),ndy(nnod1),ndu(nnod1),ndv(nnod1))
-    ALLOCATE(ielmat(nel1),ielreg(nel1),indtype(nel1))
-
-    DO ii=1,nnod1
-      DO iig=1,nnod_tot
+    DO ii=1,nnod
+      DO iig=1,nnodtot
         IF (n_loc_glob(ii)==iig) THEN
-          ndx(ii)=pndx(iig)
-          ndy(ii)=pndy(iig)
-          ndu(ii)=pndu(iig)
-          ndv(ii)=pndv(iig)
+          ndx(ii)=gndx(iig)
+          ndy(ii)=gndy(iig)
+          ndu(ii)=gndu(iig)
+          ndv(ii)=gndv(iig)
+          indtype(ii)=gindtype(iig)
         ENDIF
       ENDDO
     ENDDO
 
-    DO ii=1,nel1
-      DO iig=1,nel_tot
+    DO ii=1,nel
+      DO iig=1,neltot
         IF (e_loc_glob(ii)==iig) THEN
-          ielmat(ii) =pielmat(iig)
-          ielreg(ii) =pielreg(iig)
-          indtype(ii)=pindtype(iig)
+          ielmat(ii) =gielmat(iig)
+          ielreg(ii) =gielreg(iig)
         ENDIF
       ENDDO
     ENDDO
 
-    DEALLOCATE(pndx,pndy,pielreg,pindtype,pielmat,pndu,pndv)
+    DEALLOCATE(gndx,gndy,gndu,gndv,gielreg,gindtype,gielmat)
 
   END SUBROUTINE transfer_partition
 

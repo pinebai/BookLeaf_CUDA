@@ -19,21 +19,25 @@
 SUBROUTINE modify()
 
   USE kinds_mod,   ONLY: ink,rlk,lok
-  USE integers_mod,ONLY: nel1,nnod1,nshape
+  USE integers_mod,ONLY: nel,nnod,nshape
   USE pointers_mod,ONLY: ndx,ndy,ielnod,ndu
+  USE paradef_mod, ONLY: zparallel
+#ifndef NOMPI
+  USE mpi
+#endif
 
   IMPLICIT NONE
 
-  INTEGER(KIND=ink)                 :: iel,inod,ii
+  INTEGER(KIND=ink)                 :: iel,inod,ii,ierr
   REAL(KIND=rlk),   PARAMETER       :: TOL=1.0e-6_rlk,DX1=0.01_rlk,     &
 &                                      DY1=0.01_rlk
   REAL(KIND=rlk)                    :: pi,x0,y0,w1,w2
-  LOGICAL(KIND=lok),DIMENSION(nnod1):: zchanged
+  LOGICAL(KIND=lok),DIMENSION(nnod) :: zchanged
 
   ! Alter mesh positions
   pi=4.0_rlk*ATAN(1.0_rlk)
   zchanged(:)=.FALSE._lok
-  DO iel=1,nel1
+  DO iel=1,nel
     DO ii=1,nshape
       inod=ielnod(ii,iel)
       IF (.NOT.zchanged(inod)) THEN
@@ -49,11 +53,17 @@ SUBROUTINE modify()
 
   ! Set left hand boundary velocity
   w1=ndx(1)
-  DO inod=2,nnod1
+  DO inod=2,nnod
     IF (ndx(inod).LT.w1) w1=ndx(inod)
   ENDDO
+#ifndef NOMPI
+  IF (zparallel) THEN
+    CALL MPI_ALLREDUCE(w1,w2,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
+    w1=w2
+  ENDIF
+#endif
   w1=w1+TOL
-  DO iel=1,nel1
+  DO iel=1,nel
     DO ii=1,nshape
       inod=ielnod(ii,iel)
       IF (ndx(inod).LE.w1) ndu(inod)=1.0_rlk

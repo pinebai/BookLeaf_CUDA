@@ -35,7 +35,6 @@ module TYPH_Decomposition_mod
     integer(kind=TSIZEK), dimension(:),   pointer :: Nod_Loc_To_Glob => null() ! Nnod
     integer(kind=TSIZEK), dimension(:,:), pointer :: Connectivity    => null() ! NPE,N_el
     character(len=TYPH_STRLEN)                    :: name
-    integer(kind=TYPHK)                           :: Group         ! Typhon group handle
   end type Part_Info_tp
 
   type :: PartLL_tp
@@ -55,7 +54,7 @@ contains
   integer(kind=TERRK) function TYPH_Set_Partition_Info( ID, El_Shape, N_Layers, N_El_tot,    &
                                                         N_Nod_tot,El_To_Proc, Nod_To_Proc,   &
                                                         El_Loc_To_Glob, Nod_Loc_To_Glob,     &
-                                                        Connectivity, Name, Group )
+                                                        Connectivity, Name )
 
     implicit none
 
@@ -70,13 +69,11 @@ contains
     integer(kind=TSIZEK), dimension(:),   intent(in)           :: Nod_Loc_To_Glob
     integer(kind=TSIZEK), dimension(:,:), intent(in), optional :: Connectivity
     character(len=*),                     intent(in), optional :: Name
-    integer(kind=TSIZEK),                 intent(in), optional :: Group
 
     integer(kind=TERRK)         :: irc
     integer(kind=TYPHK)         :: iAllocStat
     integer(kind=TSIZEK)        :: iNEl
     integer(kind=TSIZEK)        :: iNNod
-    integer(kind=TYPHK)         :: iGroup            ! Typhon group handle
 
     type (PartLL_tp),    pointer :: iPartLL
     type (Part_Info_tp), pointer :: iPartInfo => null()
@@ -101,7 +98,6 @@ contains
 
     iPartInfo%NodesPerElem = El_Shape
     iPartInfo%NLayers      = N_Layers
-    iPartInfo%Group        =  iGroup
 
     allocate(iPartInfo%NEl_tot(0:N_Layers), stat=iAllocStat)
     irc = ty_MemCheck(iAllocStat, TY_MEM_ALLOC, "iPartInfo%NEl_tot")

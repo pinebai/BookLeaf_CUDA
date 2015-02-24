@@ -105,15 +105,15 @@ MODULE pointers_mod
 
   USE kinds_mod,ONLY: ink,rlk
 
-  INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE        :: ielreg,ielmat, &
+  INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE,TARGET :: ielreg,ielmat, &
 &                                                        indtype
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,TARGET :: ielnod
+  REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE,TARGET :: ndx,ndy,ndu,ndv
   REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE        :: rho,qq,csqrd,  &
 &                                                        pre,ein,elmass,&
 &                                                        elvol,a1,a2,a3,&
-&                                                        b1,b2,b3,ndx,  &
-&                                                        ndy,ndu,ndv
+&                                                        b1,b2,b3
   REAL(KIND=rlk),   DIMENSION(:,:),ALLOCATABLE        :: elx,ely,cnwt,  &
 &                                                        qx,qy,spmass,  &
 &                                                        cnmass
@@ -162,6 +162,8 @@ MODULE timing_mod
      REAL(KIND=rlk) :: time_in_getein
      REAL(KIND=rlk) :: time_in_eos
      REAL(KIND=rlk) :: time_in_geom
+     REAL(KIND=rlk) :: time_in_mshgen
+     REAL(KIND=rlk) :: time_in_mshprt
      REAL(KIND=rlk) :: time_in_comreg
      REAL(KIND=rlk) :: time_in_comms
      REAL(KIND=rlk) :: time_in_colls

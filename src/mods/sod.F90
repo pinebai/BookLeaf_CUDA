@@ -25,19 +25,33 @@ SUBROUTINE modify()
   USE integers_mod,ONLY: nel,nnod
   USE reals_mod,   ONLY: eos_param
   USE logicals_mod,ONLY: zsp
+  USE paradef_mod, ONLY: zparallel
+#ifndef NOMPI
+  USE mpi
+#endif
 
   ! Local
-  INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4
+  INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4,ierr
   REAL(KIND=rlk)    :: x1,x2,x3,x4,y1,y2,y3,y4,w1,w2,w3,w4,xmid
 
   ! find mid-point
+  ! local min/max x coordinate
   x1=ndx(1)
   x2=x1
   DO inod=1,nnod
     IF (ndx(inod).LT.x1) x1=ndx(inod)
     IF (ndx(inod).GT.x2) x2=ndx(inod)
   ENDDO
-  xmid=0.5_rlk*(x1+x2)
+  IF (zparallel) THEN
+#ifndef NOMPI
+    CALL MPI_ALLREDUCE(x1,x3,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
+    CALL MPI_ALLREDUCE(x2,x4,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
+#endif
+  ELSE
+    x3=x1
+    x4=x2
+  ENDIF
+  xmid=0.5_rlk*(x3+x4)
 
   ! reset variables
   DO iel=1,nel

@@ -64,10 +64,16 @@ CONTAINS
   SUBROUTINE mesh_gen(reg,nk,nl)
     
     USE integers_mod,ONLY: nel,nel1,nnod,nnod1
+    USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
     TYPE(regions), DIMENSION(:), ALLOCATABLE :: reg
     INTEGER(kind=ink),           INTENT(OUT) :: nk,nl
+    REAL(KIND=rlk)                           :: t0,t1
+
+    t0 = get_time()
+
     ! read control file
     CALL read_input(reg)
 
@@ -80,6 +86,11 @@ CONTAINS
     ! Until decomposition, copy size
     nel1=nel
     nnod1=nnod
+
+    ! Timing data
+    t1 = get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_mshgen=bookleaf_times%time_in_mshgen+t1
 
   END SUBROUTINE mesh_gen
 
@@ -519,7 +530,7 @@ CONTAINS
       ALLOCATE(reg(ireg)%rr(1:no_l,1:no_k))
       ALLOCATE(reg(ireg)%ss(1:no_l,1:no_k))
       ALLOCATE(reg(ireg)%bc(1:no_l,1:no_k))
-      reg(ireg)%rr(1:no_l,1:no_k)=0.0_rlks
+      reg(ireg)%rr(1:no_l,1:no_k)=0.0_rlk
       reg(ireg)%ss(1:no_l,1:no_k)=0.0_rlk
       reg(ireg)%bc(1:no_l,1:no_k)=0_ink
       ALLOCATE(reg(ireg)%merged(1:no_l,1:no_k))
@@ -972,6 +983,8 @@ CONTAINS
     USE integers_mod,ONLY: nreg,nel,nnod
     USE pointers_mod,ONLY: ndx,ndy,ielnod,ielreg,indtype,ielmat,ndu,ndv
     USE error_mod,   ONLY: halt
+    USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
     TYPE(regions),DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: reg
@@ -980,7 +993,9 @@ CONTAINS
 &                                        i2,ireg,iele,inod,ii,l1,l2,k1, &
 &                                        k2
     INTEGER(KIND=ink),DIMENSION(nnod) :: istore
-    REAL(KIND=rlk)                    :: r1,r2,r3,s1,s2,s3,x1,y1,w1
+    REAL(KIND=rlk)                    :: r1,r2,r3,s1,s2,s3,x1,y1,w1,t0,t1
+
+    t0 = get_time()
 
     nod_count=0_ink
     ele_count=0_ink
@@ -1178,6 +1193,11 @@ CONTAINS
     ENDDO
     DEALLOCATE(reg)
 
+    ! Timing data
+    t1 = get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_mshgen=bookleaf_times%time_in_mshgen+t1
+
   END SUBROUTINE mesh_transfer
 
   SUBROUTINE mesh_print(reg)
@@ -1325,8 +1345,8 @@ CONTAINS
     USE error_mod,ONLY: halt
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
-    INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
+    TYPE(regions),DIMENSION(:),INTENT(INout) :: reg
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,il,lm,lp,ll,li,l3,l4
     INTEGER(KIND=ink) :: kmin,kmax,ik,km,kp,kk,ki,k3,k4
@@ -1432,8 +1452,8 @@ CONTAINS
     USE parameters_mod,ONLY: two_pi,pi
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(IN) :: reg
-    INTEGER(KIND=ink),         INTENT(IN) :: ireg,i_seg,ind,l1,l2,k1,k2
+    TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,ll,il,li,l3,l4,lm,lp
     INTEGER(KIND=ink) :: kmin,kmax,kk,ik,ki,k3,k4,km,kp

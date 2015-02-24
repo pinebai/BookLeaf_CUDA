@@ -224,7 +224,7 @@ CONTAINS
 #else
       WRITE(6,'(a9,i5,a16)') '  Using: ',Nthread,' Open MP threads'
 #endif
-#ifdef MOD
+#ifdef MODY
       PRINT*,' Additional problem specific initialisation used'
 #else
       PRINT*,' No additional problem specific initialisation used'

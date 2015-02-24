@@ -95,9 +95,9 @@ ifneq ($(SILO),)
 endif
 ifneq ($(MOD),)
   ifeq ($(MKFILEC), makefile.xl)
-    PP_MOD=-WF,-DMOD
+    PP_MOD=-WF,-DMODY
   else
-    PP_MOD=-DMOD
+    PP_MOD=-DMODY
   endif
   OBJ+=$(MOD).o
 endif
