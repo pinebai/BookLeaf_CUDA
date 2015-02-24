@@ -11,10 +11,10 @@ endif
 REALSIZE     = -qrealsize=8
 INTSIZE      = -qintsize=4
 FORM         = -qfree
-BIG_ENDIAN   = #-xfilebyteorder=big8
+BIG_ENDIAN   = -xfilebyteorder=big8
 AUTO_ARRAYS  = 
 SHARED_INTEL = 
-IEEE         = #-qfloat=nomaf
+IEEE         = -qfloat=nomaf
 # Open MP
 ifeq ($(NO_OMP),)
   OPENMP = -qsmp=omp -qthreaded
@@ -61,6 +61,15 @@ ifeq ($(LEV),RELEASE)
   OPT     = #-fast -xipo=2
   COPT    = #-fast -xipo=2
   IEEE   += 
+endif
+ifeq ($(LEV),OPT)
+  OPT     = -O5 -Q 
+  COPT    = -O5 -Q 
+#Disable following for OPT
+  BIG_ENDIAN   =
+  AUTO_ARRAYS  =
+  SHARED_INTEL =
+  IEEE         =
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \

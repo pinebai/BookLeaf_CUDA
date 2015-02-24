@@ -1345,7 +1345,7 @@ CONTAINS
     USE error_mod,ONLY: halt
 
     ! Argument list
-    TYPE(regions),DIMENSION(:),INTENT(INout) :: reg
+    TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
     INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,il,lm,lp,ll,li,l3,l4
