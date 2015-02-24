@@ -32,15 +32,15 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh. A separate version
 Bookleaf must be built for each deck. Specify which version is being built using 
 this argument on the make command line:
 
-`MOD=<sod|sedov|saltzmann|noh>`
+`MOD=<sod|sedov|saltzmann>`
 
 The executable will be named: `bookleaf_$MOD`
 
+Note that the noh deck does not require a MOD command and the executable will simply be called `'bookleaf'
 
 ## MPI
 
-Currently Bookleaf has no capability to generate parallel meshes, however MPI 
-communications are included in the expectation that this feature will be added soon.
+Bookleaf will automatically partition the mesh according to the number of cores that the problem is run on.
 
 By default Bookleaf builds with MPI, however a truly serial version can be built
 by adding:
@@ -61,7 +61,7 @@ by adding:
 
 3) Building the Noh problem in a seperate build directory:
 
-`make MOD=noh SRCDIR=../src bookleaf`
+`make SRCDIR=../src bookleaf`
 
 
 ## Running the Code
