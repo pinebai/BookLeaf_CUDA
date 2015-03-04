@@ -19,16 +19,14 @@
 
 SUBROUTINE modify()
 
-  USE kinds_mod,   ONLY: ink,rlk
-  USE pointers_mod,ONLY: ndx,ndy,ielmat,ielnod,rho,pre,ein,elvol,cnwt,  &
-&                        elmass,cnmass,spmass
-  USE integers_mod,ONLY: nel,nnod
-  USE reals_mod,   ONLY: eos_param
-  USE logicals_mod,ONLY: zsp
-  USE paradef_mod, ONLY: zparallel
-#ifndef NOMPI
-  USE mpi
-#endif
+  USE kinds_mod,       ONLY: ink,rlk
+  USE pointers_mod,    ONLY: ndx,ndy,ielmat,ielnod,rho,pre,ein,elvol,cnwt,  &
+&                            elmass,cnmass,spmass
+  USE integers_mod,    ONLY: nel,nnod
+  USE reals_mod,       ONLY: eos_param
+  USE logicals_mod,    ONLY: zsp
+  USE paradef_mod,     ONLY: zparallel,commS
+  USE typh_collect_mod,ONLY:typh_reduce,TYPH_OP_MIN,TYPH_OP_MAX
 
   ! Local
   INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4,ierr
@@ -43,10 +41,8 @@ SUBROUTINE modify()
     IF (ndx(inod).GT.x2) x2=ndx(inod)
   ENDDO
   IF (zparallel) THEN
-#ifndef NOMPI
-    CALL MPI_ALLREDUCE(x1,x3,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
-    CALL MPI_ALLREDUCE(x2,x4,1,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
-#endif
+    ierr=TYPH_Reduce(x1,RVal=x3,Op=TYPH_OP_MIN,Comm=CommS)
+    ierr=TYPH_Reduce(x2,RVal=x4,Op=TYPH_OP_MAX,Comm=CommS)
   ELSE
     x3=x1
     x4=x2

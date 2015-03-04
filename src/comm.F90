@@ -249,10 +249,9 @@ CONTAINS
 
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE paradef_mod,  ONLY: e_owner_proc,n_owner_proc,e_loc_glob,      &
-&                           n_loc_glob,rankW,MprocW,zparallel
+&                           n_loc_glob,rankW,MprocW,zparallel,commS
     USE pointers_mod, ONLY: ielnod
     USE error_mod,    ONLY: halt
-    USE mpi
 
     INTEGER(KIND=ink),              INTENT(IN)   :: nl,nk,nprocW
     INTEGER(KIND=ink),DIMENSION(nl,nk),INTENT(IN):: icolour
@@ -411,8 +410,7 @@ CONTAINS
       n_on_proc(1,:)=nel_on_proc
       n_on_proc(2,:)=nnod_on_proc
       n_on_proc(3,:)=nnod0_on_proc
-      CALL MPI_ALLREDUCE(n_on_proc,n_on_proc_t,3*NprocW,MPI_INTEGER, &
-                         MPI_SUM,MPI_COMM_WORLD,ierr)
+      ierr=TYPH_Reduce(n_on_proc,RVal=n_on_proc_t,Op=TYPH_OP_SUM,Comm=CommS)
       nel_on_proc=n_on_proc_t(1,:)
       nnod_on_proc=n_on_proc_t(2,:)
       nnod0_on_proc=n_on_proc_t(3,:)

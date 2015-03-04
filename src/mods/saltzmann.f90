@@ -18,13 +18,11 @@
 
 SUBROUTINE modify()
 
-  USE kinds_mod,   ONLY: ink,rlk,lok
-  USE integers_mod,ONLY: nel,nnod,nshape
-  USE pointers_mod,ONLY: ndx,ndy,ielnod,ndu
-  USE paradef_mod, ONLY: zparallel
-#ifndef NOMPI
-  USE mpi
-#endif
+  USE kinds_mod,       ONLY: ink,rlk,lok
+  USE integers_mod,    ONLY: nel,nnod,nshape
+  USE pointers_mod,    ONLY: ndx,ndy,ielnod,ndu
+  USE paradef_mod,     ONLY: zparallel,commS
+  USE typh_collect_mod,ONLY:typh_reduce,TYPH_OP_MIN
 
   IMPLICIT NONE
 
@@ -56,12 +54,10 @@ SUBROUTINE modify()
   DO inod=2,nnod
     IF (ndx(inod).LT.w1) w1=ndx(inod)
   ENDDO
-#ifndef NOMPI
   IF (zparallel) THEN
-    CALL MPI_ALLREDUCE(w1,w2,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
+    ierr=TYPH_Reduce(w1,RVal=w2,Op=TYPH_OP_MIN,Comm=CommS)
     w1=w2
   ENDIF
-#endif
   w1=w1+TOL
   DO iel=1,nel
     DO ii=1,nshape
