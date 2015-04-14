@@ -41,7 +41,8 @@ MODULE integers_mod
   USE parameters_mod,ONLY: LI
 
   INTEGER(KIND=ink)               :: nel,nnod,nshape,nmat,nreg,nstep,   &
-&                                    nel1,nnod1,idtel,max_seg,max_subseg
+&                                    nel1,nnod1,nsz,idtel,max_seg,      &
+&                                    max_subseg
   INTEGER(KIND=ink),DIMENSION(LI) :: eos_type
 
 END MODULE integers_mod
@@ -122,13 +123,14 @@ END MODULE pointers_mod
 
 MODULE scratch_mod
 
-  USE kinds_mod,ONLY: rlk,ink
+  USE kinds_mod,ONLY: rlk,ink,lok
 
   REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE,TARGET :: rscratch11,    &
 &                                                        rscratch12,    &
 &                                                        rscratch13,    &
 &                                                        rscratch14,    &
-&                                                        rscratch15
+&                                                        rscratch15,    &
+&                                                        rscratch16
   REAL(KIND=rlk),   DIMENSION(:,:),ALLOCATABLE,TARGET :: rscratch21,    &
 &                                                        rscratch22,    &
 &                                                        rscratch23,    &
@@ -137,6 +139,7 @@ MODULE scratch_mod
 &                                                        rscratch26,    &
 &                                                        rscratch27
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE,TARGET :: iscratch11
+  LOGICAL(KIND=lok),DIMENSION(:),  ALLOCATABLE,TARGET :: zscratch11
 
 END MODULE scratch_mod
 

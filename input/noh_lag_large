@@ -1,0 +1,44 @@
+&CONTROL
+ time_start=0.0
+ time_end=0.6
+ dt_initial=1.0e-4
+ dt_max=1.0e-2
+ dt_min=1.0e-8
+ dt_g=1.02
+ cfl_sf=0.5
+ cq1=0.5
+ cq2=0.75
+/
+&EOS
+ eos_type(1)=1
+ eos_param(1,1)=1.6666667
+ mat_rho(1)=1.0
+ mat_ein(1)=0.0
+/
+&CUTOFF
+ zcut=1.0e-40
+ accut=1.0e-40
+ pcut=1.0e-40
+/
+&PROBSIZE
+ nreg=1
+ nmat=1
+/
+&MESH
+ region_typ(1)='LIN2'
+ region_dim(1,:)=1800,720
+ region_material(1)=1
+ region_vel_typ(1)=2
+ region_vel(1,:)=-1.0,0.0,0.0
+ region_side(1,1,:)=1,1
+ region_side(1,2,:)=1,2
+ region_side(1,3,:)=1,3
+ region_side(1,4,:)=1,4
+ segment_typ(:)='LINE','ARC_A','LINE','ARC_C'
+ segment_bc(:)='SLIPY','FREE','SLIPX','WALL'
+ segment_pos(1,:)=0.005,0.0,1.0,0.0
+ segment_pos(2,:)=1.0,0.0,0.0,1.0,0.0,0.0
+ segment_pos(3,:)=0.0,1.0,0.0,0.005
+ segment_pos(4,:)=0.0,0.005,0.005,0.0,0.0,0.0
+/
+

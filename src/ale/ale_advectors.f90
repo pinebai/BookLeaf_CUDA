@@ -110,7 +110,6 @@ CONTAINS
         iLNdL=iFaceL+iCorner-1_ink
         iLNdR=MOD(iFaceR-iCorner+1,iShape)+1_ink
         DO iEl=1,iLSize
-          rGrad=0.0_rlk
           rD=0.0_rlk
           iElL=iElEl(iFaceL,iEl)
           iElR=iElEl(iFaceR,iEl)
@@ -132,6 +131,7 @@ CONTAINS
             w8=(w4*w6*w6+w3*w5*w5)/(w5*w6*(w5+w6))
             rGrad=w7*MIN(ABS(w8),w3/w5,w4/w6)
             IF (w1*w2.LE.0.0_rlk) rGrad=0.0_rlk
+            rD=rDel(ii,iel)*(rV+rGrad*rD)
           ENDIF
           IF (rDel(ii,iEl).LT.0.0_rlk) THEN
             iLNNdL=MOD(iSdR+iCorner-2,iShape)+1_ink
@@ -148,8 +148,8 @@ CONTAINS
             w8=(w4*w6*w6+w3*w5*w5)/(w5*w6*(w5+w6))
             rGrad=-w7*MIN(ABS(w8),w3/w5,w4/w6)
             IF (w1*w2.LE.0.0_rlk) rGrad=0.0_rlk
+            rD=rDel(ii,iel)*(rV+rGrad*rD)
           ENDIF
-!          rD=rDel(ii,iel)*(rVar?+rGrad*rD)
           rFlux(iLNdL,iEl)=rFlux(iLNdL,iEl)-rD
           rFlux(iLNdR,iEl)=rFlux(iLNdR,iEl)+rD
         ENDDO

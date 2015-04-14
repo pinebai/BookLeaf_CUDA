@@ -163,11 +163,11 @@ CONTAINS
       DO iel=1,nel
         in1=ielel(iside,iel)
         in2=ielel(ins,iel)
-        IF (in1.EQ.0_ink) THEN
+        IF (in1.EQ.iel) THEN
           ic1=ielnd(iside,iel)
           ic2=ielnd(MOD(iside,nshape)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
-&          (in2.NE.0_ink)) THEN
+&          (in2.NE.iel)) THEN
             scratch(1,iel)=1.0_rlk
             scratch(3,iel)=1.0_rlk
           ELSE
@@ -175,11 +175,11 @@ CONTAINS
             scratch(3,iel)=0.0_rlk
           ENDIF
         ENDIF
-        IF (in2.EQ.0_ink) THEN
+        IF (in2.EQ.iel) THEN
           ic1=ielnd(ins,iel)
           ic2=ielnd(MOD(ins,nshape)+1_ink,iel)
           IF (((indtype(ic1).LT.0_ink).AND.(indtype(ic2).LT.0_ink)).AND.&
-&          (in1.NE.0_ink)) THEN
+&          (in1.NE.iel)) THEN
             scratch(2,iel)=1.0_rlk
             scratch(4,iel)=1.0_rlk
           ELSE

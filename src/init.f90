@@ -29,36 +29,36 @@ SUBROUTINE init_memory()
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
 &                        rscratch25,rscratch26,rscratch27,rscratch11,   &
 &                        rscratch12,rscratch13,rscratch14,rscratch15,   &
-&                        iscratch11
+&                        iscratch11,zscratch11
 
   IMPLICIT NONE
 
   ! Local
   INTEGER(KIND=ink) :: ierr,isz
 
-  ALLOCATE(ielreg(0:nel1),ielmat(0:nel1),ielnd(nshape,0:nel1),          &
-&          rho(0:nel1),qq(0:nel1),csqrd(0:nel1),pre(0:nel1),ein(0:nel1),&
-&          elmass(0:nel1),elvol(0:nel1),ndu(0:nnod1),ndv(0:nnod1),      &
-&          a1(0:nel1),a2(0:nel1),a3(0:nel1),b1(0:nel1),b2(0:nel1),      &
-&          b3(0:nel1),ndx(0:nnod1),ndy(0:nnod1),indtype(0:nnod1),       &
-&          cnwt(nshape,0:nel1),cnmass(nshape,0:nel1),elx(nshape,0:nel1),&
-&          ely(nshape,0:nel1),qx(nshape,0:nel1),qy(nshape,0:nel1),      &
-&          ielel(nshape,0:nel1),ielsd(nshape,0:nel1),ielsort1(nel1),    &
+  ALLOCATE(ielreg(1:nel1),ielmat(1:nel1),ielnd(nshape,1:nel1),          &
+&          rho(1:nel1),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel1),&
+&          elmass(1:nel1),elvol(1:nel1),ndu(1:nnod1),ndv(1:nnod1),      &
+&          a1(1:nel1),a2(1:nel1),a3(1:nel1),b1(1:nel1),b2(1:nel1),      &
+&          b3(1:nel1),ndx(1:nnod1),ndy(1:nnod1),indtype(1:nnod1),       &
+&          cnwt(nshape,1:nel1),cnmass(nshape,1:nel1),elx(nshape,1:nel1),&
+&          ely(nshape,1:nel1),qx(nshape,1:nel1),qy(nshape,1:nel1),      &
+&          ielel(nshape,1:nel1),ielsd(nshape,1:nel1),ielsort1(nel1),    &
 &          STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   isz=MAX(nel1,nnod1)
-  ALLOCATE(rscratch11(0:isz),rscratch12(0:isz),rscratch13(0:isz),       &
-&          rscratch14(0:isz),rscratch15(0:isz),rscratch21(nshape,0:isz),&
-&          rscratch22(nshape,0:isz),rscratch23(nshape,0:isz),           &
-&          rscratch24(nshape,0:isz),rscratch25(nshape,0:isz),           &
-&          rscratch26(nshape,0:isz),rscratch27(nshape,0:isz),STAT=ierr)
+  ALLOCATE(rscratch11(1:isz),rscratch12(1:isz),rscratch13(1:isz),       &
+&          rscratch14(1:isz),rscratch15(1:isz),rscratch21(nshape,1:isz),&
+&          rscratch22(nshape,1:isz),rscratch23(nshape,1:isz),           &
+&          rscratch24(nshape,1:isz),rscratch25(nshape,1:isz),           &
+&          rscratch26(nshape,1:isz),rscratch27(nshape,1:isz),STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   IF (zsp) THEN
-    ALLOCATE(spmass(nshape,0:nel1),STAT=ierr)
+    ALLOCATE(spmass(nshape,1:nel1),STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
   IF (zale) THEN
-    ALLOCATE(iscratch11(0:isz),STAT=ierr)
+    ALLOCATE(iscratch11(1:isz),zscratch11(1:isz),STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
 
@@ -75,7 +75,7 @@ SUBROUTINE init()
 &                         cnmass,spmass,indtype
   USE geometry_mod, ONLY: getgeom
   USE getpc_mod,    ONLY: getpc
-  USE utilities_mod,ONLY: getconn,getsconn
+  USE utilities_mod,ONLY: getconn,getsconn,corrconn
 
   IMPLICIT NONE
 
@@ -135,6 +135,7 @@ SUBROUTINE init()
   ! initialise connectivity
   ielel(1:,1:nel1)=getconn(nel1,nshape,ielnd(1:,1:nel1))
   ielsd(1:,1:nel1)=getsconn(nel1,nshape,ielel(1:,1:nel1))
+  CALL corrconn(nel1,nshape,ielel(1:,1:nel1),ielsd(1:,1:nel1))
 
   ! initialise node type
   DO iel=1,nel1

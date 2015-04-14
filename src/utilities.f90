@@ -21,7 +21,8 @@ MODULE utilities_mod
 
   IMPLICIT NONE
 
-  PUBLIC  :: convupper,findstr,gather,getconn,getsconn,sort,arth
+  PUBLIC  :: convupper,findstr,gather,getconn,getsconn,corrconn,sort,   &
+&            arth
   PRIVATE :: quicksort,iquicksort,indexi,indexr
 
   INTERFACE sort
@@ -230,6 +231,32 @@ CONTAINS
     ENDDO
 
   END FUNCTION getsconn
+
+  SUBROUTINE corrconn(nCell,nFace,e2e,e2s)
+
+    USE kinds_mod,ONLY: ink
+
+    ! Argument list
+    INTEGER(KIND=ink),                       INTENT(IN)    :: nCell,nFace
+    INTEGER(KIND=ink),DIMENSION(nFace,nCell),INTENT(INOUT) :: e2e,e2s
+    ! Local
+    INTEGER(KIND=ink)                                      :: iel,i1,i2
+
+    DO iel=1,nCell
+      DO i1=1,nFace/2
+        i2=i1+2_ink
+        IF (e2e(i1,iel).EQ.0_ink) THEN
+          e2e(i1,iel)=iel
+          e2s(i1,iel)=i2
+        ENDIF
+        IF (e2e(i2,iel).EQ.0_ink) THEN
+          e2e(i2,iel)=iel
+          e2s(i2,iel)=i1
+        ENDIF
+      ENDDO
+    ENDDO
+
+  END SUBROUTINE corrconn
 
   PURE FUNCTION quicksort(arr) RESULT(slave)
 

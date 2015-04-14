@@ -33,7 +33,7 @@ SUBROUTINE hydro()
   IMPLICIT NONE
 
   ! Local
-  REAL(KIND=rlk)    :: dt,t0,t1,t2,grind
+  REAL(KIND=rlk) :: dt,t0,t1,t2,grind
 
   ! Timer
   bookleaf_times%time_hydro=get_time()

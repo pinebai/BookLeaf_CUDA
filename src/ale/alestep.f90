@@ -27,20 +27,24 @@ CONTAINS
   SUBROUTINE alestep(nstep,dt)
 
     USE kinds_mod,      ONLY: rlk,ink
-    USE integers_mod,   ONLY: nnod,nel,nshape
+    USE integers_mod,   ONLY: nnod,nel,nshape,nsz
+    USE reals_mod,      ONLY: zerocut,dencut
     USE error_mod,      ONLY: halt
     USE ale_getmesh_mod,ONLY: alegetmesh
     USE ale_getfvol_mod,ONLY: alegetfvol
     USE ale_advect_mod, ONLY: aleadvect
     USE ale_update_mod, ONLY: aleupdate
     USE pointers_mod,   ONLY: ndx,ndy,elx,ely,elmass,rho,pre,ein,csqrd, &
-&                             ielmat,cnwt,ielel,ielsd
-    USE scratch_mod,    ONLY: storev=>rscratch11,storem=>rscratch12,    &
-&                             storer=>rscratch13,ndumcut=>rscratch14,   &
-&                             ndvmcut=>rscratch15,cnms=>rscratch21,     &
-&                             rDelV=>rscratch22,rDelM=>rscratch23,      &
-&                             rFlux=>rscratch24,rwork1=>rscratch25,     &
-&                             rwork2=>rscratch26,indstatus=>iscratch11
+&                             elvol,ielmat,cnwt,cnmass,ielel,ielsd,     &
+&                             ielnd,indtype
+    USE scratch_mod,    ONLY: store1=>rscratch11,store2=>rscratch12,    &
+&                             store3=>rscratch13,store4=>rscratch14,    &
+&                             ndumcut=>rscratch15,ndvmcut=>rscratch16,  &
+&                             cnms=>rscratch21,rDelV=>rscratch22,       &
+&                             rDelM=>rscratch23,rFlux=>rscratch24,      &
+&                             rwork1=>rscratch25,rwork2=>rscratch26,    &
+&                             rwork3=>rscratch27,indstatus=>iscratch11, &
+&                             zactive=>zscratch11
 
     ! Argument list
     INTEGER(KIND=ink),INTENT(IN) :: nstep
@@ -52,28 +56,32 @@ CONTAINS
     CALL alegetmesh(nnod,indstatus(1))
 
     ! calculate flux volume
-    CALL alegetfvol(nshape,nnod,nel,dt,indstatus(1),ndx(1),ndy(1),      &
-&                   ndumcut(1),ndvmcut(1),rDelV(1,1))
+    CALL alegetfvol(nshape,nnod,nel,dt,zerocut,indstatus(1),ielnd(1,1), &
+&                   ndx(1),ndy(1),ndumcut(1),ndvmcut(1),rDelV(1,1))
 
     ! advect independent variables
 !    SELECT CASE(iadv_type)
 !      CASE(1_ink)
-        CALL aleadvect(1_ink,2_ink,nshape,nel,nnod,storev(1),storem(1), &
-&                      storer(1),elmass(1),rho(1),ndumcut(1),ndvmcut(1),&
-&                      cnwt(1,1),cnms(1,1),rDelV(1,1),rDelM(1,1),       &
-&                      rFlux(1,1),ielel(1,1),ielsd(1,1),rwork1(1,1),    &
-&                      rwork2(1,1))
+        CALL aleadvect(1_ink,2_ink,nshape,nel,nnod,nsz,ielel(1,1),      &
+&                      ielsd(1,1),ielnd(1,1),indstatus(1),indtype(1),   &
+&                      dencut,zerocut,ndumcut(1),ndvmcut(1),store1(1),  &
+&                      store2(1),store3(1),store4(1),elvol(1),elmass(1),&
+&                      rho(1),cnwt(1,1),cnmass(1,1),rDelV(1,1),         &
+&                      rDelM(1,1),rwork3(1,1),rFlux(1,1),rwork1(1,1),   &
+&                      rwork2(1,1),zactive(1))
 !      CASE(2_ink)
         ii=MOD(nstep+1,2)
         i1=1_ink+ii
         i2=2_ink-ii
         i3=i2-i1
         DO ii=i1,i2,i3
-          CALL aleadvect(ii,ii,nshape,nel,nnod,storev(1),storem(1),     &
-&                        storer(1),elmass(1),rho(1),ndumcut(1),         &
-&                        ndvmcut(1),cnwt(1,1),cnms(1,1),rDelV(1,1),     &
-&                        rDelM(1,1),rFlux(1,1),ielel(1,1),ielsd(1,1),   &
-&                        rwork1(1,1),rwork2(1,1))
+          CALL aleadvect(ii,ii,nshape,nel,nnod,nsz,ielel(1,1),          &
+&                        ielsd(1,1),ielnd(1,1),indstatus(1),indtype(1), &
+&                        dencut,zerocut,ndumcut(1),ndvmcut(1),store1(1),&
+&                        store2(1),store3(1),store4(1),elvol(1),        &
+&                        elmass(1),rho(1),cnwt(1,1),cnms(1,1),          &
+&                        rDelV(1,1),rDelM(1,1),rwork3(1,1),rFlux(1,1),  &
+&                        rwork1(1,1),rwork2(1,1),zactive(1))
         ENDDO
 !      CASE DEFAULT
         CALL halt("ERROR: unrecognised iadv_type",0)
