@@ -19,7 +19,7 @@
 SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
-  USE integers_mod,ONLY: nshape,nel1,nnod1
+  USE integers_mod,ONLY: nshape,nel1,nnod1,nsz
   USE logicals_mod,ONLY: zsp,zale
   USE error_mod,   ONLY: halt
   USE paradef_mod, ONLY: ielsort1
@@ -29,12 +29,12 @@ SUBROUTINE init_memory()
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
 &                        rscratch25,rscratch26,rscratch27,rscratch11,   &
 &                        rscratch12,rscratch13,rscratch14,rscratch15,   &
-&                        iscratch11,zscratch11
+&                        rscratch16,iscratch11,zscratch11
 
   IMPLICIT NONE
 
   ! Local
-  INTEGER(KIND=ink) :: ierr,isz
+  INTEGER(KIND=ink) :: ierr
 
   ALLOCATE(ielreg(1:nel1),ielmat(1:nel1),ielnd(nshape,1:nel1),          &
 &          rho(1:nel1),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel1),&
@@ -46,19 +46,20 @@ SUBROUTINE init_memory()
 &          ielel(nshape,1:nel1),ielsd(nshape,1:nel1),ielsort1(nel1),    &
 &          STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
-  isz=MAX(nel1,nnod1)
-  ALLOCATE(rscratch11(1:isz),rscratch12(1:isz),rscratch13(1:isz),       &
-&          rscratch14(1:isz),rscratch15(1:isz),rscratch21(nshape,1:isz),&
-&          rscratch22(nshape,1:isz),rscratch23(nshape,1:isz),           &
-&          rscratch24(nshape,1:isz),rscratch25(nshape,1:isz),           &
-&          rscratch26(nshape,1:isz),rscratch27(nshape,1:isz),STAT=ierr)
+  nsz=MAX(nel1,nnod1)
+  ALLOCATE(rscratch11(1:nsz),rscratch12(1:nsz),rscratch13(1:nsz),       &
+&          rscratch14(1:nsz),rscratch15(1:nsz),rscratch21(nshape,1:nsz),&
+&          rscratch22(nshape,1:nsz),rscratch23(nshape,1:nsz),           &
+&          rscratch24(nshape,1:nsz),rscratch25(nshape,1:nsz),           &
+&          rscratch26(nshape,1:nsz),rscratch27(nshape,1:nsz),STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   IF (zsp) THEN
     ALLOCATE(spmass(nshape,1:nel1),STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
   IF (zale) THEN
-    ALLOCATE(iscratch11(1:isz),zscratch11(1:isz),STAT=ierr)
+    ALLOCATE(rscratch16(1:nsz),iscratch11(1:nsz),zscratch11(1:nsz),     &
+&    STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
 
