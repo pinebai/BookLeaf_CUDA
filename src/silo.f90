@@ -62,6 +62,17 @@ CONTAINS
     ! remove deprecated warning messages
     iErr=DBSetDepWarn(0)
 
+    ! set material information
+    ALLOCATE(iMat(nMat),cMat(nMat),lMat(nMat),STAT=iErr)
+    IF (iErr.NE.0) CALL halt("ERROR: failed to allocate material for "  &
+&    //"silo",0)
+    DO ii=1,nMat
+      iMat(ii)=ii
+      WRITE(cNum,'(i4)') ii+1000_ink
+      cMat(ii)='material '//cNum(2:4)
+      lMat(ii)=LEN_TRIM(cMat(ii))
+    ENDDO
+
     ! header file on Master
     IF (MProcW) THEN
       WRITE(6,*) 'Writing SILO file: '//TRIM(cDirName)
@@ -82,15 +93,6 @@ CONTAINS
       iErr=DBPutMMesh(iFileID,'mesh',4,nProcW,cName,iName,iType,        &
 &                     DB_F77NULL,ii)
       ! write material
-      ALLOCATE(iMat(nMat),cMat(nMat),lMat(nMat),STAT=iErr)
-      IF (iErr.NE.0) CALL halt("ERROR: failed to allocate material for "&
-&      //"silo",0)
-      DO ii=1,nMat
-        iMat(ii)=ii
-        WRITE(cNum,'(i4)') ii+1000_ink
-        cMat(ii)='material '//cNum(2:4)
-        lMat(ii)=LEN_TRIM(cMat(ii))
-      ENDDO
       iErr=DBSet2DStrLen(SLEN)
       iErr=DBMkOptList(4,iOptionID)
       iErr=DBAddIOpt(iOptionID,DBOPT_NMATNOS,nMat)
