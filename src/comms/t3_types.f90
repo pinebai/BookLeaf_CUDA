@@ -107,7 +107,7 @@ module TYPH_Types_mod
     integer(kind=TSIZEK), dimension(:), pointer :: list   => null()  ! list of elements or nodes
     integer(kind=TSIZEK)                        :: nlist             ! size of element/node list
 !   Optional block lengths to variable amounts of data to be communicated per cell/node
-    integer(kind=TSIZEK), dimension(:), pointer :: blockLens
+    integer(kind=TSIZEK), dimension(:), pointer :: blockLens =>null()
     type (KeyLL_tp), pointer                    :: next   => null()  ! next key in linked list
     type (KeyLL_tp), pointer                    :: prev   => null()  ! previous key in linked list
     type (KeyLL_tp), pointer                    :: parent => null()  ! key this key is derived from

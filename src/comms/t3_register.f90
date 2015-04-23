@@ -64,8 +64,8 @@ module TYPH_Register_mod
     integer(kind=TSIZEK)       :: keySetID   ! KeySet associated with this Phase
     integer(kind=TSIZEK)       :: ghostsMin  ! Default Ghost layer range
     integer(kind=TSIZEK)       :: ghostsMax  ! Default Ghost layer range
-    type(V3_comm_Quant_tp),pointer:: PQinfo     ! Quant info for this phase
-    type(V3_Schedule_tp),  pointer:: schedule   ! schedule
+    type(V3_comm_Quant_tp),pointer:: PQinfo  =>null() ! Quant info for this phase
+    type(V3_Schedule_tp),  pointer:: schedule=>null() ! schedule
     logical                    :: isBuilt       ! Schedule built?
     logical                    :: isCommit      ! Phase MPI committed?
   end type Phase_tp
@@ -84,7 +84,7 @@ module TYPH_Register_mod
     integer(kind=TYPHK)                         :: mpi_datatype
     integer(kind=TSIZEK)                        :: AuxID    ! Handle for type of Aux data
     integer(kind=TSIZEK)                        :: rank     ! rank of variable
-    integer(kind=TSIZEK), dimension(:), pointer :: dims     ! if rank > 1 then dims holds the sizes
+    integer(kind=TSIZEK), dimension(:), pointer :: dims=>null() ! if rank > 1 then dims holds the sizes
                                                             ! for the non-mesh dimensions
     integer(kind=TSIZEK)                        :: meshdim  ! dimension of mesh that is mesh based
                                                             ! have cell or node index first
@@ -104,9 +104,9 @@ module TYPH_Register_mod
   type :: PQLL_tp
     type (Phase_tp)                             :: phase
     type (Quant_tp)                             :: quant
-    integer(kind=TSIZEK), dimension(:), pointer :: list
+    integer(kind=TSIZEK), dimension(:), pointer :: list => null()
     integer(kind=TSIZEK)                        :: nlist
-    type (PQLL_tp), pointer                     :: next
+    type (PQLL_tp), pointer                     :: next => null()
   end type PQLL_tp
   
   integer(kind=TYPHK), parameter :: mLL_PHASE = 40000
@@ -154,9 +154,9 @@ contains
 
     character(len=SUBNAME_LEN), parameter :: subname = "TYPH_Finish_Register"
 
-    type (PQLL_tp),  pointer :: iPQLL
-    type (Phase_tp), pointer :: iPhaseLL, iPhaseAr
-    type (Quant_tp), pointer :: iQuantLL, iQuantAr
+    type (PQLL_tp),  pointer :: iPQLL => null()
+    type (Phase_tp), pointer :: iPhaseLL => null(), iPhaseAr => null()
+    type (Quant_tp), pointer :: iQuantLL => null(), iQuantAr => null()
 
     integer(kind=TSIZEK) :: is, iq
     integer(kind=TSIZEK), dimension(TYPH_REAL:TYPH_LOGICAL) :: iNQ
@@ -260,8 +260,8 @@ contains
 
     character(len=SUBNAME_LEN), parameter :: subname = "TYPH_Add_Phase"
 
-    type (PQLL_tp),  pointer :: iPhaseLL
-    type (Phase_tp), pointer :: iPhase
+    type (PQLL_tp),  pointer :: iPhaseLL => null()
+    type (Phase_tp), pointer :: iPhase => null()
 
     integer(kind=TERRK) :: irc
 
@@ -366,8 +366,8 @@ contains
     integer(KIND=TSIZEK), intent(in), optional :: AuxID
     integer(kind=TSIZEK), dimension(:), intent(in), optional :: Dims
 
-    type (PQLL_tp),  pointer :: iQuantLL
-    type (Quant_tp), pointer :: iQuant
+    type (PQLL_tp),  pointer :: iQuantLL => null()
+    type (Quant_tp), pointer :: iQuant => null()
     integer(kind=TERRK) :: irc
     integer(kind=TYPHK) :: iAllocStat
     integer(kind=TSIZEK):: ii
@@ -449,8 +449,8 @@ contains
     integer(kind=TYPHK),  intent(out), optional :: PureOrAux
     integer(KIND=TSIZEK), intent(out), optional :: AuxID
 
-    type (PQLL_tp),  pointer :: iQuantLL
-    type (Quant_tp), pointer :: iQuant
+    type (PQLL_tp),  pointer :: iQuantLL => null()
+    type (Quant_tp), pointer :: iQuant => null()
     integer(kind=TERRK) :: irc
 
     if (mRegistration) then
@@ -495,8 +495,8 @@ contains
     integer(kind=TSIZEK),  intent(in) :: QuantID
     integer(kind=TSIZEK),  intent(in) :: PhaseID
 
-    type (PQLL_tp), pointer :: iPhaseLL, iQuantLL
-    integer(kind=TSIZEK), dimension(:), pointer :: iTempList
+    type (PQLL_tp), pointer :: iPhaseLL => null(), iQuantLL => null()
+    integer(kind=TSIZEK), dimension(:), pointer :: iTempList => null()
     integer(kind=TSIZEK) :: iNSize
     integer              :: iAllocStat
     integer(kind=TERRK)  :: irc
@@ -653,7 +653,7 @@ contains
     implicit none
     integer(kind=TSIZEK),     intent(in)  :: aPhaseID
     type (Phase_tp), pointer, intent(out) :: aPhase
-    type (PQLL_tp),  pointer :: iPhaseLL
+    type (PQLL_tp),  pointer :: iPhaseLL => null()
     integer(kind=TERRK)      :: irc
 
     ! Get Phase from LL
@@ -682,7 +682,7 @@ contains
     integer(kind=TSIZEK),     intent(in)  :: aQuantID
     type (Quant_tp), pointer, intent(out) :: aQuant
 
-    type (PQLL_tp),  pointer :: iQuantLL
+    type (PQLL_tp),  pointer :: iQuantLL => null()
     integer(kind=TERRK)      :: irc
 
     irc = mGetLL(mQuantLL, mNumQuants, aQuantID, iQuantLL)
@@ -836,7 +836,7 @@ contains
     type (PQLL_tp), pointer          :: aLL       ! intent(in)
     integer(kind=TSIZEK), intent(in) :: aN
 
-    type (PQLL_tp), pointer :: iCurrLL, iNextLL
+    type (PQLL_tp), pointer :: iCurrLL => null(), iNextLL => null()
 
     integer(kind=TSIZEK) :: ii
     integer              :: iAllocStat
