@@ -330,7 +330,7 @@ SUBROUTINE init_check()
     patch_type(1)=1_ink
     patch_motion(1)=1_ink
     patch_ontime(1)=time_start
-    patch_offtime(1)=time_end
+    patch_offtime(1)=2.0_rlk*time_end-time_start
     patch_om(1)=1.0_rlk
     patch_minvel(1)=0.0_rlk
     patch_maxvel(1)=HUGE(1.0_rlk)

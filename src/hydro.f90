@@ -54,10 +54,8 @@ SUBROUTINE hydro()
     ! lagrangian step
     CALL lagstep(dt)
     ! ale step
-    PRINT*,'1',zale
     IF (zale) THEN
       zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
-      PRINT*,'2',zaleon
       IF (zaleon) CALL alestep(nstep,dt)
     ENDIF
     !# Missing code here that can't be merged

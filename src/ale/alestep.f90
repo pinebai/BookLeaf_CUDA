@@ -39,7 +39,7 @@ CONTAINS
 &                             ielnd,indtype
     USE scratch_mod,    ONLY: store1=>rscratch11,store2=>rscratch12,    &
 &                             store3=>rscratch13,store4=>rscratch14,    &
-&                             ndumcut=>rscratch15,ndvmcut=>rscratch16,  &
+&                             store5=>rscratch15,store6=>rscratch16,    &
 &                             cnms=>rscratch21,rDelV=>rscratch22,       &
 &                             rDelM=>rscratch23,rFlux=>rscratch24,      &
 &                             rwork1=>rscratch25,rwork2=>rscratch26,    &
@@ -57,14 +57,14 @@ CONTAINS
 
     ! calculate flux volume
     CALL alegetfvol(nshape,nnod,nel,dt,zerocut,indstatus(1),ielnd(1,1), &
-&                   ndx(1),ndy(1),ndumcut(1),ndvmcut(1),rDelV(1,1))
+&                   ndx(1),ndy(1),store4(1),store5(1),rDelV(1,1))
 
     ! advect independent variables
     SELECT CASE(adv_type)
       CASE(1_ink)
         CALL aleadvect(1_ink,2_ink,nshape,nel,nnod,nsz,ielel(1,1),      &
 &                      ielsd(1,1),ielnd(1,1),indstatus(1),indtype(1),   &
-&                      dencut,zerocut,ndumcut(1),ndvmcut(1),store1(1),  &
+&                      dencut,zerocut,store5(1),store6(1),store1(1),    &
 &                      store2(1),store3(1),store4(1),elvol(1),elmass(1),&
 &                      rho(1),cnwt(1,1),cnmass(1,1),rDelV(1,1),         &
 &                      rDelM(1,1),rwork3(1,1),rFlux(1,1),rwork1(1,1),   &
@@ -77,7 +77,7 @@ CONTAINS
         DO ii=i1,i2,i3
           CALL aleadvect(ii,ii,nshape,nel,nnod,nsz,ielel(1,1),          &
 &                        ielsd(1,1),ielnd(1,1),indstatus(1),indtype(1), &
-&                        dencut,zerocut,ndumcut(1),ndvmcut(1),store1(1),&
+&                        dencut,zerocut,store5(1),store6(1),store1(1),  &
 &                        store2(1),store3(1),store4(1),elvol(1),        &
 &                        elmass(1),rho(1),cnwt(1,1),cnms(1,1),          &
 &                        rDelV(1,1),rDelM(1,1),rwork3(1,1),rFlux(1,1),  &
