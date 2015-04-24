@@ -27,10 +27,10 @@ CONTAINS
   SUBROUTINE write_silo_dump(cDirName)
 
     USE kinds_mod,   ONLY: ink
-    USE integers_mod,ONLY: nMat,nEl,nNod
+    USE integers_mod,ONLY: nMat,nEl,nNod,nProcW,rankW
+    USE logicals_mod,ONLY: zMProcW
     USE pointers_mod,ONLY: iElNd,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
     USE error_mod,   ONLY: halt
-    USE paradef_mod, ONLY: NprocW,MprocW,rankW
     USE utils_f_mod, ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
     INCLUDE "silo.inc"
 
@@ -53,7 +53,7 @@ CONTAINS
 &                                                   iShapeCount
 
     ! make directory
-    IF (MProcW) THEN
+    IF (zMProcW) THEN
       iErr=utils_mkdir_f(TRIM(cDirName))
       IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to make silo "&
 &      //"directory",0)
@@ -74,7 +74,7 @@ CONTAINS
     ENDDO
 
     ! header file on Master
-    IF (MProcW) THEN
+    IF (zMProcW) THEN
       WRITE(6,*) 'Writing SILO file: '//TRIM(cDirName)
       ! open
       cString=TRIM(cDirName)//'/'//TRIM(cHeaderFile)
@@ -209,7 +209,7 @@ CONTAINS
     iErr=DBClose(iFileID)
 
     ! create symbolic link
-    IF (MProcW) THEN
+    IF (zMProcW) THEN
       iErr=utils_ln_f(TRIM(cDirName)//'/'//TRIM(cHeaderFile),           &
 &                     TRIM(cDirName)//'.silo')
       IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to create "   &

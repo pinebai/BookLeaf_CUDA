@@ -29,8 +29,8 @@ CONTAINS
 
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: zerocut,cq1,cq2
+    USE logicals_mod, ONLY: zparallel
     USE comms_mod,    ONLY: exchange,VISCOSITY
-    USE paradef_mod,  ONLY: zparallel
     USE pointers_mod, ONLY: ielnd,ielel,ielsd,indtype,qq,qx,qy,csqrd
     USE timing_mod,   ONLY: bookleaf_times
     USE typh_util_mod,ONLY: get_time

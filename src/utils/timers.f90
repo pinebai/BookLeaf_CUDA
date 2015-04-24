@@ -62,13 +62,13 @@ CONTAINS
 
   SUBROUTINE print_timers
 
-    USE paradef_mod, ONLY: MProcW,zparallel
+    USE logicals_mod, ONLY: zmprocw,zparallel
 
     ! local
     REAL(KIND=rlk)               :: fac,w1,w2,w3,w4,w5
     CHARACTER(LEN=25),PARAMETER  :: ft='(a28,1X,e13.6,1X,f7.3,a2)'
 
-    IF (MProcW) THEN
+    IF (zmprocw) THEN
       fac=100.0_rlk/bookleaf_times%time_total
       w1=MAX(0.0_rlk,bookleaf_times%time_end_main-bookleaf_times%time_hydro)
       w2=bookleaf_times%time_end_init-bookleaf_times%time_start

@@ -16,11 +16,10 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-
 SUBROUTINE halt(smessage,iout,zend)
 
   USE kinds_mod,    ONLY: lok,ink
-  USE paradef_mod,  ONLY: MProcW
+  USE logicals_mod, ONLY: zmprocw
   USE timers_mod,   ONLY: end_timers,print_timers
   USE TYPH_util_mod,ONLY: get_time
   USE timing_mod,   ONLY: bookleaf_times
@@ -41,7 +40,7 @@ SUBROUTINE halt(smessage,iout,zend)
   LOGICAL(KIND=lok)                     :: zfin
 
   ! spacer
-  IF (MProcW) THEN
+  IF (zmprocw) THEN
     PRINT*,'##########################################################',&
 & '##############'
   ENDIF
@@ -53,7 +52,7 @@ SUBROUTINE halt(smessage,iout,zend)
   ENDIF
 
   ! echo message
-  IF ((zfin.AND.MProcW).OR.(.NOT.zfin)) THEN
+  IF ((zfin.AND.zmprocw).OR.(.NOT.zfin)) THEN
     WRITE(6,'(2x,a)') smessage
   ENDIF
 
@@ -79,7 +78,7 @@ SUBROUTINE halt(smessage,iout,zend)
   CALL print_timers()
 
   ! spacer
-  IF (MProcW) THEN
+  IF (zmprocw) THEN
     PRINT*,'##########################################################',&
 & '##############'  
   ENDIF

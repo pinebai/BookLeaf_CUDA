@@ -29,9 +29,8 @@ CONTAINS
     USE kinds_mod,       ONLY: rlk,ink
     USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,dt_g,dt_min,     &
 &                              dt_max
-    USE integers_mod,    ONLY: nel,nshape,nnod,idtel
-    USE logicals_mod,    ONLY: zdtnotreg,zmidlength
-    USE paradef_mod,     ONLY: CommS,NProcW,zparallel
+    USE integers_mod,    ONLY: nel,nshape,nnod,idtel,comms,nprocw
+    USE logicals_mod,    ONLY: zdtnotreg,zmidlength,zparallel
     USE pointers_mod,    ONLY: ielreg,rho,qq,csqrd,elx,ely,a1,a3,b1,b3, &
 &                              ielnd,elvol,ndu,ndv
     USE scratch_mod,     ONLY: rscratch11,elu=>rscratch21,elv=>rscratch22

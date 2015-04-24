@@ -20,7 +20,7 @@
 SUBROUTINE modify()
 
   USE kinds_mod,   ONLY: ink,rlk
-  USE pointers_mod,ONLY: ndx,ndy,ielmat,ielnod,rho,pre,ein,elvol,cnwt,  &
+  USE pointers_mod,ONLY: ndx,ndy,ielmat,ielnd,rho,pre,ein,elvol,cnwt,   &
 &                        elmass,cnmass,spmass
   USE integers_mod,ONLY: nel,nnod
   USE reals_mod,   ONLY: eos_param
@@ -41,10 +41,10 @@ SUBROUTINE modify()
 
   ! reset variables
   DO iel=1,nel
-    x1=ndx(ielnod(1,iel))
-    x2=ndx(ielnod(2,iel))
-    x3=ndx(ielnod(3,iel))
-    x4=ndx(ielnod(4,iel))
+    x1=ndx(ielnd(1,iel))
+    x2=ndx(ielnd(2,iel))
+    x3=ndx(ielnd(3,iel))
+    x4=ndx(ielnd(4,iel))
     IF ((0.25_rlk*(x1+x2+x3+x4)).LT.xmid) THEN
       ielmat(iel)=1_ink
       rho(iel)=1.0_rlk
@@ -62,21 +62,21 @@ SUBROUTINE modify()
   ! reset subzonal pressure mass
   IF (zsp) THEN
     DO iel=1,nel
-      n1=ielnod(1,iel)
-      n2=ielnod(2,iel)
-      n3=ielnod(3,iel)
-      n4=ielnod(4,iel)
+      n1=ielnd(1,iel)
+      n2=ielnd(2,iel)
+      n3=ielnd(3,iel)
+      n4=ielnd(4,iel)
       x3=0.25_rlk*(ndx(n1)+ndx(n2)+ndx(n3)+ndx(n4))
       y3=0.25_rlk*(ndy(n1)+ndy(n2)+ndy(n3)+ndy(n4))
       DO inod=1,4
-        x1=ndx(ielnod(inod,iel))
-        y1=ndy(ielnod(inod,iel))
+        x1=ndx(ielnd(inod,iel))
+        y1=ndy(ielnd(inod,iel))
         ii=MOD(inod,4)+1_ink
-        x2=0.5_rlk*(x1+ndx(ielnod(ii,iel)))
-        y2=0.5_rlk*(y1+ndy(ielnod(ii,iel)))
+        x2=0.5_rlk*(x1+ndx(ielnd(ii,iel)))
+        y2=0.5_rlk*(y1+ndy(ielnd(ii,iel)))
         ii=MOD(inod+2,4)+1_ink
-        x4=0.5_rlk*(x1+ndx(ielnod(ii,iel)))
-        y4=0.5_rlk*(y1+ndy(ielnod(ii,iel)))
+        x4=0.5_rlk*(x1+ndx(ielnd(ii,iel)))
+        y4=0.5_rlk*(y1+ndy(ielnd(ii,iel)))
         w1=-x1+x2+x3-x4
         w2=-x1-x2+x3+x4
         w3=-y1+y2+y3-y4

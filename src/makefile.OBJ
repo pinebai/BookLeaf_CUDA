@@ -18,27 +18,10 @@
 #
 #
 # Object list
-OBJ = banner.o       \
-      comm.o         \
-      data.o         \
-      error.o        \
-      eos.o          \
-      geometry.o     \
-      getacc.o       \
+OBJ = getacc.o       \
       getdt.o        \
       getein.o       \
       getforce.o     \
-      gethg.o        \
-      getpc.o        \
-      getq.o         \
-      getsp.o        \
-      halt.o         \
       hydro.o        \
-      init.o         \
       lagstep.o      \
-      main.o         \
-      mesh.o         \
-      read.o         \
-      timers.o       \
-      utilities.o    \
-      write.o
+      main.o  

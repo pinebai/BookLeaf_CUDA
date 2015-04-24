@@ -20,9 +20,10 @@ PROGRAM main
 
 ! Internal
   USE kinds_mod,    ONLY: ink
+  USE integers_mod, ONLY: Nthread
+  USE logicals_mod, ONLY: zparallel,zmprocw
   USE comms_mod,    ONLY: register
   USE error_mod,    ONLY: halt
-  USE paradef_mod,  ONLY: zparallel,MProcW,Nthread
   USE timing_mod,   ONLY: bookleaf_times
   USE timers_mod,   ONLY: start_timers
   USE TYPH_util_mod,ONLY: get_time
@@ -32,9 +33,9 @@ PROGRAM main
   USE silo_mod,     ONLY: write_silo_dump
 #endif
 ! External
-!#ifndef NOOMP
+#ifndef NOOMP
   USE omp_lib
-!#endif
+#endif
 
   IMPLICIT NONE
 
@@ -67,9 +68,7 @@ PROGRAM main
 ! ###################
 
 ! welcome banner
-  IF (MprocW) THEN
-    CALL banner()
-  ENDIF
+  IF (zmprocw) CALL banner()
 
 ! ###################
 ! DEFAULTS
@@ -91,6 +90,9 @@ PROGRAM main
 ! generate mesh from input
   CALL mesh_gen(reg)
 
+! check / correct input
+  CALL init_check()
+
 ! print input
   CALL write_iprint(reg)
 
@@ -108,17 +110,13 @@ PROGRAM main
   CALL mesh_transfer(reg)
 
 ! register comms
-  IF (zparallel) THEN
-    call register()
-  ENDIF
+  IF (zparallel) CALL register()
 
 ! main initialisation
   CALL init()
 
 ! initialise parallel misdirection  
-  IF (zparallel) THEN
-    CALL init_comm()
-  ENDIF
+  IF (zparallel) CALL init_comm()
 
 ! problem specific modifications
 #ifdef MOD

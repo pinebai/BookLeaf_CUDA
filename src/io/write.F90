@@ -28,13 +28,13 @@ CONTAINS
   SUBROUTINE write_sprint()
 
     USE kinds_mod,       ONLY: ink,rlk
-    USE integers_mod,    ONLY: nel,nreg,nshape,nstep
+    USE integers_mod,    ONLY: nel,nreg,nshape,nstep,comms
+    USE logicals_mod,    ONLY: zmprocw
     USE reals_mod,       ONLY: time,dencut
     USE timing_mod,      ONLY: bookleaf_times
     USE typh_collect_mod,ONLY: typh_reduce,TYPH_OP_SUM,TYPH_OP_MIN,     &
 &                              TYPH_OP_MAX
     USE typh_util_mod,   ONLY: get_time
-    USE paradef_mod,     ONLY: CommS,MProcW
     USE pointers_mod,    ONLY: ielnd,ein,pre,rho,elvol,elmass,cnmass,   &
 &                              ndu,ndv,ielreg,cnwt
 
@@ -51,7 +51,7 @@ CONTAINS
 
     t0 = get_time()
 
-    IF (MProcW) THEN
+    IF (zmprocw) THEN
       WRITE(6,*) ' '
       WRITE(6,'(a11,i7,a8,f14.7)')'  Step no. ',nstep,' Time = ',time
     ENDIF
@@ -106,7 +106,7 @@ CONTAINS
       ENDDO
     ENDDO
 
-    IF (MProcW) THEN
+    IF (zmprocw) THEN
       WRITE(6,*) ' '
       WRITE(6,*) ' Table 1: Hydro region'
       WRITE(6,*) ' '
@@ -146,7 +146,7 @@ CONTAINS
       tot_ie  =tot_ie  +reg_ie_gl(ii)
       tot_ke  =tot_ke  +reg_ke_gl(ii)
       tot_pre =tot_pre +reg_pre_gl(ii)*reg_mass_gl(ii)
-      IF (MProcW) THEN
+      IF (zmprocw) THEN
         WRITE(6,1002) ii,-999,reg_vol_gl(ii),reg_mass_gl(ii),             &
 &                     reg_ie_gl(ii),reg_ke_gl(ii),reg_pre_gl(ii),         &
 &                     reg_pmn_gl(ii),reg_pmx_gl(ii),reg_rho_gl(ii),       &
@@ -155,13 +155,13 @@ CONTAINS
     ENDDO
     tot_rho=tot_mass/tot_vol
     tot_pre=tot_pre /tot_mass
-    IF (MProcW) THEN
+    IF (zmprocw) THEN
       WRITE(6,*) ' '
       WRITE(6,1006) tot_vol,tot_mass,tot_ie,tot_ke,tot_pre,tot_rho
     ENDIF
 
     ! Print totals
-    IF (MProcW) THEN
+    IF (zmprocw) THEN
       WRITE(6,1007) tot_ie,tot_ke,tot_ie+tot_ke
     ENDIF
 
@@ -183,14 +183,13 @@ CONTAINS
   SUBROUTINE write_iprint(reg)
 
     USE kinds_mod,   ONLY: ink
-    USE integers_mod,ONLY: nreg,nmat,eos_type
+    USE integers_mod,ONLY: nreg,nmat,eos_type,nprocw,nthread
     USE reals_mod,   ONLY: time_start,time_end,dt_initial,dt_min,dt_max,&
 &                          dt_g,cfl_sf,div_sf,cq1,cq2,kappaall,kappareg,&
 &                          pmeritall,pmeritreg,zcut,zerocut,dencut,     &
 &                          accut,pcut,ccut,eos_param,mat_rho,mat_ein
-    USE logicals_mod,ONLY: zdtnotreg,zmidlength
+    USE logicals_mod,ONLY: zdtnotreg,zmidlength,zmprocw
     USE strings_mod, ONLY: sfile
-    USE paradef_mod, ONLY: MprocW,NprocW,Nthread
     USE mesh_mod,    ONLY: mesh_print,regions
 
     ! Argument list
@@ -203,7 +202,7 @@ CONTAINS
 
     CALL DATE_AND_TIME(DATE=dat,TIME=tim,ZONE=zon)
 
-    IF (MprocW) THEN
+    IF (zmprocw) THEN
       PRINT*,'########################################################',&
 &      '################'
       PRINT*,' Input file:       ',TRIM(ADJUSTL(sfile))

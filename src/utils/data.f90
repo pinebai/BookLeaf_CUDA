@@ -26,12 +26,11 @@ MODULE parameters_mod
 
   USE kinds_mod,ONLY: ink,rlk
 
-  INTEGER(KIND=ink),PARAMETER :: LN=80_ink
-  INTEGER(KIND=ink),PARAMETER :: LI=100_ink
-  INTEGER(KIND=ink),PARAMETER :: MAX_NAMELIST_SIZE=100_ink
+  INTEGER(KIND=ink),PARAMETER :: LN       =80_ink
+  INTEGER(KIND=ink),PARAMETER :: LI       =100_ink
   REAL(KIND=rlk),   PARAMETER :: ONEBYNINE=1.0_rlk/9.0_rlk
-  REAL(KIND=rlk),   PARAMETER :: pi       =3.1415926535897932385_rlk
-  REAL(KIND=rlk),   PARAMETER :: two_pi   =6.2831853071795864770_rlk
+  REAL(KIND=rlk),   PARAMETER :: PI       =3.1415926535897932385_rlk
+  REAL(KIND=rlk),   PARAMETER :: TWO_PI   =6.2831853071795864770_rlk
 
 END MODULE parameters_mod
 
@@ -40,10 +39,27 @@ MODULE integers_mod
   USE kinds_mod,     ONLY: ink
   USE parameters_mod,ONLY: LI
 
-  INTEGER(KIND=ink)               :: nel,nnod,nshape,nmat,nreg,nstep,   &
-&                                    nel1,nnod1,nsz,idtel,max_seg,      &
-&                                    max_subseg
-  INTEGER(KIND=ink),DIMENSION(LI) :: eos_type
+  ! dimensions
+  INTEGER(KIND=ink)                  :: nel,nnod
+  ! dimensions including ghosts
+  INTEGER(KIND=ink)                  :: nel1,nnod1
+  ! sizes
+  INTEGER(KIND=ink)                  :: nshape,nsz,nmat,nreg
+  ! timestep
+  INTEGER(KIND=ink)                  :: nstep,idtel
+  ! mesh
+  INTEGER(KIND=ink)                  :: max_seg,max_subseg
+  ! eos
+  INTEGER(KIND=ink),DIMENSION(LI)    :: eos_type
+  ! ale
+  INTEGER(KIND=ink)                  :: adv_type,npatch
+  INTEGER(KIND=ink),DIMENSION(LI)    :: patch_type,patch_motion,        &
+&                                       patch_ntrigger
+  INTEGER(KIND=ink),DIMENSION(LI,LI) :: patch_trigger
+  ! parallelism
+  INTEGER(KIND=ink)                  :: nprocw,nprocs,nprocr,commw,     &
+&                                       comms,commr,rankw,ranks,rankr,  &
+&                                       nthread
 
 END MODULE integers_mod
 
@@ -67,6 +83,8 @@ MODULE reals_mod
   REAL(KIND=rlk),DIMENSION(LI)   :: kappareg,pmeritreg
   ! ale
   REAL(KIND=rlk)                 :: time_alemin,time_alemax
+  REAL(KIND=rlk),DIMENSION(LI)   :: patch_ontime,patch_offtime,         &
+&                                   patch_minvel,patch_maxvel,patch_om
 
 END MODULE reals_mod  
 
@@ -83,32 +101,24 @@ MODULE logicals_mod
   USE kinds_mod,     ONLY: lok
   USE parameters_mod,ONLY: LI
 
-  LOGICAL(KIND=lok)               :: zhg,zsp,zale,zaleon,zeul
+  LOGICAL(KIND=lok)               :: zhg,zsp,zale,zaleon,zeul,zparallel,&
+&                                    zmprocw,zmprocs,zmprocr
   LOGICAL(KIND=lok),DIMENSION(LI) :: zdtnotreg,zmidlength
 
 END MODULE logicals_mod
-
-MODULE paradef_mod
-
-  USE kinds_mod,ONLY: ink,lok,rlk
-
-  INTEGER(KIND=ink)                            :: NprocW,rankW,CommS,   &
-&                                                 CommW,Nthread
-  LOGICAL(KIND=lok)                            :: zparallel,MprocW
-  INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE :: e_loc_glob,n_loc_glob,&
-&                                                 ielsort1
-  INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE :: e_owner_proc,         &
-&                                                 n_owner_proc
-
-END MODULE paradef_mod
 
 MODULE pointers_mod
 
   USE kinds_mod,ONLY: ink,rlk
 
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE        :: ielreg,ielmat, &
-&                                                        indtype
-  INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd
+&                                                        indtype,       &
+&                                                        ielsort1,      &
+&                                                        e_loc_glob,    &
+&                                                        n_loc_glob
+  INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd,   &
+&                                                        e_owner_proc,  &
+&                                                        n_owner_proc
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,TARGET :: ielnd
   REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE        :: rho,qq,csqrd,  &
 &                                                        pre,ein,elmass,&

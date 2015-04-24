@@ -29,9 +29,10 @@ CONTAINS
 
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: zerocut,dencut,accut
+    USE logicals_mod, ONLY: zparallel
     USE comms_mod,    ONLY: HALFSTEP,exchange
-    USE paradef_mod,  ONLY: zparallel,ielsort1
-    USE pointers_mod, ONLY: ielnd,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy
+    USE pointers_mod, ONLY: ielnd,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy,  &
+&                           ielsort1
     USE utilities_mod,ONLY: gather
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time

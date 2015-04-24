@@ -85,7 +85,7 @@ CONTAINS
 
   SUBROUTINE read_input(reg)
 
-    USE parameters_mod, ONLY: MNS=>MAX_NAMELIST_SIZE,LI
+    USE parameters_mod, ONLY: LI
     USE strings_mod,    ONLY: sfile
     USE error_mod,      ONLY: halt
     USE integers_mod,   ONLY: nreg,nmat,max_seg,max_subseg
@@ -111,15 +111,15 @@ CONTAINS
 &                                  vel_default=0.0_rlk,                 &
 &                                  seg_default=0.0_rlk
     ! input
-    INTEGER(KIND=ink),DIMENSION(MNS,4,MNS) :: region_side
-    INTEGER(KIND=ink),DIMENSION(MNS,2)     :: region_dim
-    INTEGER(KIND=ink),DIMENSION(MNS)       :: region_material,          &
-&                                             region_vel_typ
-    REAL(KIND=rlk),   DIMENSION(MNS,3)     :: region_vel
-    REAL(KIND=rlk),   DIMENSION(MNS)       :: region_om,region_tol
-    CHARACTER(LEN=4), DIMENSION(MNS)       :: region_typ
-    REAL(KIND=rlk),   DIMENSION(MNS,8)     :: segment_pos
-    CHARACTER(LEN=5), DIMENSION(MNS)       :: segment_typ,segment_bc
+    INTEGER(KIND=ink),DIMENSION(LI,4,LI) :: region_side
+    INTEGER(KIND=ink),DIMENSION(LI,2)    :: region_dim
+    INTEGER(KIND=ink),DIMENSION(LI)      :: region_material,            &
+&                                           region_vel_typ
+    REAL(KIND=rlk),   DIMENSION(LI,3)    :: region_vel
+    REAL(KIND=rlk),   DIMENSION(LI)      :: region_om,region_tol
+    CHARACTER(LEN=4), DIMENSION(LI)      :: region_typ
+    REAL(KIND=rlk),   DIMENSION(LI,8)    :: segment_pos
+    CHARACTER(LEN=5), DIMENSION(LI)      :: segment_typ,segment_bc
 
     ! NB. easier as a derived type, valid Fortran that some compilers
     !     don't support
@@ -127,11 +127,11 @@ CONTAINS
 &                   region_vel_typ,region_vel,region_om,region_tol,     &
 &                   region_typ,segment_pos,segment_typ,segment_bc
 
-    IF (max_seg.GT.MNS) THEN
-      CALL halt('ERROR: max_seg > MAX_NAMELIST_SIZE',0)
+    IF (max_seg.GT.LI) THEN
+      CALL halt('ERROR: max_seg > LI',0)
     ENDIF
-    IF (max_subseg-1.GT.MNS) THEN
-      CALL halt('ERROR: max_subseg > MAX_NAMELIST_SIZE',0)
+    IF (max_subseg-1.GT.LI) THEN
+      CALL halt('ERROR: max_subseg > LI',0)
     ENDIF
 
     ! set defaults
@@ -1430,7 +1430,7 @@ CONTAINS
   SUBROUTINE arc(ireg,i_seg,ind,l1,l2,k1,k2,reg)
 
     USE reals_mod,     ONLY: zerocut
-    USE parameters_mod,ONLY: two_pi,pi
+    USE parameters_mod,ONLY: TWO_PI,PI
 
     ! Argument list
     TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
@@ -1482,9 +1482,9 @@ CONTAINS
     ENDIF
     theta1=ATAN(dd/d2)
     IF (d2.LT.0.0_rlk) THEN
-      theta1=theta1+pi
+      theta1=theta1+PI
     ELSEIF (dd.LT.0.0_rlk) THEN
-      theta1=theta1+two_pi
+      theta1=theta1+TWO_PI
     ENDIF
     d1=s2-s0
     w4=r2-r0
@@ -1495,11 +1495,11 @@ CONTAINS
     ENDIF
     theta2=ATAN(d1/d2)
     IF (d2.LT.0.0_rlk) THEN
-      theta2=theta2+pi
+      theta2=theta2+PI
     ELSEIF (d1.LT.0.0_rlk) THEN
-      theta2=theta2+two_pi
+      theta2=theta2+TWO_PI
     ENDIF
-    IF (theta2.GT.theta1) theta2=theta2-two_pi
+    IF (theta2.GT.theta1) theta2=theta2-TWO_PI
     d2=SQRT(w4*w4+d1*d1)
     d1=SQRT(w3*w3+dd*dd)
     tol=reg(ireg)%tol

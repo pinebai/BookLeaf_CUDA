@@ -17,7 +17,8 @@
 #! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
 
-OBJ+=     t1_types.o          \
+OBJ+=     comm.o              \
+          t1_types.o          \
           t1_collect.o        \
           t1_decomposition.o  \
           t1_exchange.o       \

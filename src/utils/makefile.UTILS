@@ -18,14 +18,11 @@
 #
 #
 # Object list
-OBJ +=    comm.o              \
-          t3_types.o          \
-          t3_collect.o        \
-          t3_decomposition.o  \
-          t3_exchange.o       \
-          t3_keys.o           \
-          t3_util.o           \
-          t3_quantity.o       \
-          t3_register.o       \
-          t3_schedule.o       \
-          typhon.o
+OBJ += data.o        \
+       error.o       \
+       geometry.o    \
+       halt.o        \
+       init.o        \
+       mesh.o        \
+       timers.o      \
+       utilities.o 

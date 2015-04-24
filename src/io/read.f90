@@ -22,7 +22,6 @@ SUBROUTINE read_command()
   USE strings_mod,   ONLY: sfile
   USE error_mod,     ONLY: halt
   USE parameters_mod,ONLY: LN
-  USE paradef_mod,   ONLY: MProcW
   USE utilities_mod, ONLY: convupper
 
   IMPLICIT NONE
@@ -51,12 +50,16 @@ SUBROUTINE read_files()
 
   USE kinds_mod,     ONLY: ink,lok,rlk
   USE strings_mod,   ONLY: sfile
-  USE integers_mod,  ONLY: eos_type,nreg,nmat,max_seg,max_subseg
+  USE integers_mod,  ONLY: eos_type,nreg,nmat,max_seg,max_subseg,       &
+&                          adv_type,patch_type,patch_motion,            &
+&                          patch_ntrigger,patch_trigger,npatch
   USE reals_mod,     ONLY: time_start,time_end,dt_initial,dt_g,dt_min,  &
 &                          dt_max,cfl_sf,div_sf,eos_param,mat_rho,      &
 &                          mat_ein,ccut,zcut,zerocut,pcut,dencut,accut, &
-&                          cq1,cq2,kappaall,kappareg,pmeritall,pmeritreg
-  USE logicals_mod,  ONLY: zdtnotreg,zmidlength
+&                          cq1,cq2,kappaall,kappareg,pmeritall,         &
+&                          pmeritreg,patch_ontime,patch_offtime,        &
+&                          patch_om,patch_minvel,patch_maxvel
+  USE logicals_mod,  ONLY: zdtnotreg,zmidlength,zeul
   USE parameters_mod,ONLY: LI
   USE error_mod,     ONLY: halt
   USE utilities_mod, ONLY: findstr
@@ -69,13 +72,15 @@ SUBROUTINE read_files()
   CHARACTER(LEN=LI)           :: str
   LOGICAL(KIND=lok)           :: zflag
 
-  NAMELIST /PROBSIZE/ nreg,nmat,max_seg,max_subseg
+  NAMELIST /PROBSIZE/ nreg,nmat,max_seg,max_subseg,npatch
   NAMELIST /CONTROL/ time_start,time_end,dt_initial,dt_g,dt_min,dt_max, &
 &  cfl_sf,div_sf,zdtnotreg,zmidlength,cq1,cq2,kappaall,kappareg,        &
 &  pmeritall,pmeritreg
   NAMELIST /EOS/ eos_type,eos_param,mat_rho,mat_ein
   NAMELIST /CUTOFF/ ccut,zcut,zerocut,pcut,dencut,accut
-!  NAMELIST /ALE/
+  NAMELIST /ALE/ zeul,adv_type,patch_type,patch_motion,patch_ontime,    &
+&  patch_offtime,patch_om,patch_minvel,patch_maxvel,patch_ntrigger,     &
+&  patch_trigger
 
   ! Open control file
   OPEN(UNIT=IUNIT,FILE=sfile,ACTION='read',STATUS='old',                &
@@ -118,12 +123,14 @@ SUBROUTINE read_files()
   zflag=findstr('ale',IUNIT)
   IF (zflag) THEN
     REWIND(UNIT=IUNIT)
-!    READ(UNIT=IUNIT,NML=ALE,IOSTAT=ierr,IOMSG=str)
+    READ(UNIT=IUNIT,NML=ALE,IOSTAT=ierr,IOMSG=str)
     IF (ierr.NE.0_ink) CALL halt("ERROR: "//TRIM(str),0)
   ENDIF
 
-  IF (nreg.LE.0_rlk) CALL halt('ERROR: nreg < 0',0)
-  IF (nmat.LE.0_rlk) CALL halt('ERROR: nmat < 0',0)
+  ! Check sizes
+  IF (nreg.LT.0_ink)   CALL halt('ERROR: nreg < 0',0)
+  IF (nmat.LT.0_ink)   CALL halt('ERROR: nmat < 0',0)
+  IF (npatch.LT.0_ink) CALL halt('ERROR: npatch < 0',0)
 
   ! close control file
   CLOSE(UNIT=IUNIT)

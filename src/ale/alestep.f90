@@ -27,7 +27,7 @@ CONTAINS
   SUBROUTINE alestep(nstep,dt)
 
     USE kinds_mod,      ONLY: rlk,ink
-    USE integers_mod,   ONLY: nnod,nel,nshape,nsz
+    USE integers_mod,   ONLY: nnod,nel,nshape,nsz,adv_type
     USE reals_mod,      ONLY: zerocut,dencut
     USE error_mod,      ONLY: halt
     USE ale_getmesh_mod,ONLY: alegetmesh
@@ -60,8 +60,8 @@ CONTAINS
 &                   ndx(1),ndy(1),ndumcut(1),ndvmcut(1),rDelV(1,1))
 
     ! advect independent variables
-!    SELECT CASE(iadv_type)
-!      CASE(1_ink)
+    SELECT CASE(adv_type)
+      CASE(1_ink)
         CALL aleadvect(1_ink,2_ink,nshape,nel,nnod,nsz,ielel(1,1),      &
 &                      ielsd(1,1),ielnd(1,1),indstatus(1),indtype(1),   &
 &                      dencut,zerocut,ndumcut(1),ndvmcut(1),store1(1),  &
@@ -69,7 +69,7 @@ CONTAINS
 &                      rho(1),cnwt(1,1),cnmass(1,1),rDelV(1,1),         &
 &                      rDelM(1,1),rwork3(1,1),rFlux(1,1),rwork1(1,1),   &
 &                      rwork2(1,1),zactive(1))
-!      CASE(2_ink)
+      CASE(2_ink)
         ii=MOD(nstep+1,2)
         i1=1_ink+ii
         i2=2_ink-ii
@@ -83,9 +83,9 @@ CONTAINS
 &                        rDelV(1,1),rDelM(1,1),rwork3(1,1),rFlux(1,1),  &
 &                        rwork1(1,1),rwork2(1,1),zactive(1))
         ENDDO
-!      CASE DEFAULT
-        CALL halt("ERROR: unrecognised iadv_type",0)
-!    END SELECT
+      CASE DEFAULT
+        CALL halt("ERROR: unrecognised adv_type",0)
+    END SELECT
 
     ! update dependent variables
     CALL aleupdate(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),     &

@@ -22,10 +22,10 @@ SUBROUTINE init_memory()
   USE integers_mod,ONLY: nshape,nel1,nnod1,nsz
   USE logicals_mod,ONLY: zsp,zale
   USE error_mod,   ONLY: halt
-  USE paradef_mod, ONLY: ielsort1
   USE pointers_mod,ONLY: ielreg,ielmat,ielnd,rho,qq,csqrd,pre,ein,cnwt, &
 &                        elmass,elvol,ndu,ndv,a1,a2,a3,b1,b2,b3,ndx,ndy,&
-&                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,ielsd
+&                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,     &
+&                        ielsd,ielsort1
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
 &                        rscratch25,rscratch26,rscratch27,rscratch11,   &
 &                        rscratch12,rscratch13,rscratch14,rscratch15,   &
@@ -164,7 +164,7 @@ SUBROUTINE init_comm()
 
   USE kinds_mod,    ONLY: ink
   USE integers_mod, ONLY: nel1
-  USE paradef_mod,  ONLY: e_loc_glob,ielsort1
+  USE pointers_mod, ONLY: e_loc_glob,ielsort1
   USE utilities_mod,ONLY: sort
   USE error_mod,    ONLY: halt
 
@@ -181,12 +181,16 @@ SUBROUTINE init_defaults()
 
   USE kinds_mod,   ONLY: rlk,lok,ink
   USE strings_mod, ONLY: sfile
-  USE integers_mod,ONLY: eos_type,max_seg,max_subseg
+  USE integers_mod,ONLY: eos_type,max_seg,max_subseg,nmat,nreg,npatch,  &
+&                        adv_type,patch_type,patch_motion,patch_trigger,&
+&                        patch_ntrigger
   USE reals_mod,   ONLY: time_start,time_end,dt_initial,dt_g,dt_min,    &
 &                        dt_max,cfl_sf,div_sf,ccut,zcut,zerocut,pcut,   &
 &                        eos_param,dencut,accut,cq1,cq2,kappaall,       &
-&                        kappareg,pmeritall,pmeritreg
-  USE logicals_mod,ONLY: zdtnotreg,zmidlength
+&                        kappareg,pmeritall,pmeritreg,patch_ontime,     &
+&                        patch_offtime,patch_om,patch_minvel,           &
+&                        patch_maxvel
+  USE logicals_mod,ONLY: zdtnotreg,zmidlength,zeul
 
   IMPLICIT NONE
 
@@ -223,42 +227,72 @@ SUBROUTINE init_defaults()
   kappareg(:)=0.0_rlk
   pmeritall=0.0_rlk
   pmeritreg(:)=0.0_rlk
+  ! problem size
+  nmat=-1_ink
+  nreg=-1_ink
   ! meshgen
   max_seg=50_ink
   max_subseg=5_ink
   ! ale
+  zeul=.FALSE._lok
+  adv_type=1_ink
+  npatch=0_ink
+  patch_type(:)=0_ink
+  patch_motion(:)=0_ink
+  patch_ontime(:)=HUGE(1.0_rlk)
+  patch_offtime(:)=HUGE(1.0_rlk)
+  patch_om(:)=1.0_rlk
+  patch_minvel(:)=HUGE(1.0_rlk)
+  patch_maxvel(:)=HUGE(1.0_rlk)
+  patch_ntrigger(:)=0_ink
+  patch_trigger(:,:)=-1_ink
 
 END SUBROUTINE init_defaults
 
 SUBROUTINE init_parallel()
 
   USE kinds_mod,     ONLY: ink,lok
-  USE paradef_mod,   ONLY: rankW,MProcW,NProcW,CommS,CommW,zparallel
-  USE TYPH_util_mod, ONLY: TYPH_Init,TYPH_Get_Size,TYPH_Get_Rank,set_comm
+  USE integers_mod,  ONLY: rankw,nprocw,commw,ranks,nprocs,comms,rankr, &
+&                          nprocr,commr
+  USE logicals_mod,  ONLY: zmprocw,zparallel
+  USE TYPH_util_mod, ONLY: TYPH_Init,TYPH_Get_Size,TYPH_Get_Rank,       &
+&                          set_comm,set_comm_self
 
   IMPLICIT NONE
 
   ! Local
   INTEGER(KIND=ink) :: ierr
 
+  ! initialise
   ierr=TYPH_Init()   
-  ierr=TYPH_Get_Size(NProcW)
+  ! world
+  ierr=TYPH_Get_Size(nprocw)
+  ierr=TYPH_Get_Rank(rankw)
+  ierr=set_comm(commw)
+  ! space
+  nprocs=nprocw
+  ranks=rankw
+  ierr=set_comm(comms)
+  ! replicates
+  nprocr=0_ink
+  rankr=-1_ink
+  ierr=set_comm_self(commr)
+  ! global settings
   zparallel=.FALSE._lok
-  IF (NProcW.GT.1_ink) zparallel=.TRUE._lok
-  ierr=TYPH_Get_Rank(RankW)
-  MProcW=.FALSE._lok
-  IF (RankW.EQ.0_ink) MProcW=.TRUE._lok
-  ierr=set_comm(CommW)
-  ierr=set_comm(CommS)
+  IF (nprocw.GT.1_ink) zparallel=.TRUE._lok
+  zmprocw=.FALSE._lok
+  IF (rankw.EQ.0_ink) zmprocw=.TRUE._lok
 
 END SUBROUTINE init_parallel
 
 SUBROUTINE init_parameters()
 
   USE kinds_mod,   ONLY: rlk,ink,lok
+  USE integers_mod,ONLY: npatch
   USE reals_mod,   ONLY: kappaall,kappareg,pmeritall,pmeritreg,time_end,&
-&                        time_start,time_alemin,time_alemax
-  USE logicals_mod,ONLY: zhg,zsp,zale,zeul
+&                        time_start,time_alemin,time_alemax,            &
+&                        patch_ontime,patch_offtime
+  USE logicals_mod,ONLY: zhg,zsp,zale
   USE integers_mod,ONLY: nreg,nshape
 
   IMPLICIT NONE
@@ -272,12 +306,36 @@ SUBROUTINE init_parameters()
   ! geometry
   nshape=4_ink
   ! ale
-  zale=(time_alemin.LT.time_end).AND.(time_alemax.GT.time_start).AND.   &
-&      (time_alemax.GT.time_alemin)
-  IF (zale) THEN
-!    zeul=
-  ELSE
-    zeul=.FALSE._lok
+  IF (npatch.GT.0_ink) THEN
+    time_alemin=MINVAL(patch_ontime(1:npatch))
+    time_alemax=MAXVAL(patch_offtime(1:npatch))
+    zale=(time_alemin.LT.time_end).AND.(time_alemax.GT.time_start).AND. &
+&        (time_alemax.GT.time_alemin)
   ENDIF
 
 END SUBROUTINE init_parameters  
+
+SUBROUTINE init_check()
+
+  USE kinds_mod,   ONLY: ink,rlk
+  USE integers_mod,ONLY: npatch,patch_type,patch_motion,patch_ntrigger
+  USE logicals_mod,ONLY: zeul
+  USE reals_mod,   ONLY: patch_ontime,patch_offtime,patch_om,           &
+&                        patch_minvel,patch_maxvel,time_start,time_end
+
+  ! ale
+  IF (zeul) THEN
+    ! reset ale parameters for Eulerian frame
+    npatch=1_ink
+    patch_type(1)=1_ink
+    patch_motion(1)=1_ink
+    patch_ontime(1)=time_start
+    patch_offtime(1)=time_end
+    patch_om(1)=1.0_rlk
+    patch_minvel(1)=0.0_rlk
+    patch_maxvel(1)=HUGE(1.0_rlk)
+    patch_ntrigger(1)=0_ink
+  ELSE
+  ENDIF
+
+END SUBROUTINE init_check

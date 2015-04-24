@@ -25,9 +25,13 @@ MKFILEV = $(SRCDIR)/makefiles/makefile.VER
 SRCDIR  = .
 ALEDIR  = $(SRCDIR)/ale
 COMDIR  = $(SRCDIR)/comms
-UTLDIR  = $(SRCDIR)/cutils
+CUTDIR  = $(SRCDIR)/cutils
+EOSDIR  = $(SRCDIR)/eos
+HYDDIR  = $(SRCDIR)/hydro
+IAODIR  = $(SRCDIR)/io
 MODDIR  = $(SRCDIR)/mods
 SCPDIR  = $(SRCDIR)/putils
+UTLDIR  = $(SRCDIR)/utils
 
 # build info
 NO_MPI  =
@@ -82,7 +86,11 @@ endif
 # Include object list
 ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
   include $(SRCDIR)/makefile.OBJ
-  include $(ALEDIR)/makefile.ale
+  include $(ALEDIR)/makefile.ALE
+  include $(EOSDIR)/makefile.EOS
+  include $(HYDDIR)/makefile.HYDRO
+  include $(IAODIR)/makefile.IO
+  include $(UTLDIR)/makefile.UTILS
 endif
 
 # set pre-processor flags, adjust object list and dependency list
@@ -94,7 +102,7 @@ ifneq ($(SILO),)
   endif
   OBJ+=silo.o
   ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
-    include $(UTLDIR)/makefile.cutils
+    include $(CUTDIR)/makefile.cutils
   endif
 endif
 ifneq ($(MOD),)
@@ -133,7 +141,8 @@ ifneq (,$(findstring $(EXE),$(MAKECMDGOALS)))
 endif
 
 # Source paths
-VPATH=$(SRCDIR):$(MODDIR):$(COMDIR):$(UTLDIR):$(ALEDIR)
+VPATH=$(ALEDIR):$(COMDIR):$(CUTDIR):$(EOSDIR):$(HYDDIR):$(IAODIR):      \
+      $(MODDIR):$(SRCDIR):$(UTLDIR)
 
 # Collect all pre-processor options
 PREPRO = $(PP_MOD)   \

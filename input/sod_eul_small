@@ -22,6 +22,7 @@
 &PROBSIZE
  nreg=1
  nmat=1
+ npatch=1
 /
 &MESH
  region_typ(1)='LIN1'
@@ -38,3 +39,6 @@
  segment_pos(3,:)=100.0,25.0,0.0,25.0
  segment_pos(4,:)=0.0,25.0,0.0,0.0
 /
+&ALE
+ zeul=.TRUE.
+/ 

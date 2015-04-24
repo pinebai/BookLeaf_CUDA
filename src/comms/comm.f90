@@ -36,9 +36,8 @@ CONTAINS
 
     USE kinds_mod,    ONLY: rlk,ink
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
-    USE paradef_mod,  ONLY: e_owner_proc,n_owner_proc,e_loc_glob,      &
-&                           n_loc_glob
-    USE pointers_mod, ONLY: cnmass,cnwt,ielnd
+    USE pointers_mod, ONLY: cnmass,cnwt,ielnd,e_owner_proc,e_loc_glob, &
+&                           n_owner_proc,n_loc_glob
     USE error_mod,    ONLY: halt
     USE scratch_mod,  ONLY: rscratch11,rscratch23,rscratch24,rscratch25,&
 &                           rscratch26
