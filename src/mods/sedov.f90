@@ -20,8 +20,8 @@ SUBROUTINE modify()
 
   USE kinds_mod,   ONLY: ink,rlk
   USE integers_mod,ONLY: nel
-  USE paradef_mod, ONLY: e_loc_glob,zparallel
-  USE pointers_mod,ONLY: ein,ielmat,rho,pre,csqrd,elvol
+  USE logicals_mod,ONLY: zparallel
+  USE pointers_mod,ONLY: ein,ielmat,rho,pre,csqrd,elvol,e_loc_glob
   USE getpc_mod,   ONLY: getpc
 
   IMPLICIT NONE

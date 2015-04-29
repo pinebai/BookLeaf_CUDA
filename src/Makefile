@@ -61,7 +61,7 @@ help:
 	# Usage
 	# Pre_pro:
 	#  MKFILEM     - machine specific makefile,  DEFAULT makefile.GENERIC
-	#  MKFILEC     - compiler specific makefile, DEFAULT makefile.intel
+	#  MKFILEC     - compiler specific makefile, DEFAULT makefile.gcc
 	#  MKFILEV     - override default list of library versions
 	#  SRCDIR      - path to source directory,   DEFAULT .
 	#  LEV         - build level, options: MEMDEBUG,DEBUG,TV,MEMTV,OPTDEBUG,RELEASE,

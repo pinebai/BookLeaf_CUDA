@@ -241,6 +241,7 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(iASize),       INTENT(OUT)   :: rTotFlux
     ! Local
     INTEGER(KIND=ink) :: i1,i2,j1,j2,iEl,iE1,iE2
+    REAL(KIND=rlk)    :: w1,w2
 
     rTotFlux=0.0_rlk
     DO i1=iD1,iD2
@@ -250,8 +251,11 @@ CONTAINS
         iE2=iElEl(i2,iEl)
         j1=iElSd(i1,iEl)
         j2=iElSd(i2,iEl)
-        rTotFlux(iEl)=rTotFlux(iEl)+rFlux(j1,iE1)+rFlux(j2,iE2)         &
-&                                  -rFlux(i1,iEl)-rFlux(i2,iEl)
+        w1=rFlux(j1,iE1)
+        w2=rFlux(j2,iE2)
+        IF (iE1.EQ.iEl) w1=0.0_rlk
+        IF (iE2.EQ.iEl) w2=0.0_rlk
+        rTotFlux(iEl)=rTotFlux(iEl)-rFlux(i1,iEl)-rFlux(i2,iEl)+w1+w2
       ENDDO
     ENDDO
 

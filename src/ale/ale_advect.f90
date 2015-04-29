@@ -251,7 +251,7 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(INOUT) :: cnm1
     ! Local
     INTEGER(KIND=ink) :: ind,iel,i1,i2,ie1,ie2,is1,is2
-    REAL(KIND=rlk)    :: w1,w2,w3
+    REAL(KIND=rlk)    :: w1,w2,w3,w4
 
     ! initialise
     DO ind=1,nnod
@@ -299,13 +299,25 @@ CONTAINS
         ie2=ielel(i2,iel)
         is1=ielsd(i1,iel)
         is2=ielsd(i2,iel)
-        w1=delv(is1,ie1)-delv(i1,iel)
-        w2=delv(is2,ie2)-delv(i2,iel)
-        w3=0.25_rlk*(w1-w2)
-        dndv(i1,iel)=w3
-        dndv(i2,iel)=w3
-        w1=delm(is1,ie1)-delm(i1,iel)
-        w2=delm(is2,ie2)-delm(i2,iel)
+        w1=delv(is1,ie1)
+        w2=delv(is2,ie2)
+        w3=delm(is1,ie1)
+        w4=delm(is2,ie2)
+        IF (ie1.EQ.iel) THEN
+          w1=0.0_rlk
+          w3=0.0_rlk
+        ENDIF
+        IF (ie2.EQ.iel) THEN
+          w2=0.0_rlk
+          w4=0.0_rlk
+        ENDIF
+        w1=w1-delv(i1,iel)
+        w2=w2-delv(i2,iel)
+        w1=0.25_rlk*(w1-w2)
+        dndv(i1,iel)=w1
+        dndv(i2,iel)=w1
+        w1=w3-delm(i1,iel)
+        w2=w4-delm(i2,iel)
         w3=0.25_rlk*(w1-w2)
         dndm(i1,iel)=w3
         dndm(i2,iel)=w3
@@ -324,10 +336,16 @@ CONTAINS
     DO iel=1,nel
       cnm1(1,iel)=cnm1(1,iel)+flux(1,iel)
       cnm1(2,iel)=cnm1(2,iel)+flux(2,iel)
+      cnm1(3,iel)=cnm1(3,iel)+flux(3,iel)
+      cnm1(4,iel)=cnm1(4,iel)+flux(4,iel)
       ind=ielnd(1,iel)
       elv0ndm1(ind)=elv0ndm1(ind)+flux(1,iel)
       ind=ielnd(2,iel)
       elv0ndm1(ind)=elv0ndm1(ind)+flux(2,iel)
+      ind=ielnd(3,iel)
+      elv0ndm1(ind)=elv0ndm1(ind)+flux(3,iel)
+      ind=ielnd(4,iel)
+      elv0ndm1(ind)=elv0ndm1(ind)+flux(4,iel)
     ENDDO
 
     ! construct cut-offs
