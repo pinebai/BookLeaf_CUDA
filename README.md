@@ -69,8 +69,12 @@ BookLeaf can run with no command line arguments. By default it expects to find a
 file called "control" in the directory it is running in. This can be changed 
 by running:
 
-`bookleaf_sod file=<newfile>`
+`bookleaf_sod FILE=<newfile>`
 
 This file is a copy of the files found in the inputs directory, depending on 
 which problem you wish to run.
 
+## Versions
+
+V1.0   - Initial version. Contains MPI comms, but only serial meshes can be contructed.
+V1.1   - Adds in mesh partitioning. Parallel running now available.
