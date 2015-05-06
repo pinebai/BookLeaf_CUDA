@@ -23,48 +23,51 @@ else
 endif
 # Debug flags
 ifeq ($(LEV),MEMDEBUG)
-  DBG     = -g -O0
-  CDBG    = -g -O0
-  CHECK   = -g -xopenmp=noopt -stackvar -u -fpover=yes -C 
-  FLTTRAP = -ftrap=common
-  IEEE   += 
+  DBG     = -O0 -g -qfullpath -qsource -qinit=f90ptr -qsigtrap
+  CDBG    = -O0 -g -qfullpath -qsource -qsrcmsg
+  CHECK   = -qcheck -qinitauto=FF -qmaxmem=-1
+  FLTTRAP = -qflttrap=ov:zero:invalid:en
+  IEEE   +=
 endif
 ifeq ($(LEV),DEBUG)
-  DBG     = -g -O0
-  CDBG    = -g -O0
-  CHECK   = -g -xopenmp=noopt -stackvar -u -fpover=yes -C
-  FLTTRAP = -ftrap=common
+  DBG     = -O0 -g -qfullpath -qsource -qinit=f90ptr -qsigtrap
+  CDBG    = -O0 -g -qfullpath -qsource -qsrcmsg
+  CHECK   = -qcheck -qinitauto=FF -qmaxmem=-1
+  FLTTRAP = -qflttrap=ov:zero:invalid:en
   IEEE   +=
 endif
 ifeq ($(LEV),TV)
-  DBG     = -g -O0
-  CDBG    = -g -O0
-  IEEE   += 
+  DBG     = -O0 -g -qfullpath -qsource -qinit=f90ptr -qsigtrap
+  CDBG    = -O0 -g -qfullpath -qsource -qsrcmsg
+  CHECK   = -qcheck -qinitauto=FF -qmaxmem=-1
+  FLTTRAP = -qflttrap=ov:zero:invalid:en
+  IEEE   +=
 endif
 ifeq ($(LEV),MEMTV)
-  DBG     = -g -O0
-  CDBG    = -g -O0
-  IEEE   += 
-  CHECK   = 
+  DBG     = -O0 -g -qfullpath -qsource -qinit=f90ptr -qsigtrap
+  CDBG    = -O0 -g -qfullpath -qsource -qsrcmsg
+  CHECK   = -qcheck -qinitauto=FF -qmaxmem=-1
+  FLTTRAP = -qflttrap=ov:zero:invalid:en
+  IEEE   +=
 endif
 ifeq ($(LEV),OPTDEBUG)
   DBG     = -g
-  CDBG    = -g -O0
+  CDBG    = -g
 endif
 # Optimisation flags
 ifeq ($(LEV),OPTDEBUG)
-  OPT     = -fast -xipo=2
-  COPT    = -fast -xipo=2
-  IEEE   += 
+  OPT     = -O3 -Q
+  COPT    = -O3 -Q
+  IEEE   +=
 endif
 ifeq ($(LEV),RELEASE)
-  OPT     = #-fast -xipo=2
-  COPT    = #-fast -xipo=2
-  IEEE   += 
+  OPT     = -O3 -Q
+  COPT    = -O3 -Q
+  IEEE   +=
 endif
 ifeq ($(LEV),OPT)
-  OPT     = -O5 -Q 
-  COPT    = -O5 -Q 
+  OPT     = -O3 -Q -qfullpath -g -qsigtrap
+  COPT    = -O3 -Q -qfullpath -g
 #Disable following for OPT
   BIG_ENDIAN   =
   AUTO_ARRAYS  =
