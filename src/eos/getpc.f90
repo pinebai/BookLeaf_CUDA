@@ -24,18 +24,18 @@ MODULE getpc_mod
 
 CONTAINS
 
-  SUBROUTINE getpc(nel,ielmat,rho,ein,pre,csqrd)
+  SUBROUTINE getpc(nel,ielmat,rho,ein,pre,csqrd,timer)
 
     USE kinds_mod,    ONLY: ink,rlk
     USE eos_mod,      ONLY: getpre,getcc
-    USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),               INTENT(IN)  :: nel
-    INTEGER(KIND=ink),DIMENSION(nel),INTENT(IN)  :: ielmat
-    REAL(KIND=rlk),   DIMENSION(nel),INTENT(IN)  :: rho,ein
-    REAL(KIND=rlk),   DIMENSION(nel),INTENT(OUT) :: pre,csqrd
+    INTEGER(KIND=ink),               INTENT(IN)    :: nel
+    INTEGER(KIND=ink),DIMENSION(nel),INTENT(IN)    :: ielmat
+    REAL(KIND=rlk),   DIMENSION(nel),INTENT(IN)    :: rho,ein
+    REAL(KIND=rlk),   DIMENSION(nel),INTENT(OUT)   :: pre,csqrd
+    REAL(KIND=rlk),                  INTENT(INOUT) :: timer
     ! Local
     INTEGER(KIND=ink)                            :: iel
     REAL(KIND=rlk)                               :: t0,t1
@@ -58,7 +58,7 @@ CONTAINS
     ! Timing data
     t1=get_time()
     t1=t1-t0
-    bookleaf_times%time_in_eos=bookleaf_times%time_in_eos+t1
+    timer=timer+t1
 
   END SUBROUTINE getpc
 

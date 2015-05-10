@@ -43,7 +43,7 @@ CONTAINS
 &                           pre05=>rscratch13,ndxu=>rscratch14,         &
 &                           ndyv=>rscratch15,dx=>rscratch25,            &
 &                           dy=>rscratch26,scratch=>rscratch27
-    USE timing_mod,   ONLY: bookleaf_times
+    USE timing_mod,   ONLY: timer=>bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
@@ -74,7 +74,8 @@ CONTAINS
     ENDDO
     !# Missing code here that can't be merged
     ! Update geometry and iso-parametric terms
-    CALL getgeom(nshape,nel,nnod,ndxu(1),ndyv(1),elx(1,1),ely(1,1))
+    CALL getgeom(nshape,nel,nnod,ndxu(1),ndyv(1),elx(1,1),ely(1,1),     &
+&                timer%time_in_getgeoml)
     !# Missing code here that can't be merged
     ! Half step density
     DO iel=1,nel
@@ -85,7 +86,8 @@ CONTAINS
 &               elv(1,1))
     !# Missing code here that can't be merged
     ! Half step pressure
-    CALL getpc(nel,ielmat(1),rho05(1),ein05(1),pre05(1),csqrd(1))
+    CALL getpc(nel,ielmat(1),rho05(1),ein05(1),pre05(1),csqrd(1),       &
+&              timer%time_in_getpcl)
     !# Missing code here that can't be merged
 
     ! ###############
@@ -101,7 +103,8 @@ CONTAINS
     CALL getacc(nshape,nel,nel1,nnod,nnod1,elfx(1,1),elfy(1,1),ndxu(1), &
 &               ndyv(1),elu(1,1),elv(1,1),rho05(1),dt05,dt)
     ! Update geometry and iso-parametric terms
-    CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1))
+    CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),       &
+&                timer%time_in_getgeoml)
     !# Missing code here that can't be merged
     ! Full step density
     DO iel=1,nel
@@ -112,13 +115,14 @@ CONTAINS
 &               elv(1,1))
     !# Missing code here that can't be merged
     ! Full step pressure
-    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1))
+    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1),             &
+&              timer%time_in_getpcl)
     !# Missing code here that can't be merged
 
     ! Timing data
     t1=get_time()
     t1=t1-t0
-    bookleaf_times%time_in_lag=bookleaf_times%time_in_lag+t1
+    timer%time_in_lag=timer%time_in_lag+t1
 
   END SUBROUTINE lagstep
 

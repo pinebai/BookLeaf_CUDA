@@ -20,7 +20,8 @@ SUBROUTINE banner
   IMPLICIT NONE
 
   PRINT*,'############################################################',&
-&  '############'
+&  '##################################################################',&
+&  '#####'
   PRINT*,' Bookleaf:   ','Light-weight FE hydro scheme'
   PRINT*,' Author:     ','R. Kevis, D. Harris'
   PRINT*,' Revision:   ','Unversioned directory'

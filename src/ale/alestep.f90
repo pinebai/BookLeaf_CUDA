@@ -45,12 +45,18 @@ CONTAINS
 &                             rwork1=>rscratch25,rwork2=>rscratch26,    &
 &                             rwork3=>rscratch27,indstatus=>iscratch11, &
 &                             zactive=>zscratch11
+    USE timing_mod,     ONLY: bookleaf_times
+    USE typh_util_mod,  ONLY: get_time
 
     ! Argument list
     INTEGER(KIND=ink),INTENT(IN) :: nstep
     REAL(KIND=rlk),   INTENT(IN) :: dt
     ! Local
     INTEGER(KIND=ink) :: ii,i1,i2,i3
+    REAL(KIND=rlk)    :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! select mesh to be moved
     CALL alegetmesh(nnod,indstatus(1))
@@ -90,6 +96,11 @@ CONTAINS
     ! update dependent variables
     CALL aleupdate(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),     &
 &                  elmass(1),rho(1),pre(1),ein(1),csqrd(1),ielmat(1))
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_alestep=bookleaf_times%time_in_alestep+t1
 
   END SUBROUTINE alestep
 

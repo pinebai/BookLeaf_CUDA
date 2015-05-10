@@ -21,22 +21,23 @@ SUBROUTINE modify()
   USE kinds_mod,   ONLY: ink,rlk
   USE integers_mod,ONLY: nel
   USE logicals_mod,ONLY: zparallel
-  USE pointers_mod,ONLY: ein,ielmat,rho,pre,csqrd,elvol,e_loc_glob
+  USE pointers_mod,ONLY: ein,ielmat,rho,pre,csqrd,elvol,iellocglob
   USE getpc_mod,   ONLY: getpc
 
   IMPLICIT NONE
 
   INTEGER(KIND=ink) :: ii,iel
+  REAL(KIND=rlk)    :: timer
 
   DO ii=1,nel
     IF (zparallel) THEN
-      iel=e_loc_glob(ii)
+      iel=iellocglob(ii)
     ELSE
       iel=ii
     ENDIF
     IF (iel.EQ.1_ink) THEN
       ein(ii)=0.4935932_rlk/(2.0_rlk*elvol(ii))
-      CALL getpc(nel,ielmat(ii),rho(ii),ein(ii),pre(ii),csqrd(ii))
+      CALL getpc(nel,ielmat(ii),rho(ii),ein(ii),pre(ii),csqrd(ii),timer)
       EXIT
     ENDIF
   ENDDO

@@ -27,13 +27,16 @@ CONTAINS
   SUBROUTINE getdt(dt)
 
     USE kinds_mod,       ONLY: rlk,ink
-    USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,dt_g,dt_min,     &
-&                              dt_max
-    USE integers_mod,    ONLY: nel,nshape,nnod,idtel,comms,nprocw
-    USE logicals_mod,    ONLY: zdtnotreg,zmidlength,zparallel
+    USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,ale_sf,dt_g,     &
+&                              dt_min,dt_max,zerocut
+    USE integers_mod,    ONLY: nel,nshape,nnod,idtel,idtreg,comms,nprocw
+    USE logicals_mod,    ONLY: zdtnotreg,zmidlength,zparallel,zeul,zale,&
+&                              zaleon
+    USE strings_mod,     ONLY: sdt
     USE pointers_mod,    ONLY: ielreg,rho,qq,csqrd,elx,ely,a1,a3,b1,b3, &
-&                              ielnd,elvol,ndu,ndv
-    USE scratch_mod,     ONLY: rscratch11,elu=>rscratch21,elv=>rscratch22
+&                              ielnd,elvol,ndu,ndv,iellocglob
+    USE scratch_mod,     ONLY: rscratch11,rscratch12,elu=>rscratch21,   &
+&                              elv=>rscratch22
     USE geometry_mod,    ONLY: dlm,dln
     USE error_mod,       ONLY: halt
     USE utilities_mod,   ONLY: gather
@@ -42,21 +45,33 @@ CONTAINS
     USE TYPH_Collect_mod,ONLY: TYPH_Gather
 
     ! Argument list
-    REAL(KIND=rlk),INTENT(INOUT)         :: dt
+    REAL(KIND=rlk),INTENT(INOUT)               :: dt
     ! Local
-    INTEGER(KIND=ink)                    :: iel,ireg,ii,ierr
-    REAL(KIND=rlk)                       :: w1,w2,dt_cfl,dt_div,t0,t1,t2,t3
-    REAL(KIND=rlk),DIMENSION(0:NprocW-1) :: dtt
+    INTEGER(KIND=ink)                          :: iel,ireg,ip,ii
+    INTEGER(KIND=ink),PARAMETER                :: NDT=5_ink
+    INTEGER(KIND=ink),DIMENSION(NDT)           :: idt
+    INTEGER(KIND=ink),DIMENSION(3,0:NProcW-1)  :: idtt
+    REAL(KIND=rlk)                             :: w1,w2,t0,t1,t2,t3
+    REAL(KIND=rlk),   DIMENSION(NDT)           :: rdt
+    REAL(KIND=rlk),   DIMENSION(0:NprocW-1)    :: dtt
+    CHARACTER(LEN=8), DIMENSION(NDT),PARAMETER :: sdtt=['     CFL',     &
+&                                                       '     DIV',     &
+&                                                       '     ALE',     &
+&                                                       '  GROWTH',     &
+&                                                       ' MAXIMUM']
 
     ! Timer
     t0=get_time()
 
-    idtel=0
+    ! Initialise
+    rdt=HUGE(1.0_rlk)
+
     ! CFL
     DO iel=1,nel
       ireg=ielreg(iel)
       IF (zdtnotreg(ireg)) THEN
         rscratch11(iel)=dt_max
+        rscratch12(iel)=TINY(1.0_rlk)
       ELSE
         w1=MAX(rho(iel),zcut)
         w2=MAX(ccut,csqrd(iel))+2.0_rlk*qq(iel)/w1
@@ -66,6 +81,7 @@ CONTAINS
           w1=MINVAL(dln(nshape,elx(:,iel),ely(:,iel)))
         ENDIF
         rscratch11(iel)=w1/w2
+        rscratch12(iel)=w1
       ENDIF
     ENDDO
     ii=1_ink
@@ -74,8 +90,8 @@ CONTAINS
     ENDDO
     w1=rscratch11(ii)
     IF (w1.LT.0.0_rlk) CALL halt("ERROR: dt_cfl < 0",1)
-    dt_cfl=cfl_sf*SQRT(w1)
-    idtel=ii
+    rdt(1)=cfl_sf*SQRT(w1)
+    idt(1)=ii
     ! Divergence
     w2=TINY(1.0_rlk)
     CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),elv(1,1))
@@ -86,22 +102,71 @@ CONTAINS
 &        elu(3,iel)*( b3(iel)-b1(iel))+elv(3,iel)*(-a3(iel)+a1(iel))+   &
 &        elu(4,iel)*(-b3(iel)-b1(iel))+elv(4,iel)*( a3(iel)+a1(iel))
       w1=ABS(w1)/elvol(iel)
-      IF (w1.GT.w2) w2=w1
+      IF (w1.GT.w2) THEN
+        w2=w1
+        ii=iel
+      ENDIF
     ENDDO
-    dt_div=div_sf/w2
+    rdt(2)=div_sf/w2
+    idt(2)=ii
+    ! ALE
+    IF (zale.AND.zaleon) THEN
+      w2=HUGE(1.0_rlk)
+      IF (zeul) THEN
+        DO iel=1,nel
+          w1=MAX(elu(1,iel)*elu(1,iel)+elv(1,iel)*elv(1,iel),           &
+&                elu(2,iel)*elu(2,iel)+elv(2,iel)*elv(2,iel),           &
+&                elu(3,iel)*elu(3,iel)+elv(3,iel)*elv(3,iel),           &
+&                elu(4,iel)*elu(4,iel)+elv(4,iel)*elv(4,iel))
+          w1=rscratch12(iel)/MAX(w1,zerocut)
+          IF (w1.LT.w2) THEN
+            w2=w1
+            ii=iel
+          ENDIF
+        ENDDO
+      ELSE
+      ENDIF
+      rdt(3)=ale_sf*SQRT(w2)
+      idt(3)=ii
+    ENDIF
+    ! Growth
+    rdt(4)=dt_g*dt
+    idt(4)=-1_ink
+    ! Maximum
+    rdt(5)=dt_max
+    idt(5)=-1_ink
 
     !# Missing code here that can't be merged
 
-    ! Find smallest timestep
-    dt=MIN(dt_cfl,dt_div,dt_g*dt,dt_max)
-    IF (zparallel) THEN
-      t2=get_time()
-      ierr=TYPH_Gather(dt,dtt,comm=CommS)
-      t3=get_time()
-      t3=t3-t2
-      bookleaf_times%time_in_colls=bookleaf_times%time_in_colls+t3
-      dt=MINVAL(dtt)
+    ! Find smallest timestep, store info
+    ii=MINVAL(MINLOC(rdt))
+    dt=rdt(ii)
+    idtel=idt(ii)
+    IF (idtel.GT.0_ink) THEN
+      idtreg=ielreg(idtel)
+    ELSE
+      idtreg=-1_ink
     ENDIF
+    IF (zparallel) THEN
+      idt(1)=iellocglob(idtel)
+      idt(2)=idtreg
+      idt(3)=ii
+      t1=get_time()
+      ip=Typh_Gather(dt,dtt,comm=CommS)
+      t2=get_time()
+      t3=t2-t1
+      ii=MINVAL(MINLOC(dtt))
+      dt=dtt(ii)
+      t1=get_time()
+      ip=Typh_Gather(idt(1:3),idtt,comm=CommS)
+      t2=get_time()
+      t3=t3+t2-t1
+      idtel=idtt(1,ii)
+      idtreg=idtt(2,ii)
+      ii=idtt(3,ii)
+      bookleaf_times%time_in_colls=bookleaf_times%time_in_colls+t3
+    ENDIF
+    sdt=sdtt(ii)
 
     ! Check minimum
     IF (dt.LT.dt_min) CALL halt("ERROR: dt < dt_min",1,.true.)

@@ -26,12 +26,14 @@ CONTAINS
 
   SUBROUTINE write_silo_dump(cDirName)
 
-    USE kinds_mod,   ONLY: ink
-    USE integers_mod,ONLY: nMat,nEl,nNod,nProcW,rankW
-    USE logicals_mod,ONLY: zMProcW
-    USE pointers_mod,ONLY: iElNd,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
-    USE error_mod,   ONLY: halt
-    USE utils_f_mod, ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
+    USE kinds_mod,    ONLY: ink,rlk
+    USE integers_mod, ONLY: nMat,nEl,nNod,nProcW,rankW
+    USE logicals_mod, ONLY: zMProcW
+    USE pointers_mod, ONLY: iElNd,iElMat,ndx,ndy,rho,ein,pre,ndu,ndv
+    USE error_mod,    ONLY: halt
+    USE utils_f_mod,  ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
+    USE typh_util_mod,ONLY: get_time
+    USE timing_mod,   ONLY: bookleaf_times
     INCLUDE "silo.inc"
 
     ! Argument list
@@ -51,6 +53,10 @@ CONTAINS
     INTEGER(KIND=ink),  DIMENSION(NSHAPE)        :: iShapeType,         &
 &                                                   iShapeSize,         &
 &                                                   iShapeCount
+    REAL(KIND=rlk)                               :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! make directory
     IF (zMProcW) THEN
@@ -215,6 +221,11 @@ CONTAINS
       IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to create "   &
 &      //"silo link",0)
     ENDIF
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_io=bookleaf_times%time_in_io+t1
 
   END SUBROUTINE write_silo_dump
 

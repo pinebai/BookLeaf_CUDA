@@ -1190,128 +1190,149 @@ CONTAINS
     ! Local
     INTEGER(KIND=ink) :: ii,is,it
 
-    WRITE(6,'(a63,i10)') '  Number of regions:                         '&
-&    //'             nreg ',nreg
-    WRITE(6,'(a63,i10)') '  Number of materials:                       '&
-&    //'             nmat ',nmat
-    WRITE(6,'(a63,i10)') '  Total number of elements:                  '&
-&    //'                  ',nel
-    WRITE(6,'(a63,i10)') '  Total number of nodes:                     '&
-&    //'                  ',nnod
-    WRITE(6,'(a63,i10)') '  Maximum number of segments:                '&
-&    //'          max_seg ',max_seg
-    WRITE(6,'(a63,i10)') '  Maximum number of sub-segments:            '&
-&    //'       max_subseg ',max_subseg
+    WRITE(6,'(a83,33X,i16)') '  Number of regions:                     '&
+&    //'                                     nreg ',nreg
+    WRITE(6,'(a83,33X,i16)') '  Number of materials:                   '&
+&    //'                                     nmat ',nmat
+    WRITE(6,'(a83,33X,i16)') '  Total number of elements:              '&
+&    //'                                          ',nel
+    WRITE(6,'(a83,33X,i16)') '  Total number of nodes:                 '&
+&    //'                                          ',nnod
+    WRITE(6,'(a83,33X,i16)') '  Maximum number of segments:            '&
+&    //'                                  max_seg ',max_seg
+    WRITE(6,'(a83,33X,i16)') '  Maximum number of sub-segments:        '&
+&    //'                               max_subseg ',max_subseg
     DO ii=1,nreg
       WRITE(6,'(a10,i3)') '  Region: ',ii
-      WRITE(6,'(a63,i10)') '   Material number:                        '&
-&      //'    region_material ',reg(ii)%mat
+      WRITE(6,'(a83,33X,i16)') '   Material number:                    '&
+&      //'                            region_material ',reg(ii)%mat
       SELECT CASE(reg(ii)%typ)
         CASE(1_ink)
-          WRITE(6,'(a63,a10)') '   Region type:                        '&
-&          //'             region_typ ','      LIN1'
+          WRITE(6,'(a83,33X,a16)') '   Region type:                    '&
+&          //'                                     region_typ ',        &
+&          '            LIN1'
         CASE(2_ink)
-          WRITE(6,'(a63,a10)') '   Region type:                        '&
-&          //'             region_typ ','      LIN2'
+          WRITE(6,'(a83,33X,a16)') '   Region type:                    '&
+&          //'                                     region_typ ',        &
+&          '            LIN2'
         CASE(3_ink)
-          WRITE(6,'(a63,a10)') '   Region type:                        '&
-&          //'             region_typ ','      EQUI'
+          WRITE(6,'(a83,33X,a16)') '   Region type:                    '&
+&          //'                                     region_typ ',        &
+&          '            EQUI'
         CASE(4_ink)
-          WRITE(6,'(a63,a10)') '   Region type:                        '&
-&          //'             region_typ ','      USER'
+          WRITE(6,'(a83,33X,a16)') '   Region type:                    '&
+&          //'                                     region_typ ',        &
+&          '            USER'
       END SELECT
-      WRITE(6,'(a63,1X,i4,a1,i4)') '   Region dimension:               '&
-&      //'                 region_dim ',reg(ii)%dim(2),'x',             &
-&      reg(ii)%dim(1)
-      WRITE(6,'(a63,e10.4)') '   Convergence tolerance:                '&
-&      //'           region_tol ',reg(ii)%tol
-      WRITE(6,'(a63,f10.6)') '   Convergence scaling factor:           '&
-&      //'            region_om ',reg(ii)%om
-      WRITE(6,'(a63,i10)')   '   Number of iterations:                 '&
-&      //'                      ',reg(ii)%no_it
+      WRITE(6,'(a83,33X,1X,i7,a1,i7)') '   Region dimension:           '&
+&      //'                                         region_dim ',        &
+&      reg(ii)%dim(2),'x',reg(ii)%dim(1)
+      WRITE(6,'(a83,33X,e16.9)') '   Convergence tolerance:            '&
+&      //'                                   region_tol ',reg(ii)%tol
+      WRITE(6,'(a83,33X,f16.10)') '   Convergence scaling factor:      '&
+&      //'                                     region_om ',reg(ii)%om
+      WRITE(6,'(a83,33X,i16)')   '   Number of iterations:             '&
+&      //'                                              ',reg(ii)%no_it
       SELECT CASE(reg(ii)%vel_typ)
         CASE(1_ink)
-          WRITE(6,'(a63,i10)') '   Cartesian region velocity:          '&
-&          //'         region_vel_typ ',reg(ii)%vel_typ
-          WRITE(6,'(a63,e10.4)') '   X velocity:                       '&
-&          //'            region_vel(1) ',reg(ii)%vel(1)
-          WRITE(6,'(a63,e10.4)') '   Y velocity:                       '&
-&          //'            region_vel(2) ',reg(ii)%vel(2)
+          WRITE(6,'(a83,33X,i16)') '   Cartesian region velocity:      '&
+&          //'                                 region_vel_typ ',        &
+&          reg(ii)%vel_typ
+          WRITE(6,'(a83,33X,e16.9)') '   X velocity:                   '&
+&          //'                                    region_vel(1) ',      &
+&          reg(ii)%vel(1)
+          WRITE(6,'(a83,33X,e16.9)') '   Y velocity:                   '&
+&          //'                                    region_vel(2) ',      &
+&          reg(ii)%vel(2)
         CASE(2_ink)
-          WRITE(6,'(a63,i10)') '   Radial region velocity:             '&
-&          //'         region_vel_typ ',reg(ii)%vel_typ
-          WRITE(6,'(a63,e10.4)') '   Velocity:                         '&
-&          //'            region_vel(1) ',reg(ii)%vel(1)
-          WRITE(6,'(a63,e10.4)') '   X centre:                         '&
-&          //'            region_vel(2) ',reg(ii)%vel(2)
-          WRITE(6,'(a63,e10.4)') '   Y centre:                         '&
-&          //'            region_vel(3) ',reg(ii)%vel(3) 
+          WRITE(6,'(a83,33X,i16)') '   Radial region velocity:         '&
+&          //'                                 region_vel_typ ',        &
+&          reg(ii)%vel_typ
+          WRITE(6,'(a83,33X,e16.9)') '   Velocity:                     '&
+&          //'                                    region_vel(1) ',      &
+&          reg(ii)%vel(1)
+          WRITE(6,'(a83,33X,e16.9)') '   X centre:                     '&
+&          //'                                    region_vel(2) ',      &
+&          reg(ii)%vel(2)
+          WRITE(6,'(a83,33X,e16.9)') '   Y centre:                     '&
+&          //'                                    region_vel(3) ',      &
+&          reg(ii)%vel(3) 
       END SELECT
       DO is=1,4
-        WRITE(6,'(a9,i1,a53,i10)') '   Side: ',is,' number of segments:'&
-&        //'                                 ',reg(ii)%side(is)%no_seg
+        WRITE(6,'(a9,i1,a73,33X,i16)') '   Side: ',is,' number of segme'&
+&        //'nts:                                                     ', &
+&        reg(ii)%side(is)%no_seg
         DO it=1,reg(ii)%side(is)%no_seg
           SELECT CASE(reg(ii)%side(is)%seg(it)%seg_typ)
             CASE(1_ink)
-              WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
+              WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                ','      LINE'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+&               //'                                     ',              &
+&               '            LINE'
+              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
 &              '    From  (',reg(ii)%side(is)%seg(it)%point(1),',',     &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
             CASE(2_ink)
-              WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
+              WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                ','     ARC_C'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+&               //'                                     ',              &
+&               '           ARC_C'
+              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(3_ink)
-              WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
+              WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                ','     ARC_A'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a6,e11.5,a1,e11.5,a1)')      &
+&               //'                                     ',              &
+&               '           ARC_A'
+              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(4_ink)
-              WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
+              WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                ','     POINT'
-              WRITE(6,'(a11,e11.5,a1,e11.5,a1)') '    At    (',         &
+&               //'                                     ',              &
+&               '           POINT'
+              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    At    (',         &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),')'
             CASE(5_ink)
-              WRITE(6,'(a20,i3,a40,a10)') '    Segment number: ',       &
+              WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                ','      LINK'
+&               //'                                     ',              &
+&               '            LINK'
           END SELECT  
           SELECT CASE(reg(ii)%side(is)%seg(it)%bc)
             CASE(1_ink)
-              WRITE(6,'(a63,a10)') '    Segment boundary condition:    '&
-&              //'                            ','     SLIPX'
+              WRITE(6,'(a83,33X,a16)') '    Segment boundary condition:'&
+&              //'                                                    ',&
+&              '           SLIPX'
             CASE(2_ink)
-              WRITE(6,'(a63,a10)') '    Segment boundary condition:    '&
-&              //'                            ','     SLIPY'
+              WRITE(6,'(a83,33X,a16)') '    Segment boundary condition:'&
+&              //'                                                    ',&
+&              '           SLIPY'
             CASE(3_ink)
-              WRITE(6,'(a63,a10)') '    Segment boundary condition:    '&
-&              //'                            ','      WALL'
+              WRITE(6,'(a83,33X,a16)') '    Segment boundary condition:'&
+&              //'                                                    ',&
+&              '            WALL'
             CASE(8_ink)
-              WRITE(6,'(a63,a10)') '    Segment boundary condition:    '&
-&              //'                            ','      FREE'
+              WRITE(6,'(a83,33X,a16)') '    Segment boundary condition:'&
+&              //'                                                    ',&
+&              '            FREE'
           END SELECT
         ENDDO
       ENDDO

@@ -26,21 +26,34 @@ CONTAINS
 
   SUBROUTINE alegetmesh(nnod,indstatus)
 
-    USE kinds_mod,   ONLY: ink
-    USE logicals_mod,ONLY: zeul
+    USE kinds_mod,    ONLY: ink,rlk
+    USE logicals_mod, ONLY: zeul
+    USE timing_mod,   ONLY: bookleaf_times
+    USE typh_util_mod,ONLY: get_time
 
     ! Argument list
     INTEGER(KIND=ink),                INTENT(IN)  :: nnod
     INTEGER(KIND=ink),DIMENSION(nnod),INTENT(OUT) :: indstatus
     ! Local
     INTEGER(KIND=ink) :: inod
+    REAL(KIND=rlk)    :: t0,t1
 
+    ! Timer
+    t0=get_time()
+
+    ! Select mesh to be moved
     IF (zeul) THEN
       DO inod=1,nnod
         indstatus(inod)=2_ink
       ENDDO
     ELSE
     ENDIF
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_alegetmesh=bookleaf_times%time_in_alegetmesh+&
+&                                     t1
 
   END SUBROUTINE alegetmesh
 

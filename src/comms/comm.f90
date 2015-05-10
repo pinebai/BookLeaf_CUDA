@@ -36,8 +36,8 @@ CONTAINS
 
     USE kinds_mod,    ONLY: rlk,ink
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
-    USE pointers_mod, ONLY: cnmass,cnwt,ielnd,e_owner_proc,e_loc_glob, &
-&                           n_owner_proc,n_loc_glob
+    USE pointers_mod, ONLY: cnmass,cnwt,ielnd,ielownerproc,iellocglob, &
+&                           indownerproc,indlocglob
     USE error_mod,    ONLY: halt
     USE scratch_mod,  ONLY: rscratch11,rscratch23,rscratch24,rscratch25,&
 &                           rscratch26
@@ -70,9 +70,9 @@ CONTAINS
     nnod_tot(1)=nnod1
     conn=>ielnd(:,1:)
     ierr=TYPH_Set_Partition_Info(WHOLEMESH,4_TSIZEK,nglayer,nel_tot,    &
-&                                nnod_tot,e_owner_proc,n_owner_proc,    &
-&                                e_loc_glob,n_loc_glob,conn)
-    DEALLOCATE(nel_tot,nnod_tot,e_owner_proc,n_owner_proc)
+&                                nnod_tot,ielownerproc,indownerproc,    &
+&                                iellocglob,indlocglob,conn)
+    DEALLOCATE(nel_tot,nnod_tot,ielownerproc,indownerproc)
 
     ! Keys - which cells go to which procs
     ierr=TYPH_Create_Key_Set(key_comm_cells,TYPH_KTYPE_CELL,1_TSIZEK,   &

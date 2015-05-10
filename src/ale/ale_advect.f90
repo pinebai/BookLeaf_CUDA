@@ -18,12 +18,14 @@
 
 MODULE ale_advect_mod
 
-  USE kinds_mod,ONLY: ink,rlk,lok
+  USE kinds_mod,    ONLY: ink,rlk,lok
+  USE timing_mod,   ONLY: bookleaf_times
+  USE typh_util_mod,ONLY: get_time
 
   IMPLICIT NONE
 
-  PRIVATE :: update_e_basis,update_e_var,update_n_basis,update_n_var,   &
-&            aleadvect_e,aleadvect_n  
+  PRIVATE :: update_el_basis,update_el_var,aleadvect_el,                &
+&            update_nd_basis,update_nd_var,aleadvect_nd  
   PUBLIC  :: aleadvect
 
 CONTAINS
@@ -55,27 +57,37 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: cnm0,flux, &
 &                                                            work1,work2
     LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT)   :: zactive
+    ! Local
+    REAL(KIND=rlk)                                        :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! Advect element quantities
-    CALL aleadvect_e(id1,id2,nshape,nel,elv0ndm1(1),elm0ndm0(1),        &
-&                    elr0ndv0(1),elv1(1),elm1(1),elr1(1),cutv(1),       &
-&                    cutm(1),cnv0(1,1),cnm1(1,1),dfv(1,1),dfm(1,1),     &
-&                    flux(1,1),ielel(1,1),ielsd(1,1),work1(1,1),        &
-&                    work2(1,1))
+    CALL aleadvect_el(id1,id2,nshape,nel,elv0ndm1(1),elm0ndm0(1),       &
+&                     elr0ndv0(1),elv1(1),elm1(1),elr1(1),cutv(1),      &
+&                     cutm(1),cnv0(1,1),cnm1(1,1),dfv(1,1),dfm(1,1),    &
+&                     flux(1,1),ielel(1,1),ielsd(1,1),work1(1,1),       &
+&                     work2(1,1))
 
     ! Advect nodal quantities
-    CALL aleadvect_n(id1,id2,nshape,nel,nnod,nsz,ielel(1,1),ielsd(1,1), &
-&                    ielnd(1,1),indstatus(1),indtype(1),dencut,cut,     &
-&                    cutv(1),cutm(1),elr0ndv0(1),ndv1(1),elm0ndm0(1),   &
-&                    elv0ndm1(1),elv1(1),cnv0(1,1),cnm0(1,1),cnm1(1,1), &
-&                    dfv(1,1),dfm(1,1),work1(1,1),work2(1,1),flux(1,1), &
-&                    zactive(1))
+    CALL aleadvect_nd(id1,id2,nshape,nel,nnod,nsz,ielel(1,1),ielsd(1,1),&
+&                     ielnd(1,1),indstatus(1),indtype(1),dencut,cut,    &
+&                     cutv(1),cutm(1),elr0ndv0(1),ndv1(1),elm0ndm0(1),  &
+&                     elv0ndm1(1),elv1(1),cnv0(1,1),cnm0(1,1),cnm1(1,1),&
+&                     dfv(1,1),dfm(1,1),work1(1,1),work2(1,1),flux(1,1),&
+&                     zactive(1))
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_aleadvect=bookleaf_times%time_in_aleadvect+t1
 
   END SUBROUTINE aleadvect
 
-  SUBROUTINE aleadvect_e(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,elm,  &
-&                        elr,cutv,cutm,cnv,cnm,delv,delm,flux,ielel,    &
-&                        ielsd,work1,work2)
+  SUBROUTINE aleadvect_el(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,elm, &
+&                         elr,cutv,cutm,cnv,cnm,delv,delm,flux,ielel,   &
+&                         ielsd,work1,work2)
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
@@ -90,24 +102,36 @@ CONTAINS
 &                                                            cnm
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: delm,flux, &
 &                                                            work1,work2
+    ! Local
+    REAL(KIND=rlk)                                        :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! update element basis variables
-    CALL update_e_basis(id1,id2,nshape,nel,elvpr(1),elmpr(1),elrpr(1),  &
-&                       elv(1),elm(1),elr(1),cutv(1),cutm(1),cnv(1,1),  &
-&                       cnm(1,1),delv(1,1),delm(1,1),ielel(1,1),        &
-&                       ielsd(1,1),work1(1,1),work2(1,1))
+    CALL update_el_basis(id1,id2,nshape,nel,elvpr(1),elmpr(1),elrpr(1), &
+&                        elv(1),elm(1),elr(1),cutv(1),cutm(1),cnv(1,1), &
+&                        cnm(1,1),delv(1,1),delm(1,1),ielel(1,1),       &
+&                        ielsd(1,1),work1(1,1),work2(1,1))
 
     ! update element independent variables
-    CALL update_e_var(id1,id2,nshape,nel,ielel(1,1),ielsd(1,1),elvpr(1),&
-&                     elmpr(1),elv(1),elm(1),cutv(1),cutm(1),cnv(1,1),  &
-&                     cnm(1,1),delv(1,1),delm(1,1),flux(1,1),work1(1,1))
+    CALL update_el_var(id1,id2,nshape,nel,ielel(1,1),ielsd(1,1),        &
+&                      elvpr(1),elmpr(1),elv(1),elm(1),cutv(1),cutm(1), &
+&                      cnv(1,1),cnm(1,1),delv(1,1),delm(1,1),flux(1,1), &
+&                      work1(1,1))
 
-  END SUBROUTINE aleadvect_e
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_aleadvect_el=                                &
+&    bookleaf_times%time_in_aleadvect_el+t1
 
-  SUBROUTINE aleadvect_n(id1,id2,nshape,nel,nnod,nsz,ielel,ielsd,ielnd, &
-&                        indstatus,indtype,dencut,cut,cutv,cutm,ndv0,   &
-&                        ndv1,ndm0,elv0ndm1,elv1,cnv0,cnm0,cnm1,dfv,dfm,&
-&                        dcv,dcm,flux,zactive)
+  END SUBROUTINE aleadvect_el
+
+  SUBROUTINE aleadvect_nd(id1,id2,nshape,nel,nnod,nsz,ielel,ielsd,ielnd,&
+&                         indstatus,indtype,dencut,cut,cutv,cutm,ndv0,  &
+&                         ndv1,ndm0,elv0ndm1,elv1,cnv0,cnm0,cnm1,dfv,   &
+&                         dfm,dcv,dcm,flux,zactive)
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)    :: nshape,nel,&
@@ -130,26 +154,37 @@ CONTAINS
 &                                                            cnm0,flux
     REAL(KIND=rlk),   DIMENSION(nsz),       INTENT(INOUT) :: elv0ndm1
     LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT)   :: zactive
+    ! Local
+    REAL(KIND=rlk)                                        :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! update nodal basis variables
-    CALL update_n_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,         &
-&                       ielel(1,1),ielsd(1,1),ielnd(1,1),dfv(1,1),      &
-&                       dfm(1,1),dcv(1,1),dcm(1,1),cnm0(1,1),cnm1(1,1), &
-&                       cutv(1),cutm(1),ndv0(1),ndv1(1),ndm0(1),        &
-&                       elv0ndm1(1),elv1(1),flux(1,1))
+    CALL update_nd_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,        &
+&                        ielel(1,1),ielsd(1,1),ielnd(1,1),dfv(1,1),     &
+&                        dfm(1,1),dcv(1,1),dcm(1,1),cnm0(1,1),cnm1(1,1),&
+&                        cutv(1),cutm(1),ndv0(1),ndv1(1),ndm0(1),       &
+&                        elv0ndm1(1),elv1(1),flux(1,1))
 
     ! update nodal independent variables
-    CALL update_n_var(nshape,nel,nnod,ielel(1,1),ielsd(1,1),ielnd(1,1), &
-&                     indstatus(1),indtype(1),ndv0(1),ndm0(1),ndv1(1),  &
-&                     elv0ndm1(1),cutv(1),cutm(1),cnv0(1,1),cnm0(1,1),  &
-&                     dcv(1,1),dcm(1,1),flux(1,1),dfv(1,1),dfm(1,1),    &
-&                     zactive(1))
+    CALL update_nd_var(nshape,nel,nnod,ielel(1,1),ielsd(1,1),ielnd(1,1),&
+&                      indstatus(1),indtype(1),ndv0(1),ndm0(1),ndv1(1), &
+&                      elv0ndm1(1),cutv(1),cutm(1),cnv0(1,1),cnm0(1,1), &
+&                      dcv(1,1),dcm(1,1),flux(1,1),dfv(1,1),dfm(1,1),   &
+&                      zactive(1))
 
-  END SUBROUTINE aleadvect_n
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_aleadvect_nd=                                &
+&    bookleaf_times%time_in_aleadvect_nd+t1
 
-  SUBROUTINE update_e_basis(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,   &
-&                           elm,elr,cutv,cutm,cnv,cnm,delv,delm,ielel,  &
-&                           ielsd,totv,totm)
+  END SUBROUTINE aleadvect_nd
+
+  SUBROUTINE update_el_basis(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,  &
+&                            elm,elr,cutv,cutm,cnv,cnm,delv,delm,ielel, &
+&                            ielsd,totv,totm)
 
     USE reals_mod,        ONLY: dencut,zerocut
     USE ale_advectors_mod,ONLY: flux_c1_VL,sum_flux
@@ -168,7 +203,11 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: delm
     ! Local
     INTEGER(KIND=ink) :: iel
+    REAL(KIND=rlk)    :: t0,t1
   
+    ! Timer
+    t0=get_time()
+
     ! calculate total volume flux
     CALL sum_flux(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),         &
 &                 delv(1,1),totv(1))
@@ -198,11 +237,17 @@ CONTAINS
       elr(iel)=elm(iel)/elv(iel)
     ENDDO
 
-  END SUBROUTINE update_e_basis
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_update_el_basis=                             &
+&    bookleaf_times%time_in_update_el_basis+t1
 
-  SUBROUTINE update_e_var(id1,id2,nshape,nel,ielel,ielsd,elvpr,elmpr,   &
-&                         elv,elm,cutv,cutm,cnv,cnm,delv,delm,flux,     &
-&                         tflux)
+  END SUBROUTINE update_el_basis
+
+  SUBROUTINE update_el_var(id1,id2,nshape,nel,ielel,ielsd,elvpr,elmpr,  &
+&                          elv,elm,cutv,cutm,cnv,cnm,delv,delm,flux,    &
+&                          tflux)
 
     USE ale_advectors_mod,ONLY: flux_c1_VL,update_c1
     USE pointers_mod,     ONLY: ein
@@ -218,6 +263,11 @@ CONTAINS
 &                                                          delm
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: flux
     REAL(KIND=rlk),   DIMENSION(nel),       INTENT(OUT) :: tflux
+    ! Local
+    REAL(KIND=rlk)                                      :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! internal energy (mass weighted)
     CALL flux_c1_VL(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),       &
@@ -225,12 +275,18 @@ CONTAINS
     CALL update_c1(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),        &
 &                  elmpr(1),elm(1),cutm(1),flux(1,1),tflux(1),ein(1))
 
-  END SUBROUTINE update_e_var
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_update_el_var=                               &
+&    bookleaf_times%time_in_update_el_var+t1
 
-  SUBROUTINE update_n_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,     &
-&                           ielel,ielsd,ielnd,delv,delm,dndv,dndm,cnm0, &
-&                           cnm1,cutv,cutm,ndv0,ndv1,ndm0,elv0ndm1,elv1,&
-&                           flux)
+  END SUBROUTINE update_el_var
+
+  SUBROUTINE update_nd_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,    &
+&                            ielel,ielsd,ielnd,delv,delm,dndv,dndm,cnm0,&
+&                            cnm1,cutv,cutm,ndv0,ndv1,ndm0,elv0ndm1,    &
+&                            elv1,flux)
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
@@ -251,7 +307,10 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(INOUT) :: cnm1
     ! Local
     INTEGER(KIND=ink) :: ind,iel,i1,i2,ie1,ie2,is1,is2
-    REAL(KIND=rlk)    :: w1,w2,w3,w4
+    REAL(KIND=rlk)    :: w1,w2,w3,w4,t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! initialise
     DO ind=1,nnod
@@ -354,11 +413,17 @@ CONTAINS
       cutm(ind)=dencut*ndv0(ind)
     ENDDO
 
-  END SUBROUTINE update_n_basis
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_update_nd_basis=                             &
+&    bookleaf_times%time_in_update_nd_basis+t1
 
-  SUBROUTINE update_n_var(nshape,nel,nnod,ielel,ielsd,ielnd,indstatus,  &
-&                         indtype,ndv0,ndm0,ndv1,ndm1,cutv,cutm,cnv,cnm,&
-&                         delv,delm,flux,eluv,tflux,zactive)
+  END SUBROUTINE update_nd_basis
+
+  SUBROUTINE update_nd_var(nshape,nel,nnod,ielel,ielsd,ielnd,indstatus, &
+&                          indtype,ndv0,ndm0,ndv1,ndm1,cutv,cutm,cnv,   &
+&                          cnm,delv,delm,flux,eluv,tflux,zactive)
 
     USE ale_advectors_mod,ONLY: flux_n1_VL,update_n1
     USE pointers_mod,     ONLY: ndu,ndv
@@ -381,6 +446,10 @@ CONTAINS
     LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT) :: zactive
     ! Local
     INTEGER(KIND=ink) :: ind
+    REAL(KIND=rlk)    :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! momentum (mass weighted)
     CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),eluv(1,1))
@@ -410,6 +479,12 @@ CONTAINS
     CALL update_n1(nshape,nel,nel,nnod,ielnd(1,1),ndm0(1),ndm1(1),      &
 &                  cutm(1),zactive(1),flux(1,1),tflux(1),ndv(1))
 
-  END SUBROUTINE update_n_var
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_update_nd_var=                               &
+&    bookleaf_times%time_in_update_nd_var+t1
+
+  END SUBROUTINE update_nd_var
 
 END MODULE ale_advect_mod

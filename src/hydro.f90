@@ -19,15 +19,16 @@
 SUBROUTINE hydro()
 
   USE kinds_mod,    ONLY: ink,rlk
-  USE integers_mod, ONLY: nel,nstep,idtel
+  USE integers_mod, ONLY: nel,nstep,idtel,idtreg
   USE logicals_mod, ONLY: zale,zaleon,zmprocw
+  USE strings_mod,  ONLY: sdt
   USE reals_mod,    ONLY: time,time_end,dt_initial,time_alemin,         &
 &                         time_alemax
   USE getdt_mod,    ONLY: getdt
   USE lagstep_mod,  ONLY: lagstep
   USE alestep_mod,  ONLY: alestep
   USE timing_mod,   ONLY: bookleaf_times
-  USE TYPH_util_mod,ONLY: get_time
+  USE Typh_util_mod,ONLY: get_time
 
   IMPLICIT NONE
 
@@ -40,6 +41,9 @@ SUBROUTINE hydro()
   ! initialise
   nstep=0_ink
   dt=dt_initial
+  idtel=0_ink
+  idtreg=0_ink
+  sdt=' INITIAL'
 
   l1:DO
     t0=get_time()
@@ -60,10 +64,12 @@ SUBROUTINE hydro()
     ENDIF
     !# Missing code here that can't be merged
     t1=get_time()
-    grind=(t1-t0)*1.0e6_rlk/nel
+    t2=t1-t0
+    grind=t2*1.0e6_rlk/nel
     IF (zmprocw) THEN
-      WRITE(6,'(" step=",i7,"  el=",i7,"  dt=",1pe13.6,"  time=",'      &
-&      //'1pe13.6,"  grind=",1pe8.1)') nstep,idtel,dt,time,grind
+      WRITE(6,'(" step=",i7,"  el=",i9,"  reg=",i3,"  dt=",1pe16.9,'    &
+&      //'"  time=",1pe16.9,"  grind=",1pe8.1,"  timer=",1pe16.9," s",' &
+&      //'2X,a8)') nstep,idtel,idtreg,dt,time,grind,t2,sdt
     ENDIF
     ! IO Timing data
     t2=get_time()

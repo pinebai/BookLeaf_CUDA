@@ -16,7 +16,6 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
-
 MODULE write_mod
 
   IMPLICIT NONE
@@ -49,7 +48,8 @@ CONTAINS
 &                                       reg_pmn_gl,reg_pmx_gl,reg_ie_gl,&
 &                                       reg_pre_gl,reg_rho_gl
 
-    t0 = get_time()
+    ! Timer
+    t0=get_time()
 
     IF (zmprocw) THEN
       WRITE(6,*) ' '
@@ -166,7 +166,7 @@ CONTAINS
     ENDIF
 
     ! Timing data
-    t1 = get_time()
+    t1=get_time()
     t1=t1-t0
     bookleaf_times%time_in_io=bookleaf_times%time_in_io+t1
 
@@ -183,12 +183,14 @@ CONTAINS
   SUBROUTINE write_iprint(reg)
 
     USE kinds_mod,   ONLY: ink
-    USE integers_mod,ONLY: nreg,nmat,eos_type,nprocw,nthread
+    USE integers_mod,ONLY: nreg,nmat,npatch,eos_type,adv_type,nprocw,   &
+&                          nthread
     USE reals_mod,   ONLY: time_start,time_end,dt_initial,dt_min,dt_max,&
-&                          dt_g,cfl_sf,div_sf,cq1,cq2,kappaall,kappareg,&
-&                          pmeritall,pmeritreg,zcut,zerocut,dencut,     &
-&                          accut,pcut,ccut,eos_param,mat_rho,mat_ein
-    USE logicals_mod,ONLY: zdtnotreg,zmidlength,zmprocw
+&                          dt_g,cfl_sf,div_sf,ale_sf,cq1,cq2,kappaall,  &
+&                          kappareg,pmeritall,pmeritreg,zcut,zerocut,   &
+&                          accut,pcut,ccut,dencut,eos_param,mat_rho,    &
+&                          mat_ein
+    USE logicals_mod,ONLY: zdtnotreg,zmidlength,zmprocw,zeul
     USE strings_mod, ONLY: sfile
     USE mesh_mod,    ONLY: mesh_print,regions
 
@@ -204,13 +206,15 @@ CONTAINS
 
     IF (zmprocw) THEN
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
       PRINT*,' Input file:       ',TRIM(ADJUSTL(sfile))
       WRITE(6,'(a30,a12,a10)') '  Time stamp:       '//dat(7:8)//'/'//  &
 &      dat(5:6)//'/'//dat(1:4),' at '//tim(1:2)//':'//tim(3:4)//':'//   &
 &      tim(5:6),' '//zon(1:5)//' GMT'
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
       PRINT*,'PRE-PROCESSING OPTIONS'
 #ifdef NOMPI
       PRINT*,' No MPI routines included'
@@ -234,43 +238,48 @@ CONTAINS
       PRINT*,' No SILO visualisation dumps available'
 #endif
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
       PRINT*,'CONTROL OPTIONS'
-      WRITE(6,'(a63,e10.4)')'  Time at which calculation starts:       '&
-&      //'          time_start ',time_start
-      WRITE(6,'(a63,e10.4)')'  Time at which calculation ends:         '&
-&      //'            time_end ',time_end
-      WRITE(6,'(a63,e10.4)')'  Initial timestep:                       '&
-&      //'          dt_initial ',dt_initial
-      WRITE(6,'(a63,e10.4)')'  Minimum allowed timestep:               '&
-&      //'              dt_min ',dt_min
-      WRITE(6,'(a63,e10.4)')'  Maximum allowed timestep:               '&
-&      //'              dt_max ',dt_max
-      WRITE(6,'(a63,e10.4)')'  Timestep growth factor:                 '&
-&      //'                dt_g ',dt_g
-      WRITE(6,'(a63,e10.4)')'  Divergence safety factor:               '&
-&      //'              div_sf ',div_sf
-      WRITE(6,'(a63,e10.4)')'  CFL safety factor:                      '&
-&      //'              cfl_sf ',cfl_sf
-      WRITE(6,'(a63)')      '  Mid-length or projection for CFL length '&
-&      //'scale:    zmidlength '
-      WRITE(6,'(a63)')      '  Exclude region from CFL calculation:    '&
-&      //'           zdtnotreg '
-      WRITE(6,'(a63,e10.4)')'  Linear artificial viscosity coefficient:'&
-&      //'                 cq1 ',cq1
-      WRITE(6,'(a63,e10.4)')'  Quadratic artificial viscosity coefficie'&
-&      //'nt:              cq2 ',cq2
-      WRITE(6,'(a63,e10.4)')'  Hourglass filter coefficient:           '&
-&      //'            kappaall ',kappaall
-      WRITE(6,'(a63)')      '  Regional hourglass filter coefficient:  '&
-&      //'            kappareg '
-      WRITE(6,'(a63,e10.4)')'  Sub-zonal pressure coefficient:         '&
-&      //'           pmeritall ',pmeritall
-      WRITE(6,'(a63)')      '  Regional sub-zonal pressure coefficient:'&
-&      //'           pmeritreg '
+      WRITE(6,'(a83,33X,e16.9)')'  Time at which calculation starts:   '&
+&      //'                                  time_start ',time_start
+      WRITE(6,'(a83,33X,e16.9)')'  Time at which calculation ends:     '&
+&      //'                                    time_end ',time_end
+      WRITE(6,'(a83,33X,e16.9)')'  Initial timestep:                   '&
+&      //'                                  dt_initial ',dt_initial
+      WRITE(6,'(a83,33X,e16.9)')'  Minimum allowed timestep:           '&
+&      //'                                      dt_min ',dt_min
+      WRITE(6,'(a83,33X,e16.9)')'  Maximum allowed timestep:           '&
+&      //'                                      dt_max ',dt_max
+      WRITE(6,'(a83,33X,e16.9)')'  Timestep growth factor:             '&
+&      //'                                        dt_g ',dt_g
+      WRITE(6,'(a83,33X,e16.9)')'  Divergence safety factor:           '&
+&      //'                                      div_sf ',div_sf
+      WRITE(6,'(a83,33X,e16.9)')'  CFL safety factor:                  '&
+&      //'                                      cfl_sf ',cfl_sf
+      IF (npatch.GT.0_ink) THEN
+        WRITE(6,'(a83,33X,e16.9)')'  ALE safety factor:                '&
+&        //'                                        ale_sf ',ale_sf
+      ENDIF
+      WRITE(6,'(a83)')      '  Mid-length or projection for CFL length '&
+&      //'scale:                        zmidlength '
+      WRITE(6,'(a83)')      '  Exclude region from CFL calculation:    '&
+&      //'                               zdtnotreg '
+      WRITE(6,'(a83,33X,e16.9)')'  Linear artificial viscosity coeffici'&
+&      //'ent:                                     cq1 ',cq1
+      WRITE(6,'(a83,33X,e16.9)')'  Quadratic artificial viscosity coeff'&
+&      //'icient:                                  cq2 ',cq2
+      WRITE(6,'(a83,33X,e16.9)')'  Hourglass filter coefficient:       '&
+&      //'                                    kappaall ',kappaall
+      WRITE(6,'(a83)')      '  Regional hourglass filter coefficient:  '&
+&      //'                                kappareg '
+      WRITE(6,'(a83,33X,e16.9)')'  Sub-zonal pressure coefficient:     '&
+&      //'                                   pmeritall ',pmeritall
+      WRITE(6,'(a83)')      '  Regional sub-zonal pressure coefficient:'&
+&      //'                               pmeritreg '
       PRINT*,' '
-      WRITE(6,'(a5,4a11)') '  reg',' mid-length','  CFL calc.',         &
-&      '      kappa','     pmerit'
+      WRITE(6,'(a5,2a11,2(6X,a11))') '  reg',' mid-length','  CFL calc.'&
+&      ,'      kappa','     pmerit'
       DO ii=1,nreg
         IF (zmidlength(ii)) THEN
           str1=' TRUE'
@@ -282,77 +291,123 @@ CONTAINS
         ELSE
           str2=' TRUE'
         ENDIF
-        WRITE(6,'(i5,2(6X,a5),2(1X,e10.4))')ii,str1,str2,kappareg(ii),  &
+        WRITE(6,'(i5,2(6X,a5),2(1X,e16.9))')ii,str1,str2,kappareg(ii),  &
 &        pmeritreg(ii)
       ENDDO
       PRINT*,' '
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
       PRINT*,'MESHING OPTIONS'
       CALL mesh_print(reg)
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
       PRINT*,'EOS OPTIONS'
       DO ii=1,nmat
         WRITE(6,'(a12,i3)') '  Material: ',ii
         SELECT CASE(eos_type(ii))
           CASE(0)
-            WRITE(6,'(a63,a10)') '   EOS:                              '&
-&            //'                 eos_type ','      VOID'
-            WRITE(6,'(a58,i3,a2,e10.4)') '   Void pressure (p0):       '&
-&            //'                 eos_param(1,',ii,') ',eos_param(1,ii)
+            WRITE(6,'(a83,33X,a16)') '   EOS:                          '&
+&            //'                                         eos_type ',    &
+&            '            VOID'
+            WRITE(6,'(a78,i3,a2,33X,e16.9)') '   Void pressure (p0):   '&
+&            //'                                         eos_param(1,', &
+&            ii,') ',eos_param(1,ii)
           CASE(1)
-            WRITE(6,'(a63,a10)') '   EOS:                              '&
-&            //'                 eos_type ',' IDEAL GAS'
-            WRITE(6,'(a58,i3,a2,f10.6)') '   Ideal gas gamma:          '&
-&            //'                 eos_param(1,',ii,') ',eos_param(1,ii)
+            WRITE(6,'(a83,33X,a16)') '   EOS:                          '&
+&            //'                                         eos_type ',    &
+&            '       IDEAL GAS'
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   Ideal gas gamma:     '&
+&            //'                                          eos_param(1,',&
+&            ii,') ',eos_param(1,ii)
           CASE(2)
-            WRITE(6,'(a63,a10)') '   EOS:                              '&
-&            //'                 eos_type ','      TAIT'
-            WRITE(6,'(a58,i3,a2,f10.6)') '   Tait a:                   '&
-&            //'                 eos_param(1,',ii,') ',eos_param(1,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   Tait b:                   '&
-&            //'                 eos_param(2,',ii,') ',eos_param(2,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   Tait rho0:                '&
-&            //'                 eos_param(3,',ii,') ',eos_param(3,ii)
+            WRITE(6,'(a83,33X,a16)') '   EOS:                          '&
+&            //'                                         eos_type ',    &
+&            '            TAIT'
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   Tait a:              '&
+&            //'                                          eos_param(1,',&
+&            ii,') ',eos_param(1,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   Tait b:              '&
+&            //'                                          eos_param(2,',&
+&            ii,') ',eos_param(2,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   Tait rho0:           '&
+&            //'                                          eos_param(3,',&
+&            ii,') ',eos_param(3,ii)
           CASE(3)
-            WRITE(6,'(a63,a10)') '   EOS:                              '&
-&            //'                 eos_type ','       JWL'
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL omega:                '&
-&            //'                 eos_param(1,',ii,') ',eos_param(1,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL a:                    '&
-&            //'                 eos_param(2,',ii,') ',eos_param(2,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL b:                    '&
-&            //'                 eos_param(3,',ii,') ',eos_param(3,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL r1:                   '&
-&            //'                 eos_param(4,',ii,') ',eos_param(4,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL r2:                   '&
-&            //'                 eos_param(5,',ii,') ',eos_param(5,ii)
-            WRITE(6,'(a58,i3,a2,f10.6)') '   JWL rho0:                 '&
-&            //'                 eos_param(6,',ii,') ',eos_param(6,ii)
+            WRITE(6,'(a83,33X,a16)') '   EOS:                          '&
+&            //'                                         eos_type ',    &
+&            '             JWL'
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL omega:           '&
+&            //'                                          eos_param(1,',&
+&            ii,') ',eos_param(1,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL a:               '&
+&            //'                                          eos_param(2,',&
+&            ii,') ',eos_param(2,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL b:               '&
+&            //'                                          eos_param(3,',&
+&            ii,') ',eos_param(3,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL r1:              '&
+&            //'                                          eos_param(4,',&
+&            ii,') ',eos_param(4,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL r2:              '&
+&            //'                                          eos_param(5,',&
+&            ii,') ',eos_param(5,ii)
+            WRITE(6,'(a78,i3,a2,33X,f16.10)') '   JWL rho0:            '&
+&            //'                                          eos_param(6,',&
+&            ii,') ',eos_param(6,ii)
         END SELECT
-        WRITE(6,'(a63,e10.4)') '   Density:                            '&
-&        //'                mat_rho ',mat_rho(ii)
-        WRITE(6,'(a63,e10.4)') '   Internal energy:                    '&
-&        //'                mat_ein ',mat_ein(ii)
+        WRITE(6,'(a83,33X,e16.9)') '   Density:                        '&
+&        //'                                        mat_rho ',          &
+&        mat_rho(ii)
+        WRITE(6,'(a83,33X,e16.9)') '   Internal energy:                '&
+&        //'                                        mat_ein ',          &
+&        mat_ein(ii)
       ENDDO
       PRINT*,'########################################################',&
-&      '################'
-      PRINT*,'CUT-OFF OPTIONS'
-      WRITE(6,'(a63,e10.4)')'  Rounding precision cut-off:             '&
-&      //'                zcut ',zcut
-      WRITE(6,'(a63,e10.4)')'  Underflow cut-off:                      '&
-&      //'             zerocut ',zerocut
-      WRITE(6,'(a63,e10.4)')'  Acceleration cut-off:                   '&
-&      //'               accut ',accut
-      WRITE(6,'(a63,e10.4)')'  Density cut-off:                        '&
-&      //'              dencut ',dencut
-      WRITE(6,'(a63,e10.4)')'  Pressure cut-off:                       '&
-&      //'                pcut ',pcut
-      WRITE(6,'(a63,e10.4)')'  Sound speed cut-off:                    '&
-&      //'                ccut ',ccut
+&      '##############################################################',&
+&      '#############'
+      PRINT*,'ALE OPTIONS'
+      IF (npatch.GT.0_ink) THEN
+        SELECT CASE(adv_type)
+          CASE(1_ink)
+            WRITE(6,'(a83,33X,i16)')  '  Unsplit advection:            '&
+&            //'                                          adv_type ',   &
+&            adv_type
+          CASE(2_ink)
+            WRITE(6,'(a83,33X,i16)')  '  Split advection:              '&
+&            //'                                          adv_type ',   &
+&            adv_type
+        END SELECT    
+        IF (zeul) THEN
+          WRITE(6,'(a83,33X,a16)')  '  Eulerian frame selected:        '&
+&          //'                                            zeul ',       &
+&          '            TRUE'
+        ELSE
+        ENDIF
+      ELSE
+        WRITE(6,'(a83,33X,i16)')  '  Number of ALE patches:            '&
+&        //'                                        npatch ',npatch
+      ENDIF
       PRINT*,'########################################################',&
-&      '################'
+&      '##############################################################',&
+&      '#############'
+      PRINT*,'CUT-OFF OPTIONS'
+      WRITE(6,'(a83,33X,e16.9)')'  Rounding precision cut-off:         '&
+&      //'                                        zcut ',zcut
+      WRITE(6,'(a83,33X,e16.9)')'  Underflow cut-off:                  '&
+&      //'                                     zerocut ',zerocut
+      WRITE(6,'(a83,33X,e16.9)')'  Acceleration cut-off:               '&
+&      //'                                       accut ',accut
+      WRITE(6,'(a83,33X,e16.9)')'  Density cut-off:                    '&
+&      //'                                      dencut ',dencut
+      WRITE(6,'(a83,33X,e16.9)')'  Pressure cut-off:                   '&
+&      //'                                        pcut ',pcut
+      WRITE(6,'(a83,33X,e16.9)')'  Sound speed cut-off:                '&
+&      //'                                        ccut ',ccut
+      PRINT*,'########################################################',&
+&      '##############################################################',&
+&      '#############'
     ENDIF
 
   END SUBROUTINE write_iprint

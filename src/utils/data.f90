@@ -46,7 +46,7 @@ MODULE integers_mod
   ! sizes
   INTEGER(KIND=ink)                  :: nshape,nsz,nmat,nreg
   ! timestep
-  INTEGER(KIND=ink)                  :: nstep,idtel
+  INTEGER(KIND=ink)                  :: nstep,idtel,idtreg
   ! mesh
   INTEGER(KIND=ink)                  :: max_seg,max_subseg
   ! eos
@@ -70,7 +70,8 @@ MODULE reals_mod
 
   ! time 
   REAL(KIND=rlk)                 :: time,time_start,time_end,dt_min,    &
-&                                   dt_initial,dt_max,cfl_sf,div_sf,dt_g
+&                                   dt_initial,dt_max,cfl_sf,div_sf,    &
+&                                   ale_sf,dt_g
   ! cut-off
   REAL(KIND=rlk)                 :: ccut,zcut,zerocut,pcut,dencut,accut
   ! q
@@ -93,6 +94,7 @@ MODULE strings_mod
   USE parameters_mod,ONLY: LN
 
   CHARACTER(LEN=LN) :: sfile
+  CHARACTER(LEN=8)  :: sdt 
 
 END MODULE strings_mod 
 
@@ -114,11 +116,11 @@ MODULE pointers_mod
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE        :: ielreg,ielmat, &
 &                                                        indtype,       &
 &                                                        ielsort1,      &
-&                                                        e_loc_glob,    &
-&                                                        n_loc_glob
+&                                                        iellocglob,    &
+&                                                        indlocglob
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd,   &
-&                                                        e_owner_proc,  &
-&                                                        n_owner_proc
+&                                                        ielownerproc,  &
+&                                                        indownerproc
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE,TARGET :: ielnd
   REAL(KIND=rlk),   DIMENSION(:),  ALLOCATABLE        :: rho,qq,csqrd,  &
 &                                                        pre,ein,elmass,&
@@ -174,11 +176,26 @@ MODULE timing_mod
      REAL(KIND=rlk) :: time_in_getacc
      REAL(KIND=rlk) :: time_in_getfrc
      REAL(KIND=rlk) :: time_in_getein
-     REAL(KIND=rlk) :: time_in_eos
-     REAL(KIND=rlk) :: time_in_geom
+     REAL(KIND=rlk) :: time_in_getpca
+     REAL(KIND=rlk) :: time_in_getpci
+     REAL(KIND=rlk) :: time_in_getpcl
+     REAL(KIND=rlk) :: time_in_getgeoma
+     REAL(KIND=rlk) :: time_in_getgeomi
+     REAL(KIND=rlk) :: time_in_getgeoml
      REAL(KIND=rlk) :: time_in_comreg
      REAL(KIND=rlk) :: time_in_comms
      REAL(KIND=rlk) :: time_in_colls
+     REAL(KIND=rlk) :: time_in_alestep
+     REAL(KIND=rlk) :: time_in_alegetmesh
+     REAL(KIND=rlk) :: time_in_alegetfvol
+     REAL(KIND=rlk) :: time_in_aleadvect
+     REAL(KIND=rlk) :: time_in_aleadvect_el
+     REAL(KIND=rlk) :: time_in_update_el_basis
+     REAL(KIND=rlk) :: time_in_update_el_var
+     REAL(KIND=rlk) :: time_in_aleadvect_nd
+     REAL(KIND=rlk) :: time_in_update_nd_basis
+     REAL(KIND=rlk) :: time_in_update_nd_var
+     REAL(KIND=rlk) :: time_in_aleupdate
   END TYPE time_stats
   TYPE(time_stats) :: bookleaf_times
 

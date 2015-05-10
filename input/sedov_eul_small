@@ -12,7 +12,7 @@
 /
 &EOS
  eos_type(1)=1
- eos_param(1,1)=1.6666667
+ eos_param(1,1)=1.6666666667
  mat_rho(1)=1.0
  mat_ein(1)=0.0
 /

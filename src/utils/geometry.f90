@@ -100,23 +100,24 @@ CONTAINS
 
   END FUNCTION dln
 
-  SUBROUTINE getgeom(nshape,nel,nnod,ndx,ndy,elx,ely)
+  SUBROUTINE getgeom(nshape,nel,nnod,ndx,ndy,elx,ely,timer)
 
     USE kinds_mod,     ONLY: ink,rlk
     USE utilities_mod, ONLY: gather
     USE pointers_mod,  ONLY: a1,a2,a3,b1,b2,b3,elvol,cnwt,ielnd
     USE error_mod,     ONLY: halt
     USE parameters_mod,ONLY: ONEBYNINE
-    USE timing_mod,    ONLY: bookleaf_times
     USE TYPH_util_mod, ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel,nnod
-    REAL(KIND=rlk),DIMENSION(nnod),      INTENT(IN)  :: ndx,ndy
-    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(OUT) :: elx,ely
+    INTEGER(KIND=ink),                   INTENT(IN)    :: nshape,nel,   &
+&                                                         nnod
+    REAL(KIND=rlk),DIMENSION(nnod),      INTENT(IN)    :: ndx,ndy
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(OUT)   :: elx,ely
+    REAL(KIND=rlk),                      INTENT(INOUT) :: timer
     ! Local
-    INTEGER(KIND=ink)                                :: iel,ierr
-    REAL(KIND=rlk)                                   :: t0,t1
+    INTEGER(KIND=ink)                                  :: iel,ierr
+    REAL(KIND=rlk)                                     :: t0,t1
 
     ! Timer
     t0=get_time()
@@ -154,7 +155,7 @@ CONTAINS
     ! Timing data
     t1=get_time()
     t1=t1-t0
-    bookleaf_times%time_in_geom=bookleaf_times%time_in_geom+t1
+    timer=timer+t1
 
   END SUBROUTINE getgeom
 

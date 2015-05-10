@@ -30,8 +30,10 @@ CONTAINS
   SUBROUTINE alegetfvol(nshape,nnod,nel,dt,cut,indstatus,ielnd,ndx,ndy, &
 &                       ndux,ndvy,rdelv)
 
-    USE kinds_mod,   ONLY: ink,rlk
-    USE logicals_mod,ONLY: zeul
+    USE kinds_mod,    ONLY: ink,rlk
+    USE logicals_mod, ONLY: zeul
+    USE timers_mod,   ONLY: bookleaf_times
+    USE typh_util_mod,ONLY: get_time
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)    :: nshape,    &
@@ -44,6 +46,10 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: rdelv
     ! Local
     INTEGER(KIND=ink) :: iNd
+    REAL(KIND=rlk)    :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! calculate mesh velocity
     IF (zeul) THEN
@@ -67,6 +73,12 @@ CONTAINS
       ndx(iNd)=ndux(iNd)
       ndy(iNd)=ndvy(iNd)
     ENDDO
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_alegetfvol=bookleaf_times%time_in_alegetfvol+&
+&                                     t1
 
   END SUBROUTINE alegetfvol
 

@@ -77,6 +77,7 @@ SUBROUTINE init()
   USE geometry_mod, ONLY: getgeom
   USE getpc_mod,    ONLY: getpc
   USE utilities_mod,ONLY: getconn,getsconn,corrconn
+  USE timing_mod,   ONLY: timer=>bookleaf_times
 
   IMPLICIT NONE
 
@@ -90,7 +91,8 @@ SUBROUTINE init()
   time=time_start
 
   ! initialise geometry
-  CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1))
+  CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),         &
+&              timer%time_in_getgeomi)
 
   ! initialise density, energy and mass
   DO iel=1,nel
@@ -126,7 +128,8 @@ SUBROUTINE init()
   ENDIF
 
   ! initialise pressure and sound speed
-  CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1))
+  CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1),               &
+&            timer%time_in_getpci)
 
   ! initialise artifical viscosity
   qq=0.0_rlk
@@ -164,13 +167,13 @@ SUBROUTINE init_comm()
 
   USE kinds_mod,    ONLY: ink
   USE integers_mod, ONLY: nel1
-  USE pointers_mod, ONLY: e_loc_glob,ielsort1
+  USE pointers_mod, ONLY: iellocglob,ielsort1
   USE utilities_mod,ONLY: sort
   USE error_mod,    ONLY: halt
 
   IMPLICIT NONE
 
-  ielsort1(1:nel1)=sort(e_loc_glob(1:nel1))
+  ielsort1(1:nel1)=sort(iellocglob(1:nel1))
   if (ielsort1(1).eq.-HUGE(1_ink)) then
     call halt("ERROR: sort failed for ielsort1",0)
   endif
@@ -185,8 +188,8 @@ SUBROUTINE init_defaults()
 &                        adv_type,patch_type,patch_motion,patch_trigger,&
 &                        patch_ntrigger
   USE reals_mod,   ONLY: time_start,time_end,dt_initial,dt_g,dt_min,    &
-&                        dt_max,cfl_sf,div_sf,ccut,zcut,zerocut,pcut,   &
-&                        eos_param,dencut,accut,cq1,cq2,kappaall,       &
+&                        dt_max,cfl_sf,div_sf,ale_sf,ccut,zcut,zerocut, &
+&                        eos_param,pcut,dencut,accut,cq1,cq2,kappaall,  &
 &                        kappareg,pmeritall,pmeritreg,patch_ontime,     &
 &                        patch_offtime,patch_om,patch_minvel,           &
 &                        patch_maxvel
@@ -205,6 +208,7 @@ SUBROUTINE init_defaults()
   dt_max    =1.0e-1_rlk
   cfl_sf    =0.5_rlk
   div_sf    =0.25_rlk
+  ale_sf    =0.5_rlk
   ! dt options
   zdtnotreg(:) =.FALSE._lok
   zmidlength(:)=.FALSE._lok

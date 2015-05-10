@@ -27,10 +27,12 @@ CONTAINS
   SUBROUTINE aleupdate(nshape,nel,nnod,ndx,ndy,elx,ely,elmass,rho,pre,  &
 &                      ein,csqrd,ielmat)    
 
-    USE kinds_mod,   ONLY: ink,rlk
-    USE pointers_mod,ONLY: elvol
-    USE geometry_mod,ONLY: getgeom
-    USE getpc_mod,   ONLY: getpc
+    USE kinds_mod,    ONLY: ink,rlk
+    USE pointers_mod, ONLY: elvol
+    USE geometry_mod, ONLY: getgeom
+    USE getpc_mod,    ONLY: getpc
+    USE timing_mod,   ONLY: timer=>bookleaf_times
+    USE typh_util_mod,ONLY: get_time
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)  :: nshape,nel,  &
@@ -42,9 +44,13 @@ CONTAINS
     INTEGER(KIND=ink),DIMENSION(nel),       INTENT(IN)  :: ielmat
     ! Local
     INTEGER(KIND=ink) :: iel
+    REAL(KIND=rlk)    :: t0,t1
+
+    ! Timer
+    t0=get_time()
 
     ! update geometry
-    CALL getgeom(nshape,nel,nnod,ndx,ndy,elx,ely)
+    CALL getgeom(nshape,nel,nnod,ndx,ndy,elx,ely,timer%time_in_getgeoma)
 
     ! update density to be consistent with geometry
     DO iel=1,nel
@@ -52,7 +58,13 @@ CONTAINS
     ENDDO
 
     ! update EoS
-    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1))
+    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1),             &
+&              timer%time_in_getpca)
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    timer%time_in_aleupdate=timer%time_in_aleupdate+t1
 
   END SUBROUTINE aleupdate
 
