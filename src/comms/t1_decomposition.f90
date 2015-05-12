@@ -29,7 +29,7 @@ contains
   integer(kind=TERRK) function TYPH_Set_Partition_Info( ID, El_Shape, N_Layers, N_El_tot,    &
                                                         N_Nod_tot,El_To_Proc, Nod_To_Proc,   &
                                                         El_Loc_To_Glob, Nod_Loc_To_Glob,     &
-                                                        Connectivity, Name, Group )
+                                                        Connectivity, Name )
 
     implicit none
 
@@ -44,7 +44,6 @@ contains
     integer(kind=TSIZEK), dimension(:),   intent(in)           :: Nod_Loc_To_Glob
     integer(kind=TSIZEK), dimension(:,:), intent(in), optional :: Connectivity
     character(len=*),                     intent(in), optional :: Name
-    integer(kind=TSIZEK),                 intent(in), optional :: Group
 
     ID = 1
     TYPH_Set_Partition_Info = 0

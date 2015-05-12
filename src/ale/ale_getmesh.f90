@@ -47,6 +47,7 @@ CONTAINS
         indstatus(inod)=2_ink
       ENDDO
     ELSE
+      ! Other options
     ENDIF
 
     ! Timing data

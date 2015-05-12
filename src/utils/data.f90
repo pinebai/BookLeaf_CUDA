@@ -43,6 +43,7 @@ MODULE integers_mod
   INTEGER(KIND=ink)                  :: nel,nnod
   ! dimensions including ghosts
   INTEGER(KIND=ink)                  :: nel1,nnod1
+  INTEGER(KIND=ink)                  :: nel2,nnod2
   ! sizes
   INTEGER(KIND=ink)                  :: nshape,nsz,nmat,nreg
   ! timestep
@@ -185,6 +186,8 @@ MODULE timing_mod
      REAL(KIND=rlk) :: time_in_comreg
      REAL(KIND=rlk) :: time_in_comms
      REAL(KIND=rlk) :: time_in_colls
+     REAL(KIND=rlk) :: time_in_mshgen
+     REAL(KIND=rlk) :: time_in_mshprt
      REAL(KIND=rlk) :: time_in_alestep
      REAL(KIND=rlk) :: time_in_alegetmesh
      REAL(KIND=rlk) :: time_in_alegetfvol

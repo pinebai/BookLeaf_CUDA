@@ -16,6 +16,26 @@
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
 
+SUBROUTINE init_mesh_memory()
+
+  ! initialises temporary memory to hold the full unpartitioned mesh
+  ! these will be reallocated once the mesh is partitioned
+  USE kinds_mod,   ONLY: ink
+  USE integers_mod,ONLY: nshape,nel,nnod
+  USE error_mod,   ONLY: halt
+  USE pointers_mod,ONLY: ielreg,ielmat,ielnd,ndu,ndv,ndx,ndy,indtype
+
+  IMPLICIT NONE
+
+  ! Local
+  INTEGER(KIND=ink) :: ierr
+
+  ALLOCATE(ielreg(1:nel),ielmat(1:nel),ielnd(nshape,1:nel),ndu(1:nnod), &
+&          ndv(1:nnod),ndx(1:nnod),ndy(1:nnod),indtype(1:nnod),STAT=ierr)
+  IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
+
+END SUBROUTINE init_mesh_memory
+
 SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
@@ -36,14 +56,12 @@ SUBROUTINE init_memory()
   ! Local
   INTEGER(KIND=ink) :: ierr
 
-  ALLOCATE(ielreg(1:nel1),ielmat(1:nel1),ielnd(nshape,1:nel1),          &
-&          rho(1:nel1),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel1),&
-&          elmass(1:nel1),elvol(1:nel1),ndu(1:nnod1),ndv(1:nnod1),      &
-&          a1(1:nel1),a2(1:nel1),a3(1:nel1),b1(1:nel1),b2(1:nel1),      &
-&          b3(1:nel1),ndx(1:nnod1),ndy(1:nnod1),indtype(1:nnod1),       &
-&          cnwt(nshape,1:nel1),cnmass(nshape,1:nel1),elx(nshape,1:nel1),&
-&          ely(nshape,1:nel1),qx(nshape,1:nel1),qy(nshape,1:nel1),      &
-&          ielel(nshape,1:nel1),ielsd(nshape,1:nel1),ielsort1(nel1),    &
+  ALLOCATE(rho(1:nel1),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel1), &
+&          elmass(1:nel1),elvol(1:nel1),a1(1:nel1),a2(1:nel1),a3(1:nel1),&
+&          b1(1:nel1),b2(1:nel1),b3(1:nel1),cnwt(nshape,1:nel1),         &
+&          cnmass(nshape,1:nel1),elx(nshape,1:nel1),ely(nshape,1:nel1),  &
+&          qx(nshape,1:nel1),qy(nshape,1:nel1),ielel(nshape,1:nel1),     &
+&          ielsd(nshape,1:nel1),ielsort1(nel1),                          &
 &          STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   nsz=MAX(nel1,nnod1)
@@ -340,6 +358,7 @@ SUBROUTINE init_check()
     patch_maxvel(1)=HUGE(1.0_rlk)
     patch_ntrigger(1)=0_ink
   ELSE
+    ! Other options
   ENDIF
 
 END SUBROUTINE init_check

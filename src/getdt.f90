@@ -125,6 +125,7 @@ CONTAINS
           ENDIF
         ENDDO
       ELSE
+        ! Other options
       ENDIF
       rdt(3)=ale_sf*SQRT(w2)
       idt(3)=ii

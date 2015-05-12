@@ -18,24 +18,26 @@
 
 SUBROUTINE modify()
 
-  USE kinds_mod,   ONLY: ink,rlk,lok
-  USE integers_mod,ONLY: nel1,nnod1,nshape
-  USE pointers_mod,ONLY: ndx,ndy,ielnod,ndu
+  USE kinds_mod,       ONLY: ink,rlk,lok
+  USE integers_mod,    ONLY: nel,nnod,nshape,commS
+  USE pointers_mod,    ONLY: ndx,ndy,ielnd,ndu
+  USE logicals_mod,    ONLY: zparallel
+  USE typh_collect_mod,ONLY:typh_reduce,TYPH_OP_MIN
 
   IMPLICIT NONE
 
-  INTEGER(KIND=ink)                 :: iel,inod,ii
+  INTEGER(KIND=ink)                 :: iel,inod,ii,ierr
   REAL(KIND=rlk),   PARAMETER       :: TOL=1.0e-6_rlk,DX1=0.01_rlk,     &
 &                                      DY1=0.01_rlk
   REAL(KIND=rlk)                    :: pi,x0,y0,w1,w2
-  LOGICAL(KIND=lok),DIMENSION(nnod1):: zchanged
+  LOGICAL(KIND=lok),DIMENSION(nnod) :: zchanged
 
   ! Alter mesh positions
   pi=4.0_rlk*ATAN(1.0_rlk)
   zchanged(:)=.FALSE._lok
-  DO iel=1,nel1
+  DO iel=1,nel
     DO ii=1,nshape
-      inod=ielnod(ii,iel)
+      inod=ielnd(ii,iel)
       IF (.NOT.zchanged(inod)) THEN
         x0=ndx(inod)
         y0=ndy(inod)
@@ -49,13 +51,17 @@ SUBROUTINE modify()
 
   ! Set left hand boundary velocity
   w1=ndx(1)
-  DO inod=2,nnod1
+  DO inod=2,nnod
     IF (ndx(inod).LT.w1) w1=ndx(inod)
   ENDDO
+  IF (zparallel) THEN
+    ierr=TYPH_Reduce(w1,RVal=w2,Op=TYPH_OP_MIN,Comm=CommS)
+    w1=w2
+  ENDIF
   w1=w1+TOL
-  DO iel=1,nel1
+  DO iel=1,nel
     DO ii=1,nshape
-      inod=ielnod(ii,iel)
+      inod=ielnd(ii,iel)
       IF (ndx(inod).LE.w1) ndu(inod)=1.0_rlk
     ENDDO
   ENDDO

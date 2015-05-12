@@ -19,25 +19,34 @@
 
 SUBROUTINE modify()
 
-  USE kinds_mod,   ONLY: ink,rlk
-  USE pointers_mod,ONLY: ndx,ndy,ielmat,ielnd,rho,pre,ein,elvol,cnwt,   &
-&                        elmass,cnmass,spmass
-  USE integers_mod,ONLY: nel,nnod
-  USE reals_mod,   ONLY: eos_param
-  USE logicals_mod,ONLY: zsp
+  USE kinds_mod,       ONLY: ink,rlk
+  USE pointers_mod,    ONLY: ndx,ndy,ielmat,ielnd,rho,pre,ein,elvol,cnwt,  &
+&                            elmass,cnmass,spmass
+  USE integers_mod,    ONLY: nel,nnod,commS
+  USE reals_mod,       ONLY: eos_param
+  USE logicals_mod,    ONLY: zparallel,zsp
+  USE typh_collect_mod,ONLY:typh_reduce,TYPH_OP_MIN,TYPH_OP_MAX
 
   ! Local
-  INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4
+  INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4,ierr
   REAL(KIND=rlk)    :: x1,x2,x3,x4,y1,y2,y3,y4,w1,w2,w3,w4,xmid
 
   ! find mid-point
+  ! local min/max x coordinate
   x1=ndx(1)
   x2=x1
   DO inod=1,nnod
     IF (ndx(inod).LT.x1) x1=ndx(inod)
     IF (ndx(inod).GT.x2) x2=ndx(inod)
   ENDDO
-  xmid=0.5_rlk*(x1+x2)
+  IF (zparallel) THEN
+    ierr=TYPH_Reduce(x1,RVal=x3,Op=TYPH_OP_MIN,Comm=CommS)
+    ierr=TYPH_Reduce(x2,RVal=x4,Op=TYPH_OP_MAX,Comm=CommS)
+  ELSE
+    x3=x1
+    x4=x2
+  ENDIF
+  xmid=0.5_rlk*(x3+x4)
 
   ! reset variables
   DO iel=1,nel

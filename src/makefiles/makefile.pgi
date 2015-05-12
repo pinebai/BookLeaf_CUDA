@@ -3,8 +3,8 @@ FC = mpif90
 CC = pgcc
 
 # General flags
-REALSIZE     = #-r8
-INTSIZE      = #-i8
+REALSIZE     = -r8
+INTSIZE      = -i4
 FORM         = -Mfree
 BIG_ENDIAN   = -Mbyteswapio
 AUTO_ARRAYS  = 
@@ -56,6 +56,15 @@ ifeq ($(LEV),RELEASE)
   OPT     = -fastsse -gopt -Mipa=fast -Mlist
   COPT    =
   IEEE   += 
+endif
+ifeq ($(LEV),OPT)
+  OPT     = -fastsse -gopt -Mipa=fast -Mlist
+  COPT    =
+#Disable following for OPT
+  BIG_ENDIAN   =
+  AUTO_ARRAYS  =
+  SHARED_INTEL =
+  IEEE         =
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \

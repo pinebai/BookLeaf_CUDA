@@ -35,8 +35,11 @@ module TYPH_Collect_mod
   integer(kind=TYPHK), public, parameter :: TYPH_OP_AND  = 1013
 
   interface TYPH_Reduce
+    module procedure mReduce2D_Int
     module procedure mReduce1D_Real
     module procedure mReduce1D_Int
+    module procedure mReduce0D_Real
+    module procedure mReduce0D_Int
   end interface
   
   interface TYPH_Gather
@@ -77,6 +80,27 @@ contains
    
   end function mAllGather1D_Int
   
+  integer(kind=TERRK) function mReduce2D_Int(Val, RVal, Op, Comm) result(fres)
+    
+    implicit none
+
+    integer(kind=INTK), dimension(:,:), intent(in)  :: Val
+    integer(kind=INTK), dimension(:,:), intent(out) :: RVal
+    integer(kind=TYPHK),                intent(in)  :: Op
+    integer(kind=TSIZEK),               intent(in)  :: Comm
+    
+    integer(kind=INTK)    :: iSize
+    integer(kind=MPIK)    :: iMPIop       ! MPI reduction operation
+    integer(kind=TERRK)   :: irc          ! Internal return code
+
+    irc = mGetMPIOp(TYPH_REAL, Op, iMPIop)
+    iSize = SIZE(VAL,DIM=1)*SIZE(VAL,DIM=2)
+    CALL MPI_ALLREDUCE(Val, RVal, iSIZE, MPI_INTEGER4, iMPIop, Comm, irc)
+
+    fres = irc
+    
+  end function mReduce2D_Int
+  
   integer(kind=TERRK) function mReduce1D_Real(Val, RVal, Op, Comm) result(fres)
     
     implicit none
@@ -96,7 +120,6 @@ contains
     
   end function mReduce1D_Real
 
-
   integer(kind=TERRK) function mReduce1D_Int(Val, RVal, Op, Comm)  result(fres)
     
     implicit none
@@ -115,6 +138,44 @@ contains
     fres = irc
     
   end function mReduce1D_Int
+
+  integer(kind=TERRK) function mReduce0D_Real(Val, RVal, Op, Comm) result(fres)
+    
+    implicit none
+
+    real(kind=REALK),     intent(in)  :: Val
+    real(kind=REALK),     intent(out) :: RVal
+    integer(kind=TYPHK),  intent(in)  :: Op
+    integer(kind=TSIZEK), intent(in)  :: Comm
+    
+    integer(kind=MPIK)    :: iMPIop       ! MPI reduction operation
+    integer(kind=TERRK)   :: irc          ! Internal return code
+
+    irc = mGetMPIOp(TYPH_REAL, Op, iMPIop)
+    CALL MPI_ALLREDUCE(Val, RVal, 1, MPI_REAL8, iMPIop, Comm, irc)
+
+    fres = irc
+    
+  end function mReduce0D_Real
+
+  integer(kind=TERRK) function mReduce0D_Int(Val, RVal, Op, Comm)  result(fres)
+    
+    implicit none
+
+    integer(kind=INTK),   intent(in)  :: Val
+    integer(kind=INTK),   intent(out) :: RVal
+    integer(kind=TYPHK),  intent(in)  :: Op
+    integer(kind=TSIZEK), intent(in)  :: Comm
+
+    integer(kind=MPIK)         :: iMPIop                          ! MPI reduction operation
+    integer(kind=TERRK)        :: irc                             ! Internal return code
+
+    irc = mGetMPIOp(TYPH_INTEGER, Op, iMPIop)
+    CALL MPI_ALLREDUCE(Val, RVal, 1, MPI_INTEGER4, iMPIop, Comm, irc)
+
+    fres = irc
+    
+  end function mReduce0D_Int
 
   integer(kind=TERRK) function mGetMPIOp(aDatatype, aOp, aMPIOp)
 

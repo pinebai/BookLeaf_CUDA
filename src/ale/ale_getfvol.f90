@@ -56,6 +56,7 @@ CONTAINS
       ndux=-ndux
       ndvy=-ndvy
     ELSE
+      ! Other options
     ENDIF
 
     ! construct new position

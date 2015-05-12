@@ -20,9 +20,13 @@ PROGRAM main
 
 ! Internal
   USE kinds_mod,    ONLY: ink
-  USE integers_mod, ONLY: Nthread
+  USE integers_mod, ONLY: Nthread,NprocW
   USE logicals_mod, ONLY: zparallel,zmprocw
+#ifdef NOMPI
   USE comms_mod,    ONLY: register
+#else
+  USE comms_mod,    ONLY: register,partition_mesh
+#endif
   USE error_mod,    ONLY: halt
   USE timing_mod,   ONLY: bookleaf_times
   USE timers_mod,   ONLY: start_timers
@@ -41,6 +45,7 @@ PROGRAM main
 
   ! mesh data
   TYPE(regions),DIMENSION(:),ALLOCATABLE :: reg
+  INTEGER(kind=ink)                      :: nk,nl
 
 ! ###################
 ! Parallelism
@@ -88,7 +93,7 @@ PROGRAM main
   CALL read_files()
 
 ! generate mesh from input
-  CALL mesh_gen(reg)
+  CALL mesh_gen(reg,nk,nl)
 
 ! check / correct input
   CALL init_check()
@@ -104,10 +109,20 @@ PROGRAM main
   CALL init_parameters()
 
 ! setup memory
-  CALL init_memory()
+  CALL init_mesh_memory()
 
 ! Transfer mesh onto solution arrays, populate connectivity arrays
   CALL mesh_transfer(reg)
+
+#ifndef NOMPI
+! partition the mesh and transfer the data to the new chunks
+  IF (zparallel) THEN
+    CALL partition_mesh(nl,nk,nprocW)
+  ENDIF
+#endif
+
+! setup memory
+  CALL init_memory()
 
 ! register comms
   IF (zparallel) CALL register()
@@ -119,7 +134,7 @@ PROGRAM main
   IF (zparallel) CALL init_comm()
 
 ! problem specific modifications
-#ifdef MOD
+#ifdef MODY
   CALL modify()
 #endif
 

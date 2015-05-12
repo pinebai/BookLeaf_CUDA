@@ -16,7 +16,7 @@ FORM         = -free
 BIG_ENDIAN   = -convert big_endian
 AUTO_ARRAYS  = -heap-arrays 64
 SHARED_INTEL = -shared-intel 
-#IEEE         = -fp-model precise -fp-model source #-mP2OPT_hlo_loop_unroll=false
+IEEE         = -fp-model precise -fp-model source -mP2OPT_hlo_loop_unroll=false
 IEEE         = -fltconsistency
 # Open MP
 ifeq ($(NO_OMP),)
@@ -61,9 +61,18 @@ ifeq ($(LEV),OPTDEBUG)
   IEEE   += -no-ftz
 endif
 ifeq ($(LEV),RELEASE)
-  OPT     = -O2 -finline-functions -unroll-aggressive -vec-report3 -opt-report 3
-  COPT    = -O2 -vec-report3 -opt-report 3
+  OPT     = -O2 -finline-functions -unroll-aggressive  -qopt-report=3
+  COPT    = -O2 -qopt-report=3
   IEEE   += -no-ftz
+endif
+ifeq ($(LEV),OPT)
+  OPT     = -O3 -qopt-report=3
+  COPT    = -O3 -qopt-report=3
+#Disable following for OPT 
+  BIG_ENDIAN   =
+  AUTO_ARRAYS  =
+  SHARED_INTEL = 	
+  IEEE         =
 endif
 
 FFLAGS = -c $(REALSIZE) $(INTSIZE) $(FORM) $(BIG_ENDIAN) $(AUTO_ARRAYS) \

@@ -35,8 +35,11 @@ module TYPH_Collect_mod
   integer(kind=TYPHK), public, parameter :: TYPH_OP_AND  = 1013
 
   interface TYPH_Reduce
+    module procedure mReduce2D_Int
     module procedure mReduce1D_Real
     module procedure mReduce1D_Int
+    module procedure mReduce0D_Real
+    module procedure mReduce0D_Int
   end interface
   
   interface TYPH_Gather
@@ -77,6 +80,23 @@ contains
    
   end function mAllGather1D_Int
   
+  integer(kind=TERRK) function mReduce2D_Int(Val, RVal, Op, Comm)  result(fres)
+    
+    implicit none
+
+    integer(kind=INTK),  dimension(:,:), intent(in)  :: Val
+    integer(kind=INTK),  dimension(:,:), intent(out) :: RVal
+    integer(kind=TYPHK),                 intent(in)  :: Op
+    integer(kind=TSIZEK),                intent(in)  :: Comm
+
+    integer(kind=MPIK)         :: iMPIop                          ! MPI reduction operation
+    integer(kind=TERRK)        :: irc                             ! Internal return code
+
+    RVal = Val
+    fres = irc
+    
+  end function mReduce2D_Int
+
   integer(kind=TERRK) function mReduce1D_Real(Val, RVal, Op, Comm) result(fres)
     
     implicit none
@@ -111,6 +131,41 @@ contains
     fres = irc
     
   end function mReduce1D_Int
+
+  integer(kind=TERRK) function mReduce0D_Real(Val, RVal, Op, Comm) result(fres)
+    
+    implicit none
+
+    real(kind=REALK),     intent(in)  :: Val
+    real(kind=REALK),     intent(out) :: RVal
+    integer(kind=TYPHK),  intent(in)  :: Op
+    integer(kind=TSIZEK), intent(in)  :: Comm
+    
+    integer(kind=MPIK)    :: iMPIop       ! MPI reduction operation
+    integer(kind=TERRK)   :: irc          ! Internal return code
+
+    RVal = Val
+    fres = irc
+    
+  end function mReduce0D_Real
+
+
+  integer(kind=TERRK) function mReduce0D_Int(Val, RVal, Op, Comm)  result(fres)
+    
+    implicit none
+
+    integer(kind=INTK),   intent(in)  :: Val
+    integer(kind=INTK),   intent(out) :: RVal
+    integer(kind=TYPHK),  intent(in)  :: Op
+    integer(kind=TSIZEK), intent(in)  :: Comm
+
+    integer(kind=MPIK)         :: iMPIop                          ! MPI reduction operation
+    integer(kind=TERRK)        :: irc                             ! Internal return code
+
+    RVal = Val
+    fres = irc
+    
+  end function mReduce0D_Int
 
 end module TYPH_Collect_mod
 

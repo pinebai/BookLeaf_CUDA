@@ -61,12 +61,18 @@ MODULE mesh_mod
 
 CONTAINS
 
-  SUBROUTINE mesh_gen(reg)
+  SUBROUTINE mesh_gen(reg,nk,nl)
     
     USE integers_mod,ONLY: nel,nel1,nnod,nnod1
+    USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
-    TYPE(regions),    DIMENSION(:),  ALLOCATABLE   :: reg
+    TYPE(regions), DIMENSION(:), ALLOCATABLE :: reg
+    INTEGER(kind=ink),           INTENT(OUT) :: nk,nl
+    REAL(KIND=rlk)                           :: t0,t1
+
+    t0 = get_time()
 
     ! read control file
     CALL read_input(reg)
@@ -75,11 +81,16 @@ CONTAINS
     CALL check_input(reg)
 
     ! Generate region meshes
-    CALL reg_mesh(reg)
+    CALL reg_mesh(reg,nk,nl)
 
     ! Until decomposition, copy size
     nel1=nel
     nnod1=nnod
+
+    ! Timing data
+    t1 = get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_mshgen=bookleaf_times%time_in_mshgen+t1
 
   END SUBROUTINE mesh_gen
 
@@ -496,7 +507,7 @@ CONTAINS
 
   END SUBROUTINE check_input
 
-  SUBROUTINE reg_mesh(reg)
+  SUBROUTINE reg_mesh(reg,no_k,no_l)
 
     USE integers_mod, ONLY: nreg,nel,nnod
     USE reals_mod,    ONLY: zerocut
@@ -504,8 +515,8 @@ CONTAINS
 
     ! Argument list
     TYPE(regions),DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: reg
-    ! Local
-    INTEGER(KIND=ink) :: no_l,no_k,ll,kk,lm,lp,km,kp,no_seg,no_it,      &
+    INTEGER(KIND=ink),                     INTENT(OUT)   :: no_k,no_l
+    INTEGER(KIND=ink) :: ll,kk,lm,lp,km,kp,no_seg,no_it,       &
 &                        max_no_it,ireg,ind,i1,i2,l1,l2,k1,k2
     REAL(KIND=rlk)    :: tl0,tl1,tk0,tk1,wl0,wl1,wk0,wk1,ww,fac,dr,ds,  &
 &                        tol,om,r1,r2,r3,r4,r5,r6,r7,r8,s1,s2,s3,s4,s5, &
@@ -599,6 +610,7 @@ CONTAINS
               CALL halt('ERROR: side_type is POINT but DJN off',0)
           END SELECT
         ELSE
+          ! Other options
         ENDIF
       ENDDO
       ! calculate initial guess at interior points
@@ -972,6 +984,8 @@ CONTAINS
     USE integers_mod,ONLY: nreg,nel,nnod
     USE pointers_mod,ONLY: ndx,ndy,ielnd,ielreg,indtype,ielmat,ndu,ndv
     USE error_mod,   ONLY: halt
+    USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod,ONLY: get_time
 
     ! Argument list
     TYPE(regions),DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: reg
@@ -980,7 +994,9 @@ CONTAINS
 &                                        i2,ireg,iele,inod,ii,l1,l2,k1, &
 &                                        k2
     INTEGER(KIND=ink),DIMENSION(nnod) :: istore
-    REAL(KIND=rlk)                    :: r1,r2,r3,s1,s2,s3,x1,y1,w1
+    REAL(KIND=rlk)                    :: r1,r2,r3,s1,s2,s3,x1,y1,w1,t0,t1
+
+    t0 = get_time()
 
     nod_count=0_ink
     ele_count=0_ink
@@ -1178,6 +1194,11 @@ CONTAINS
     ENDDO
     DEALLOCATE(reg)
 
+    ! Timing data
+    t1 = get_time()
+    t1=t1-t0
+    bookleaf_times%time_in_mshgen=bookleaf_times%time_in_mshgen+t1
+
   END SUBROUTINE mesh_transfer
 
   SUBROUTINE mesh_print(reg)
@@ -1267,9 +1288,8 @@ CONTAINS
             CASE(1_ink)
               WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                                     ',              &
-&               '            LINE'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
+&               //'                ','      LINE'
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',reg(ii)%side(is)%seg(it)%point(1),',',     &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
@@ -1277,37 +1297,34 @@ CONTAINS
             CASE(2_ink)
               WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                                     ',              &
-&               '           ARC_C'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
+&               //'                ','     ARC_C'
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(3_ink)
               WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                                     ',              &
-&               '           ARC_A'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a6,e16.9,a1,e16.9,a1)')      &
+&               //'                ','     ARC_A'
+              WRITE(6,'(a11,e16.5,a1,e16.5,a6,e16.5,a1,e16.5,a1)')      &
 &              '    From  (',                                           &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),') to (',              &
 &              reg(ii)%side(is)%seg(it)%point(3),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(4),')'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    About (',         &
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    About (',         &
 &              reg(ii)%side(is)%seg(it)%point(5),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(6),')'
             CASE(4_ink)
               WRITE(6,'(a20,i3,a60,33X,a16)') '    Segment number: ',   &
 &              reg(ii)%side(is)%seg(it)%seg_no,' segment type:         '&
-&               //'                                     ',              &
-&               '           POINT'
-              WRITE(6,'(a11,e16.9,a1,e16.9,a1)') '    At    (',         &
+&               //'                ','     POINT'
+              WRITE(6,'(a11,e16.5,a1,e16.5,a1)') '    At    (',         &
 &              reg(ii)%side(is)%seg(it)%point(1),',',                   &
 &              reg(ii)%side(is)%seg(it)%point(2),')'
             CASE(5_ink)
@@ -1347,8 +1364,7 @@ CONTAINS
 
     ! Argument list
     TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
-    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,&
-&                                               k2
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,il,lm,lp,ll,li,l3,l4
     INTEGER(KIND=ink) :: kmin,kmax,ik,km,kp,kk,ki,k3,k4
@@ -1455,8 +1471,7 @@ CONTAINS
 
     ! Argument list
     TYPE(regions),DIMENSION(:),INTENT(INOUT) :: reg
-    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,&
-&                                               k2
+    INTEGER(KIND=ink),         INTENT(IN)    :: ireg,i_seg,ind,l1,l2,k1,k2
     ! Local
     INTEGER(KIND=ink) :: lmin,lmax,ll,il,li,l3,l4,lm,lp
     INTEGER(KIND=ink) :: kmin,kmax,kk,ik,ki,k3,k4,km,kp

@@ -7,8 +7,9 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
-Currently Bookleaf is a serial application, although MPI routines are included.
-A mesh partitioning routine is yet to be added.
+Version 1.1 allows for in-situ mesh partitioning.
+
+Current Bookleaf_Ref includes ALE.
 
 
 ## BookLeaf Build Procedure
@@ -32,15 +33,15 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh. A separate version
 Bookleaf must be built for each deck. Specify which version is being built using 
 this argument on the make command line:
 
-`MOD=<sod|sedov|saltzmann|noh>`
+`MOD=<sod|sedov|saltzmann>`
 
 The executable will be named: `bookleaf_$MOD`
 
+Note that the noh deck does not require a MOD command and the executable will simply be called `'bookleaf'
 
 ## MPI
 
-Currently Bookleaf has no capability to generate parallel meshes, however MPI 
-communications are included in the expectation that this feature will be added soon.
+Bookleaf will automatically partition the mesh according to the number of cores that the problem is run on.
 
 By default Bookleaf builds with MPI, however a truly serial version can be built
 by adding:
@@ -61,7 +62,7 @@ by adding:
 
 3) Building the Noh problem in a seperate build directory:
 
-`make MOD=noh SRCDIR=../src bookleaf`
+`make SRCDIR=../src bookleaf`
 
 
 ## Running the Code
@@ -70,8 +71,12 @@ BookLeaf can run with no command line arguments. By default it expects to find a
 file called "control" in the directory it is running in. This can be changed 
 by running:
 
-`bookleaf_sod file=<newfile>`
+`bookleaf_sod FILE=<newfile>`
 
 This file is a copy of the files found in the inputs directory, depending on 
 which problem you wish to run.
 
+## Versions
+
+V1.0   - Initial version. Contains MPI comms, but only serial meshes can be contructed.
+V1.1   - Adds in mesh partitioning. Parallel running now available.
