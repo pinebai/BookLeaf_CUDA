@@ -7,9 +7,14 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
+### Version History
+
+Current BookLeaf_ref Version 1.2 includes ALE.
+
 Version 1.1 allows for in-situ mesh partitioning.
 
-Current Bookleaf_Ref includes ALE.
+Version 1.0 serial only
+
 
 
 ## BookLeaf Build Procedure
