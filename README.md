@@ -11,10 +11,6 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
 Current BookLeaf_ref Version 1.2 includes ALE.
 
-Version 1.1 allows for in-situ mesh partitioning.
-
-Version 1.0 serial only
-
 
 
 ## BookLeaf Build Procedure
@@ -83,5 +79,10 @@ which problem you wish to run.
 
 ## Versions
 
-V1.0   - Initial version. Contains MPI comms, but only serial meshes can be contructed.
+V1.2   - Adds ALE capability
+
 V1.1   - Adds in mesh partitioning. Parallel running now available.
+
+V1.0   - Initial version. Contains MPI comms, but only serial meshes can be contructed.
+
+
