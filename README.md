@@ -9,7 +9,7 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
 Current BookLeaf_ref Version 1.2 includes ALE.
 
-Wiki: 
+Wiki: https://github.com/UK-MAC/BookLeaf/wiki
 
 
 ## BookLeaf Build Procedure
