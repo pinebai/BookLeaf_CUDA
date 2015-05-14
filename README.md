@@ -10,6 +10,7 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 Current BookLeaf_ref as V1.1, plus:
 * serial ALE capability
 * Modified makefile.intel
+* Input endtimes modified to match test runs
 
 
 Wiki: https://github.com/UK-MAC/BookLeaf/wiki
@@ -84,6 +85,8 @@ which problem you wish to run.
 BookLeaf_ref - As V1.1 plus:
 * serial ALE capability
 * Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi, -qopt-report=3 no longer default flag
+* Makefile help has PHI option added
+* End times for sod and sedov test cases changed to reflect test cases run
 
 
 V1.1   - Adds in mesh partitioning. Parallel running now available.
