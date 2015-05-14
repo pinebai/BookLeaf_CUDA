@@ -85,7 +85,7 @@ which problem you wish to run.
 BookLeaf_ref - As V1.1 plus:
 * serial ALE capability
 * Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi, -qopt-report=3 no longer default flag
-* Makefile help has PHI option added
+* Makefile help has PHI option added plus version updated to v1.1
 * End times for sod and sedov test cases changed to reflect test cases run
 
 
