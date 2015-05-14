@@ -7,7 +7,9 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
-Current BookLeaf_ref Version 1.2 includes ALE.
+Current BookLeaf_ref as V1.1, plus:
+* serial ALE capability
+* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi
 
 Wiki: https://github.com/UK-MAC/BookLeaf/wiki
 
@@ -78,7 +80,10 @@ which problem you wish to run.
 
 ## Version History
 
-V1.2   - Adds ALE capability
+BookLeaf_ref - As V1.1 plus:
+* serial ALE capability
+* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi
+
 
 V1.1   - Adds in mesh partitioning. Parallel running now available.
 
