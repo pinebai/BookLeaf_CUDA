@@ -9,7 +9,8 @@ Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
 Current BookLeaf_ref as V1.1, plus:
 * serial ALE capability
-* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi
+* Modified makefile.intel
+
 
 Wiki: https://github.com/UK-MAC/BookLeaf/wiki
 
@@ -82,7 +83,7 @@ which problem you wish to run.
 
 BookLeaf_ref - As V1.1 plus:
 * serial ALE capability
-* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi
+* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi, -qopt-report=3 no longer default flag
 
 
 V1.1   - Adds in mesh partitioning. Parallel running now available.
