@@ -149,20 +149,25 @@ CONTAINS
       idtreg=-1_ink
     ENDIF
     IF (zparallel) THEN
-      idt(1)=iellocglob(idtel)
+      idt(1)=idtel
       idt(2)=idtreg
       idt(3)=ii
       t1=get_time()
       ip=Typh_Gather(dt,dtt,comm=CommS)
       t2=get_time()
       t3=t2-t1
-      ii=MINVAL(MINLOC(dtt))
+      ii=MINVAL(MINLOC(dtt))-1_ink  ! minloc converts (0:n) index to (1:n+1)
       dt=dtt(ii)
       t1=get_time()
       ip=Typh_Gather(idt(1:3),idtt,comm=CommS)
       t2=get_time()
       t3=t3+t2-t1
-      idtel=idtt(1,ii)
+      ! global time controlling cell
+      IF (idtt(1,ii).LE.0_ink) THEN
+        idtel=-1_ink
+      ELSE
+        idtel=iellocglob(idtt(1,ii))
+      ENDIF
       idtreg=idtt(2,ii)
       ii=idtt(3,ii)
       bookleaf_times%time_in_colls=bookleaf_times%time_in_colls+t3

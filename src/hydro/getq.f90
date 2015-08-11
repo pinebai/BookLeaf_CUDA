@@ -40,7 +40,7 @@ CONTAINS
     REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)    :: elx,ely,elu,  &
 &                                                         elv
     REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)    :: rho,pre
-    REAL(KIND=rlk),DIMENSION(:,0:),      INTENT(INOUT) :: dx,dy,du,dv,  &
+    REAL(KIND=rlk),DIMENSION(:,:),      INTENT(INOUT) :: dx,dy,du,dv,  &
 &                                                         scratch
     ! Local
     INTEGER(KIND=ink)                                  :: iel,iside,in1,&

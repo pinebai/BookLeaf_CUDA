@@ -22,11 +22,12 @@ SUBROUTINE modify()
   USE kinds_mod,       ONLY: ink,rlk
   USE pointers_mod,    ONLY: ndx,ndy,ielmat,ielnd,rho,pre,ein,elvol,cnwt,  &
 &                            elmass,cnmass,spmass
-  USE integers_mod,    ONLY: nel,nnod,commS
+  USE integers_mod,    ONLY: nel,nnod,commS,nmat
   USE reals_mod,       ONLY: eos_param
   USE logicals_mod,    ONLY: zparallel,zsp
   USE typh_collect_mod,ONLY:typh_reduce,TYPH_OP_MIN,TYPH_OP_MAX
 
+  IMPLICIT NONE
   ! Local
   INTEGER(KIND=ink) :: inod,iel,ii,n1,n2,n3,n4,ierr
   REAL(KIND=rlk)    :: x1,x2,x3,x4,y1,y2,y3,y4,w1,w2,w3,w4,xmid
@@ -67,6 +68,7 @@ SUBROUTINE modify()
     elmass(iel)=rho(iel)*elvol(iel)
     cnmass(1:4,iel)=rho(iel)*cnwt(1:4,iel)
   ENDDO
+  nmat=2_ink
 
   ! reset subzonal pressure mass
   IF (zsp) THEN

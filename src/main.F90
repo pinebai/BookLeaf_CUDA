@@ -36,6 +36,9 @@ PROGRAM main
 #ifdef SILO
   USE silo_mod,     ONLY: write_silo_dump
 #endif
+#ifdef TIO
+  USE typhonio_mod, ONLY: write_tio_dump
+#endif
 ! External
 #ifndef NOOMP
   USE omp_lib
@@ -143,9 +146,12 @@ PROGRAM main
 ! print initial totals
   CALL write_sprint()
 
-! Dump initial Silo file
+! Dump initial graphics file
 #ifdef SILO
   CALL write_silo_dump("initial_dump")
+#endif
+#ifdef TIO
+  CALL write_tio_dump("initial_dump.h5")
 #endif
 
 ! ###################

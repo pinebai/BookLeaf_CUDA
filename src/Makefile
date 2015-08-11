@@ -70,6 +70,7 @@ help:
 	#  NO_MPI      - Do not compile MPI routines
 	#  NO_OMP      - Do not use OpenMP threads
 	#  SILO        - Compile Silo routines
+	#  TIO         - Compile TyphonIO routines
 	#
 	# Commands:
 	#  help        - print this message
@@ -104,6 +105,14 @@ ifneq ($(SILO),)
   ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
     include $(CUTDIR)/makefile.cutils
   endif
+endif
+ifneq ($(TIO),)
+  ifeq ($(MKFILEC), makefile.xl)
+    PP_TIO=-WF,-DTIO
+  else
+    PP_TIO=-DTIO
+  endif
+  OBJ+=tio.o
 endif
 ifneq ($(MOD),)
   ifeq ($(MKFILEC), makefile.xl)
@@ -148,16 +157,19 @@ VPATH=$(ALEDIR):$(COMDIR):$(CUTDIR):$(EOSDIR):$(HYDDIR):$(IAODIR):      \
 PREPRO = $(PP_MOD)   \
 	 $(PP_MPI)   \
 	 $(PP_SILO)  \
+	 $(PPTIO)    \
 	 $(PP_OMP)
 
 CPREPRO = $(F2C_DEF)
 
 # Includes
 INC =	$(SILOINC)   \
+	$(TIO_INC)   \
 	$(HDF5INC) 
 
 # Libraries
 LIB = 	$(SILOLIB)   \
+	$(TIO_LIB)   \
 	$(HDF5LIB)   \
 	$(ZLIBLIB)
 

@@ -237,6 +237,11 @@ CONTAINS
 #else
       PRINT*,' No SILO visualisation dumps available'
 #endif
+#ifdef TIO
+      PRINT*,' TyphonIO visualisation dumps written out'
+#else
+      PRINT*,' No TyphonIO visualisation dumps available'
+#endif
       WRITE(6,'(a132)')' #############################################' &
 &                //'##################################################' &
 &                //'####################################'

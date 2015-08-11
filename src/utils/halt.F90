@@ -27,6 +27,9 @@ SUBROUTINE halt(smessage,iout,zend)
 #ifdef SILO
   USE silo_mod,     ONLY: write_silo_dump
 #endif
+#ifdef TIO
+  USE TyphonIO_mod, ONLY: write_tio_dump
+#endif
   USE Typhon,       ONLY: TYPH_kill,TYPH_Abort
 
   IMPLICIT NONE
@@ -64,7 +67,11 @@ SUBROUTINE halt(smessage,iout,zend)
 #ifdef SILO
     ! Dump Silo file
     CALL write_silo_dump("final_dump")
-#endif  
+#endif
+#ifdef TIO
+  CALL write_tio_dump("final_dump.h5",.NOT.zfin)
+#endif
+  
   ENDIF
 
   IF (zfin) THEN

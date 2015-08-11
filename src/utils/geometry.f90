@@ -148,7 +148,6 @@ CONTAINS
                   -(3.0_rlk*a3(iel)-a2(iel))*(3.0_rlk*b1(iel)+b2(iel)))
       elvol(iel)=4.0_rlk*(a1(iel)*b3(iel)-a3(iel)*b1(iel))
     ENDDO
-    ierr=0_ink
     ierr=MINVAL(MINLOC(elvol(1:nel),MASK=(elvol(1:nel).LT.0.0_rlk)))
     IF (ierr.NE.0_ink) CALL halt("ERROR: cell volume < 0",1)
 

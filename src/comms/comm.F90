@@ -740,8 +740,8 @@ CONTAINS
     INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: gielreg,gindtype,gielmat
 
     ! copy global data into temproaries then reallocate global arrays to local
-    ALLOCATE(gndx(0:nnodtot),gndy(0:nnodtot),gndu(0:nnodtot),gndv(0:nnodtot))
-    ALLOCATE(gindtype(0:nnodtot),gielreg(0:neltot),gielmat(0:neltot))
+    ALLOCATE(gndx(nnodtot),gndy(nnodtot),gndu(nnodtot),gndv(nnodtot))
+    ALLOCATE(gindtype(nnodtot),gielreg(neltot),gielmat(neltot))
     gndx=ndx
     gndy=ndy
     gndu=ndu
@@ -751,8 +751,8 @@ CONTAINS
     gindtype=indtype
 
     DEALLOCATE(ndx,ndy,ielreg,indtype,ielmat,ndu,ndv)
-    ALLOCATE(ndx(0:nnod1),ndy(0:nnod1),ndu(0:nnod1),ndv(0:nnod1))
-    ALLOCATE(indtype(0:nnod1),ielmat(0:nel1),ielreg(0:nel1))
+    ALLOCATE(ndx(nnod1),ndy(nnod1),ndu(nnod1),ndv(nnod1))
+    ALLOCATE(indtype(nnod1),ielmat(nel1),ielreg(nel1))
 
     DO ii=1,nnod
       DO iig=1,nnodtot

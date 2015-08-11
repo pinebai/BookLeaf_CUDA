@@ -13,3 +13,16 @@ ifneq ($(SILO),)
   ZLIBDIR      = 
   ZLIBLIB      = -L$(ZLIBDIR)/lib64 -lz
 endif
+
+# TyphonIO library location
+ifneq ($(TIO),)
+  TIO_DIR    = 
+  TIO_INC    = -I$(TIO_DIR)/include
+  TIO_LIB    = -L$(TIO_DIR)/lib -ltyphonio_f -ltyphonio
+
+  HDF5DIR      = 
+  HDF5INC      = -I$(HDF5DIR)/include
+  HDF5LIB      = -L$(HDF5DIR)/lib -lhdf5_fortran -lhdf5
+  ZLIBDIR      = 
+  ZLIBLIB      = -L$(ZLIBDIR)/lib64 -lz
+endif
