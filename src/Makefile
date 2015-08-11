@@ -36,10 +36,11 @@ UTLDIR  = $(SRCDIR)/utils
 # build info
 NO_MPI  =
 NO_OMP  =
+PHI     =
 SILO    =
 DEP     =
 # Version
-VERS = 0.1
+VERS = 1.1
 EXE  = bookleaf
 ifeq ($(MOD),)
   EXENAME  = $(EXE)
@@ -69,6 +70,7 @@ help:
 	#  MOD         - include problem specific initialisation modification, DEFAULT none
 	#  NO_MPI      - Do not compile MPI routines
 	#  NO_OMP      - Do not use OpenMP threads
+	#  PHI         - Build executable for Intel Xeon Phi
 	#  SILO        - Compile Silo routines
 	#  TIO         - Compile TyphonIO routines
 	#
