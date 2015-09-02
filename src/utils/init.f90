@@ -39,32 +39,32 @@ END SUBROUTINE init_mesh_memory
 SUBROUTINE init_memory()
 
   USE kinds_mod,   ONLY: ink
-  USE integers_mod,ONLY: nshape,nel1,nnod1,nsz
+  USE integers_mod,ONLY: nshape,nel1,nel2,nnod1,nnod2,nsz
   USE logicals_mod,ONLY: zsp,zale
   USE error_mod,   ONLY: halt
   USE pointers_mod,ONLY: ielreg,ielmat,ielnd,rho,qq,csqrd,pre,ein,cnwt, &
 &                        elmass,elvol,ndu,ndv,a1,a2,a3,b1,b2,b3,ndx,ndy,&
 &                        indtype,ielel,cnmass,elx,ely,qx,qy,spmass,     &
-&                        ielsd,ielsort1
+&                        ielsd,ielsort1,ielsort2
   USE scratch_mod, ONLY: rscratch21,rscratch22,rscratch23,rscratch24,   &
-&                        rscratch25,rscratch26,rscratch27,rscratch11,   &
-&                        rscratch12,rscratch13,rscratch14,rscratch15,   &
-&                        rscratch16,iscratch11,zscratch11
+&                        rscratch25,rscratch26,rscratch27,rscratch28,   &
+&                        rscratch11,rscratch12,rscratch13,rscratch14,   &
+&                        rscratch15,rscratch16,iscratch11,zscratch11
 
   IMPLICIT NONE
 
   ! Local
   INTEGER(KIND=ink) :: ierr
 
-  ALLOCATE(rho(1:nel1),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel1), &
-&          elmass(1:nel1),elvol(1:nel1),a1(1:nel1),a2(1:nel1),a3(1:nel1),&
-&          b1(1:nel1),b2(1:nel1),b3(1:nel1),cnwt(nshape,1:nel1),         &
-&          cnmass(nshape,1:nel1),elx(nshape,1:nel1),ely(nshape,1:nel1),  &
-&          qx(nshape,1:nel1),qy(nshape,1:nel1),ielel(nshape,1:nel1),     &
-&          ielsd(nshape,1:nel1),ielsort1(nel1),                          &
+  ALLOCATE(rho(1:nel2),qq(1:nel1),csqrd(1:nel1),pre(1:nel1),ein(1:nel2), &
+&          elmass(1:nel1),elvol(1:nel2),a1(1:nel1),a2(1:nel1),a3(1:nel1),&
+&          b1(1:nel1),b2(1:nel1),b3(1:nel1),cnwt(nshape,1:nel2),         &
+&          cnmass(nshape,1:nel2),elx(nshape,1:nel1),ely(nshape,1:nel1),  &
+&          qx(nshape,1:nel1),qy(nshape,1:nel1),ielel(nshape,1:nel2),     &
+&          ielsd(nshape,1:nel2),ielsort1(nel1),ielsort2(nel2),           &
 &          STAT=ierr)
   IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
-  nsz=MAX(nel1,nnod1)
+  nsz=MAX(nel2,nnod2)
   ALLOCATE(rscratch11(1:nsz),rscratch12(1:nsz),rscratch13(1:nsz),       &
 &          rscratch14(1:nsz),rscratch15(1:nsz),rscratch21(nshape,1:nsz),&
 &          rscratch22(nshape,1:nsz),rscratch23(nshape,1:nsz),           &
@@ -77,7 +77,7 @@ SUBROUTINE init_memory()
   ENDIF
   IF (zale) THEN
     ALLOCATE(rscratch16(1:nsz),iscratch11(1:nsz),zscratch11(1:nsz),     &
-&    STAT=ierr)
+&            rscratch28(nshape,1:nsz),STAT=ierr)
     IF (ierr.NE.0_ink) CALL halt("ERROR: failed to allocate memory",0)
   ENDIF
 
@@ -86,7 +86,7 @@ END SUBROUTINE init_memory
 SUBROUTINE init()
 
   USE kinds_mod,    ONLY: ink,rlk
-  USE integers_mod, ONLY: nshape,nel,nnod,nel1
+  USE integers_mod, ONLY: nshape,nel,nnod,nel2,nnod2
   USE logicals_mod, ONLY: zsp
   USE reals_mod,    ONLY: time,time_start,mat_rho,mat_ein
   USE pointers_mod, ONLY: ielmat,rho,ein,elmass,elvol,qq,qx,qy,pre,     &
@@ -109,7 +109,7 @@ SUBROUTINE init()
   time=time_start
 
   ! initialise geometry
-  CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),         &
+  CALL getgeom(nshape,nel,nnod,ndx(1),ndy(1),elx(1,1),ely(1,1),   &
 &              timer%time_in_getgeomi)
 
   ! initialise density, energy and mass
@@ -155,12 +155,12 @@ SUBROUTINE init()
   qy=0.0_rlk
 
   ! initialise connectivity
-  ielel(1:,1:nel1)=getconn(nel1,nshape,ielnd(1:,1:nel1))
-  ielsd(1:,1:nel1)=getsconn(nel1,nshape,ielel(1:,1:nel1))
-  CALL corrconn(nel1,nshape,ielel(1:,1:nel1),ielsd(1:,1:nel1))
+  ielel(1:,1:nel2)=getconn(nel2,nshape,ielnd(1:,1:nel2))
+  ielsd(1:,1:nel2)=getsconn(nel2,nshape,ielel(1:,1:nel2))
+  CALL corrconn(nel2,nshape,ielel(1:,1:nel2),ielsd(1:,1:nel2))
 
   ! initialise node type
-  DO iel=1,nel1
+  DO iel=1,nel2
     nodes(0:nshape-1)=ielnd(1:nshape,iel)
     IF (COUNT(indtype(nodes).LT.0_ink).EQ.3_ink) THEN
       l1:DO ii=0,nshape-1
@@ -184,8 +184,8 @@ END SUBROUTINE init
 SUBROUTINE init_comm()
 
   USE kinds_mod,    ONLY: ink
-  USE integers_mod, ONLY: nel1
-  USE pointers_mod, ONLY: iellocglob,ielsort1
+  USE integers_mod, ONLY: nel1,nel2
+  USE pointers_mod, ONLY: iellocglob,ielsort1,ielsort2
   USE utilities_mod,ONLY: sort
   USE error_mod,    ONLY: halt
 
@@ -194,6 +194,10 @@ SUBROUTINE init_comm()
   ielsort1(1:nel1)=sort(iellocglob(1:nel1))
   if (ielsort1(1).eq.-HUGE(1_ink)) then
     call halt("ERROR: sort failed for ielsort1",0)
+  endif
+  ielsort2(1:nel2)=sort(iellocglob(1:nel2))
+  if (ielsort2(1).eq.-HUGE(1_ink)) then
+    call halt("ERROR: sort failed for ielsort2",0)
   endif
 
 END SUBROUTINE init_comm

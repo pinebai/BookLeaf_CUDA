@@ -24,8 +24,8 @@ MODULE ale_update_mod
 
 CONTAINS
 
-  SUBROUTINE aleupdate(nshape,nel,nnod,ndx,ndy,elx,ely,elmass,rho,pre,  &
-&                      ein,csqrd,ielmat)    
+  SUBROUTINE aleupdate(nshape,nel,nnod,ndx,ndy,elx,ely,elmass,rho,&
+&                      pre,ein,csqrd,ielmat)    
 
     USE kinds_mod,    ONLY: ink,rlk
     USE pointers_mod, ONLY: elvol
@@ -36,7 +36,7 @@ CONTAINS
 
     ! Argument list
     INTEGER(KIND=ink),                      INTENT(IN)  :: nshape,nel,  &
-&                                                          nnod
+&                                                           nnod
     REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(IN)  :: ndx,ndy
     REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: elx,ely
     REAL(KIND=rlk),   DIMENSION(nel),       INTENT(IN)  :: elmass,ein
@@ -58,7 +58,7 @@ CONTAINS
     ENDDO
 
     ! update EoS
-    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1),             &
+    CALL getpc(nel,ielmat(1),rho(1),ein(1),pre(1),csqrd(1),              &
 &              timer%time_in_getpca)
 
     ! Timing data

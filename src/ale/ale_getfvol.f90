@@ -18,7 +18,7 @@
 
 MODULE ale_getfvol_mod
 
-  USE kinds_mod,ONLY: ink,rlk
+  USE kinds_mod,ONLY: ink,lok,rlk
 
   IMPLICIT NONE
 
@@ -27,8 +27,8 @@ MODULE ale_getfvol_mod
 
 CONTAINS
 
-  SUBROUTINE alegetfvol(nshape,nnod,nel,dt,cut,indstatus,ielnd,ndx,ndy, &
-&                       ndux,ndvy,rdelv)
+  SUBROUTINE alegetfvol(nshape,nnod,nel,nel2,dt,cut,indstatus,ielnd,    &
+&                       ndx,ndy,ndux,ndvy,rdelv)
 
     USE kinds_mod,    ONLY: ink,rlk
     USE logicals_mod, ONLY: zeul
@@ -36,14 +36,14 @@ CONTAINS
     USE typh_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: nshape,    &
-&                                                            nnod,nel
-    REAL(KIND=rlk),                         INTENT(IN)    :: dt,cut
-    INTEGER(KIND=ink),DIMENSION(nnod),      INTENT(IN)    :: indstatus
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielnd
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(INOUT) :: ndx,ndy,   &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: nshape,nel,&
+&                                                            nnod,nel2
+    REAL(KIND=rlk),                          INTENT(IN)   :: dt,cut
+    INTEGER(KIND=ink),DIMENSION(nnod),       INTENT(IN)   :: indstatus
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielnd
+    REAL(KIND=rlk),   DIMENSION(nnod),       INTENT(INOUT):: ndx,ndy,   &
 &                                                            ndux,ndvy
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: rdelv
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT)  :: rdelv
     ! Local
     INTEGER(KIND=ink) :: iNd
     REAL(KIND=rlk)    :: t0,t1
@@ -51,11 +51,13 @@ CONTAINS
     ! Timer
     t0=get_time()
 
+ 
     ! calculate mesh velocity
     IF (zeul) THEN
       ndux=-ndux
       ndvy=-ndvy
     ELSE
+      !# Exchange MESH_MOTION ndx,ndy, Ndux,ndvy to nnod1
       ! Other options
     ENDIF
 
@@ -66,7 +68,7 @@ CONTAINS
     ENDDO
 
     ! construct flux volumes
-    CALL fvol(nshape,nnod,nel,cut,ielnd(1,1),ndx(1),ndy(1),ndux(1),     &
+    CALL fvol(nshape,nnod,nel,nel2,cut,ielnd(1,1),ndx(1),ndy(1),ndux(1),&
 &             ndvy(1),rDelV(1,1)) 
 
     ! update position
@@ -83,20 +85,21 @@ CONTAINS
 
   END SUBROUTINE alegetfvol
 
-  SUBROUTINE fvol(nshape,nnod,nel,cut,ielnd,ndx0,ndy0,ndx1,ndy1,rdelv)
+  SUBROUTINE fvol(nshape,nnod,nel,nel2,cut,ielnd,ndx0,ndy0,ndx1,ndy1,   &
+&                 rdelv)
 
     USE kinds_mod,ONLY: ink,rlk
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)  :: nshape,nnod, &
-&                                                          nel
-    REAL(KIND=rlk),                         INTENT(IN)  :: cut
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)  :: ielnd
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(IN)  :: ndx0,ndy0,   &
+    INTEGER(KIND=ink),                       INTENT(IN) :: nshape,nnod, &
+&                                                          nel,nel2
+    REAL(KIND=rlk),                          INTENT(IN) :: cut
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN) :: ielnd
+    REAL(KIND=rlk),   DIMENSION(nnod),       INTENT(IN) :: ndx0,ndy0,   &
 &                                                          ndx1,ndy1
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: rdelv
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT):: rdelv
     ! Local
-    INTEGER(KIND=ink) :: iel,jj,jp,n1,n2
+    INTEGER(KIND=ink) :: iel,ii,jj,jp,n1,n2
     REAL(KIND=rlk)    :: x1,x2,x3,x4,y1,y2,y3,y4,a1,a3,b1,b3
 
     ! initialise

@@ -157,7 +157,7 @@ VPATH=$(ALEDIR):$(COMDIR):$(CUTDIR):$(EOSDIR):$(HYDDIR):$(IAODIR):      \
 PREPRO = $(PP_MOD)   \
 	 $(PP_MPI)   \
 	 $(PP_SILO)  \
-	 $(PPTIO)    \
+	 $(PP_TIO)   \
 	 $(PP_OMP)
 
 CPREPRO = $(F2C_DEF)

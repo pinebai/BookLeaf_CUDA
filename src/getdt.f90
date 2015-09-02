@@ -48,12 +48,14 @@ CONTAINS
     REAL(KIND=rlk),INTENT(INOUT)               :: dt
     ! Local
     INTEGER(KIND=ink)                          :: iel,ireg,ip,ii
+    INTEGER(KIND=ink),DIMENSION(1)             :: iloc
     INTEGER(KIND=ink),PARAMETER                :: NDT=5_ink
     INTEGER(KIND=ink),DIMENSION(NDT)           :: idt
     INTEGER(KIND=ink),DIMENSION(3,0:NProcW-1)  :: idtt
     REAL(KIND=rlk)                             :: w1,w2,t0,t1,t2,t3
     REAL(KIND=rlk),   DIMENSION(NDT)           :: rdt
     REAL(KIND=rlk),   DIMENSION(0:NprocW-1)    :: dtt
+    REAL(KIND=rlk),   DIMENSION(1)             :: dtm
     CHARACTER(LEN=8), DIMENSION(NDT),PARAMETER :: sdtt=['     CFL',     &
 &                                                       '     DIV',     &
 &                                                       '     ALE',     &
@@ -162,7 +164,7 @@ CONTAINS
       ip=Typh_Gather(idt(1:3),idtt,comm=CommS)
       t2=get_time()
       t3=t3+t2-t1
-      ! global time controlling cell
+      ! global time controlling cell 
       IF (idtt(1,ii).LE.0_ink) THEN
         idtel=-1_ink
       ELSE

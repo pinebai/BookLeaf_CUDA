@@ -63,7 +63,7 @@ CONTAINS
 
   SUBROUTINE mesh_gen(reg,nk,nl)
     
-    USE integers_mod,ONLY: nel,nel1,nnod,nnod1
+    USE integers_mod,ONLY: nel,nel1,nel2,nnod,nnod1,nnod2
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
@@ -84,8 +84,10 @@ CONTAINS
     CALL reg_mesh(reg,nk,nl)
 
     ! Until decomposition, copy size
-    nel1=nel
+    nel1 =nel
+    nel2 =nel
     nnod1=nnod
+    nnod2=nnod
 
     ! Timing data
     t1 = get_time()

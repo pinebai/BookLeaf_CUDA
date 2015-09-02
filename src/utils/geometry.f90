@@ -110,11 +110,11 @@ CONTAINS
     USE TYPH_util_mod, ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                   INTENT(IN)    :: nshape,nel,   &
+    INTEGER(KIND=ink),                    INTENT(IN)   :: nshape,nel,   &
 &                                                         nnod
-    REAL(KIND=rlk),DIMENSION(nnod),      INTENT(IN)    :: ndx,ndy
-    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(OUT)   :: elx,ely
-    REAL(KIND=rlk),                      INTENT(INOUT) :: timer
+    REAL(KIND=rlk),DIMENSION(nnod),       INTENT(IN)   :: ndx,ndy
+    REAL(KIND=rlk),DIMENSION(nshape,nel), INTENT(OUT)  :: elx,ely
+    REAL(KIND=rlk),                       INTENT(INOUT):: timer
     ! Local
     INTEGER(KIND=ink)                                  :: iel,ierr
     REAL(KIND=rlk)                                     :: t0,t1

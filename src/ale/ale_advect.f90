@@ -30,52 +30,76 @@ MODULE ale_advect_mod
 
 CONTAINS
 
-  SUBROUTINE aleadvect(id1,id2,nshape,nel,nnod,nsz,ielel,ielsd,ielnd,   &
-&                      indstatus,indtype,dencut,cut,cutv,cutm,elv0ndm1, &
-&                      elm0ndm0,elr0ndv0,ndv1,elv1,elm1,elr1,cnv0,cnm1, &
-&                      dfv,dfm,cnm0,flux,work1,work2,zactive)
+  SUBROUTINE aleadvect(id1,id2,nshape,nel,nel1,nel2,nnod,nnod1,nnod2,   &
+&                      nsz,ielel,ielsd,ielsrt1,ielsrt2,ielnd,indstatus, &
+&                      indtype,dencut,cut,cutv,cutm,elv0ndm1,elm0ndm0,  &
+&                      elr0ndv0,ndv1,elv1,elm1,elr1,cnv0,cnm1,dfv,dfm,  &
+&                      cnm0,eluv,elvv,flux,work1,work2,zactive)
 
+    USE comms_mod,    ONLY: exchange,ADV_EXCH_EL,ADV_EXCH_ND
+    USE logicals_mod, ONLY: zparallel
+    USE pointers_mod, ONLY: ndu,ndv
+    USE utilities_mod,ONLY: gather
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: id1,id2,   &
 &                                                            nshape,nsz,&
-&                                                            nel,nnod
-    REAL(KIND=rlk),                         INTENT(IN)    :: dencut,cut
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielel,     &
+&                                                            nel,nel1,  &
+&                                                            nel2,nnod, &
+&                                                            nnod1,nnod2
+    REAL(KIND=rlk),                          INTENT(IN)   :: dencut,cut
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielel,     &
 &                                                            ielsd,     &
 &                                                            ielnd
-    INTEGER(KIND=ink),DIMENSION(nnod),      INTENT(IN)    :: indstatus, &
+    INTEGER(KIND=ink),DIMENSION(nel1),       INTENT(IN)   :: ielsrt1
+    INTEGER(KIND=ink),DIMENSION(nel2),       INTENT(IN)   :: ielsrt2
+    INTEGER(KIND=ink),DIMENSION(nnod2),      INTENT(IN)   :: indstatus, &
 &                                                            indtype
-    REAL(KIND=rlk),   DIMENSION(nsz),       INTENT(OUT)   :: cutv,cutm, &
+    REAL(KIND=rlk),   DIMENSION(nsz),        INTENT(OUT)  :: cutv,cutm, &
 &                                                            elv0ndm1,  &
 &                                                            elm0ndm0,  &
 &                                                            elr0ndv0,  &
 &                                                            ndv1
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(INOUT) :: elv1,elm1, &
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(INOUT):: elv1,elm1, &
 &                                                            elr1
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(INOUT) :: cnv0,cnm1, &
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(INOUT):: cnv0,cnm1, &
 &                                                            dfv,dfm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: cnm0,flux, &
-&                                                            work1,work2
-    LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT)   :: zactive
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT)  :: cnm0,work1,&
+&                                                            work2,flux,&
+&                                                            eluv,elvv
+    LOGICAL(KIND=lok),DIMENSION(nnod2),      INTENT(OUT)  :: zactive
     ! Local
     REAL(KIND=rlk)                                        :: t0,t1
 
     ! Timer
     t0=get_time()
 
+    ! MPI parallelism
+    IF (zparallel) THEN
+      CALL exchange(ADV_EXCH_EL)
+    ENDIF
+
     ! Advect element quantities
-    CALL aleadvect_el(id1,id2,nshape,nel,elv0ndm1(1),elm0ndm0(1),       &
-&                     elr0ndv0(1),elv1(1),elm1(1),elr1(1),cutv(1),      &
-&                     cutm(1),cnv0(1,1),cnm1(1,1),dfv(1,1),dfm(1,1),    &
-&                     flux(1,1),ielel(1,1),ielsd(1,1),work1(1,1),       &
-&                     work2(1,1))
+    CALL aleadvect_el(id1,id2,nshape,nel,nel1,nel2,elv0ndm1(1),         &
+&                     elm0ndm0(1),elr0ndv0(1),elv1(1),elm1(1),elr1(1),  &
+&                     cutv(1),cutm(1),cnv0(1,1),cnm1(1,1),dfv(1,1),     &
+&                     dfm(1,1),flux(1,1),ielel(1,1),ielsd(1,1),         &
+&                     work1(1,1),work2(1,1))
+
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),eluv(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),elvv(1,1))
+    ! MPI parallelism
+    IF (zparallel) THEN
+      CALL exchange(ADV_EXCH_ND)
+    ENDIF
 
     ! Advect nodal quantities
-    CALL aleadvect_nd(id1,id2,nshape,nel,nnod,nsz,ielel(1,1),ielsd(1,1),&
-&                     ielnd(1,1),indstatus(1),indtype(1),dencut,cut,    &
-&                     cutv(1),cutm(1),elr0ndv0(1),ndv1(1),elm0ndm0(1),  &
-&                     elv0ndm1(1),elv1(1),cnv0(1,1),cnm0(1,1),cnm1(1,1),&
-&                     dfv(1,1),dfm(1,1),work1(1,1),work2(1,1),flux(1,1),&
+    CALL aleadvect_nd(id1,id2,nshape,nel,nel1,nel2,nnod,nnod1,nnod2,nsz,&
+&                     ielel(1,1),ielsd(1,1),ielsrt1(1),ielsrt2(1),      &
+&                     zparallel,ielnd(1,1),indstatus(1),indtype(1),     &
+&                     dencut,cut,cutv(1),cutm(1),elr0ndv0(1),ndv1(1),   &
+&                     elm0ndm0(1),elv0ndm1(1),elv1(1),cnv0(1,1),        &
+&                     cnm0(1,1),cnm1(1,1),dfv(1,1),dfm(1,1),eluv(1,1),  &
+&                     elvv(1,1),work1(1,1),work2(1,1),flux(1,1),        &
 &                     zactive(1))
 
     ! Timing data
@@ -85,22 +109,23 @@ CONTAINS
 
   END SUBROUTINE aleadvect
 
-  SUBROUTINE aleadvect_el(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,elm, &
-&                         elr,cutv,cutm,cnv,cnm,delv,delm,flux,ielel,   &
-&                         ielsd,work1,work2)
+  SUBROUTINE aleadvect_el(id1,id2,nshape,nel,nel1,nel2,elvpr,elmpr,     &
+&                         elrpr,elv,elm,elr,cutv,cutm,cnv,cnm,delv,delm,&
+&                         flux,ielel,ielsd,work1,work2)
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
-&                                                            nel,nshape
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielel,ielsd
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(OUT)   :: elvpr,     &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: id1,id2,   &
+&                                                            nel,nel1,  &
+&                                                            nel2,nshape
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielel,ielsd
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(OUT)  :: elvpr,     &
 &                                                            cutv,cutm, &
 &                                                            elrpr,     &
 &                                                            elmpr
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(INOUT) :: elv,elm,elr
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)    :: delv,cnv,  &
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(INOUT):: elv,elm,elr
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(IN)   :: delv,cnv,  &
 &                                                            cnm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: delm,flux, &
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT)  :: delm,flux, &
 &                                                            work1,work2
     ! Local
     REAL(KIND=rlk)                                        :: t0,t1
@@ -109,16 +134,16 @@ CONTAINS
     t0=get_time()
 
     ! update element basis variables
-    CALL update_el_basis(id1,id2,nshape,nel,elvpr(1),elmpr(1),elrpr(1), &
-&                        elv(1),elm(1),elr(1),cutv(1),cutm(1),cnv(1,1), &
-&                        cnm(1,1),delv(1,1),delm(1,1),ielel(1,1),       &
-&                        ielsd(1,1),work1(1,1),work2(1,1))
+    CALL update_el_basis(id1,id2,nshape,nel,nel1,nel2,elvpr(1),elmpr(1),&
+&                        elrpr(1),elv(1),elm(1),elr(1),cutv(1),cutm(1), &
+&                        cnv(1,1),cnm(1,1),delv(1,1),delm(1,1),         &
+&                        ielel(1,1),ielsd(1,1),work1(1,1),work2(1,1))
 
     ! update element independent variables
-    CALL update_el_var(id1,id2,nshape,nel,ielel(1,1),ielsd(1,1),        &
-&                      elvpr(1),elmpr(1),elv(1),elm(1),cutv(1),cutm(1), &
-&                      cnv(1,1),cnm(1,1),delv(1,1),delm(1,1),flux(1,1), &
-&                      work1(1,1))
+    CALL update_el_var(id1,id2,nshape,nel,nel1,nel2,ielel(1,1),         &
+&                      ielsd(1,1),elvpr(1),elmpr(1),elv(1),elm(1),      &
+&                      cutv(1),cutm(1),cnv(1,1),cnm(1,1),delv(1,1),     &
+&                      delm(1,1),flux(1,1),work1(1,1))
 
     ! Timing data
     t1=get_time()
@@ -128,32 +153,39 @@ CONTAINS
 
   END SUBROUTINE aleadvect_el
 
-  SUBROUTINE aleadvect_nd(id1,id2,nshape,nel,nnod,nsz,ielel,ielsd,ielnd,&
-&                         indstatus,indtype,dencut,cut,cutv,cutm,ndv0,  &
-&                         ndv1,ndm0,elv0ndm1,elv1,cnv0,cnm0,cnm1,dfv,   &
-&                         dfm,dcv,dcm,flux,zactive)
+  SUBROUTINE aleadvect_nd(id1,id2,nshape,nel,nel1,nel2,nnod,nnod1,nnod2,&
+&                         nsz,ielel,ielsd,ielsrt1,ielsrt2,zparallel,    &
+&                         ielnd,indstatus,indtype,dencut,cut,cutv,cutm, &
+&                         ndv0,ndv1,ndm0,elv0ndm1,elv1,cnv0,cnm0,cnm1,  &
+&                         dfv,dfm,eluv,elvv,dcv,dcm,flux,zactive)
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: nshape,nel,&
-&                                                            nnod,nsz,  &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: nshape,nel,&
+&                                                            nel1,nel2, &
+&                                                            nnod,nnod1,&
+&                                                            nnod2,nsz, &
 &                                                            id1,id2
-    REAL(KIND=rlk),                         INTENT(IN)    :: dencut,cut
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielel,     &
+    REAL(KIND=rlk),                          INTENT(IN)   :: dencut,cut
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielel,     &
 &                                                            ielsd,     &
-&                                                            ielnd    
-    INTEGER(KIND=ink),DIMENSION(nnod),      INTENT(IN)    :: indstatus, &
+&                                                            ielnd
+    INTEGER(KIND=ink),DIMENSION(nel1),       INTENT(IN)   :: ielsrt1
+    INTEGER(KIND=ink),DIMENSION(nel2),       INTENT(IN)   :: ielsrt2
+    LOGICAL(KIND=lok),                       INTENT(IN)   :: zparallel
+    INTEGER(KIND=ink),DIMENSION(nnod2),      INTENT(IN)   :: indstatus, &
 &                                                            indtype
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(IN)    :: elv1
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(OUT)   :: ndv0,ndm0, &
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(IN)   :: elv1
+    REAL(KIND=rlk),   DIMENSION(nnod2),      INTENT(OUT)  :: ndv0,ndm0, &
 &                                                            ndv1,cutv, &
 &                                                            cutm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)    :: cnv0
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(INOUT) :: dfv,dfm,   &
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(IN)   :: cnv0,eluv, &
+&                                                            elvv
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(INOUT):: dfv,dfm,   &
 &                                                            cnm1    
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: dcv,dcm,   &
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT)  :: dcv,dcm,   &
 &                                                            cnm0,flux
-    REAL(KIND=rlk),   DIMENSION(nsz),       INTENT(INOUT) :: elv0ndm1
-    LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT)   :: zactive
+    REAL(KIND=rlk),   DIMENSION(nsz),        INTENT(INOUT):: elv0ndm1
+    LOGICAL(KIND=lok),DIMENSION(nnod2),      INTENT(OUT)  :: zactive
     ! Local
     REAL(KIND=rlk)                                        :: t0,t1
 
@@ -161,18 +193,19 @@ CONTAINS
     t0=get_time()
 
     ! update nodal basis variables
-    CALL update_nd_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,        &
-&                        ielel(1,1),ielsd(1,1),ielnd(1,1),dfv(1,1),     &
-&                        dfm(1,1),dcv(1,1),dcm(1,1),cnm0(1,1),cnm1(1,1),&
-&                        cutv(1),cutm(1),ndv0(1),ndv1(1),ndm0(1),       &
-&                        elv0ndm1(1),elv1(1),flux(1,1))
+    CALL update_nd_basis(id1,id2,nshape,nel2,nnod2,nsz,dencut,cut,      &
+&                        ielel(1,1),ielsd(1,1),ielsrt2(1),zparallel,    &
+&                        ielnd(1,1),dfv(1,1),dfm(1,1),dcv(1,1),dcm(1,1),&
+&                        cnm0(1,1),cnm1(1,1),cutv(1),cutm(1),ndv0(1),   &
+&                        ndv1(1),ndm0(1),elv0ndm1(1),elv1(1),flux(1,1))
 
     ! update nodal independent variables
-    CALL update_nd_var(nshape,nel,nnod,ielel(1,1),ielsd(1,1),ielnd(1,1),&
+    CALL update_nd_var(nshape,nel,nel1,nel2,nnod,nnod2,ielel(1,1),      &
+&                      ielsd(1,1),ielnd(1,1),ielsrt1(1),zparallel,      &
 &                      indstatus(1),indtype(1),ndv0(1),ndm0(1),ndv1(1), &
 &                      elv0ndm1(1),cutv(1),cutm(1),cnv0(1,1),cnm0(1,1), &
-&                      dcv(1,1),dcm(1,1),flux(1,1),dfv(1,1),dfm(1,1),   &
-&                      zactive(1))
+&                      dcv(1,1),dcm(1,1),flux(1,1),eluv(1,1),elvv(1,1), &
+&                      dfm(1,1),zactive(1))
 
     ! Timing data
     t1=get_time()
@@ -182,25 +215,26 @@ CONTAINS
 
   END SUBROUTINE aleadvect_nd
 
-  SUBROUTINE update_el_basis(id1,id2,nshape,nel,elvpr,elmpr,elrpr,elv,  &
-&                            elm,elr,cutv,cutm,cnv,cnm,delv,delm,ielel, &
-&                            ielsd,totv,totm)
+  SUBROUTINE update_el_basis(id1,id2,nshape,nel,nel1,nel2,elvpr,elmpr,  &
+&                            elrpr,elv,elm,elr,cutv,cutm,cnv,cnm,delv,  &
+&                            delm,ielel,ielsd,totv,totm)
 
     USE reals_mod,        ONLY: dencut,zerocut
     USE ale_advectors_mod,ONLY: flux_c1_VL,sum_flux
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
-&                                                            nshape,nel
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielel,ielsd
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(OUT)   :: cutv,cutm, &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: id1,id2,   &
+&                                                            nshape,nel,&
+&                                                            nel1,nel2
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielel,ielsd
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(OUT)  :: cutv,cutm, &
 &                                                            elvpr,totv,&
 &                                                            elmpr,totm,&
 &                                                            elrpr
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(INOUT) :: elv,elm,elr
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)    :: delv,cnv,  &
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(INOUT):: elv,elm,elr
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(IN)   :: delv,cnv,  &
 &                                                            cnm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: delm
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT)  :: delm
     ! Local
     INTEGER(KIND=ink) :: iel
     REAL(KIND=rlk)    :: t0,t1
@@ -208,16 +242,16 @@ CONTAINS
     ! Timer
     t0=get_time()
 
-    ! calculate total volume flux
-    CALL sum_flux(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),         &
+    ! calculate total volume flux to nel
+    CALL sum_flux(id1,id2,nshape,nel,nel1,ielel(1,1),ielsd(1,1),   &
 &                 delv(1,1),totv(1))
 
-    ! construct mass flux
-    CALL flux_c1_VL(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),       &
+    ! construct mass flux top nel1
+    CALL flux_c1_VL(id1,id2,nshape,nel1,nel2,ielel(1,1),ielsd(1,1),     &
 &                   cnv(1,1),delv(1,1),elr(1),delm(1,1))
 
-    ! calculate total mass flux
-    CALL sum_flux(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),         &
+    ! calculate total mass flux to nel
+    CALL sum_flux(id1,id2,nshape,nel,nel1,ielel(1,1),ielsd(1,1),   &
 &                 delm(1,1),totm(1))
 
     ! update
@@ -245,24 +279,25 @@ CONTAINS
 
   END SUBROUTINE update_el_basis
 
-  SUBROUTINE update_el_var(id1,id2,nshape,nel,ielel,ielsd,elvpr,elmpr,  &
-&                          elv,elm,cutv,cutm,cnv,cnm,delv,delm,flux,    &
-&                          tflux)
+  SUBROUTINE update_el_var(id1,id2,nshape,nel,nel1,nel2,ielel,ielsd,    &
+&                          elvpr,elmpr,elv,elm,cutv,cutm,cnv,cnm,delv,  &
+&                          delm,flux,tflux)
 
     USE ale_advectors_mod,ONLY: flux_c1_VL,update_c1
     USE pointers_mod,     ONLY: ein
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)  :: id1,id2,nel, &
+    INTEGER(KIND=ink),                       INTENT(IN) :: id1,id2,nel, &
+&                                                          nel1,nel2,   &
 &                                                          nshape
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)  :: ielel,ielsd
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(IN)  :: elvpr,elmpr, &
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN) :: ielel,ielsd
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(IN) :: elvpr,elmpr, &
 &                                                          elv,elm,cutv,&
 &                                                          cutm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)  :: cnv,cnm,delv,&
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(IN) :: cnv,cnm,delv,&
 &                                                          delm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: flux
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(OUT) :: tflux
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT):: flux
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(OUT):: tflux
     ! Local
     REAL(KIND=rlk)                                      :: t0,t1
 
@@ -270,9 +305,9 @@ CONTAINS
     t0=get_time()
 
     ! internal energy (mass weighted)
-    CALL flux_c1_VL(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),       &
+    CALL flux_c1_VL(id1,id2,nshape,nel1,nel2,ielel(1,1),ielsd(1,1),     &
 &                   cnm(1,1),delm(1,1),ein(1),flux(1,1))
-    CALL update_c1(id1,id2,nshape,nel,nel,ielel(1,1),ielsd(1,1),        &
+    CALL update_c1(id1,id2,nshape,nel,nel2,ielel(1,1),ielsd(1,1),       &
 &                  elmpr(1),elm(1),cutm(1),flux(1,1),tflux(1),ein(1))
 
     ! Timing data
@@ -283,44 +318,51 @@ CONTAINS
 
   END SUBROUTINE update_el_var
 
-  SUBROUTINE update_nd_basis(id1,id2,nshape,nel,nnod,nsz,dencut,cut,    &
-&                            ielel,ielsd,ielnd,delv,delm,dndv,dndm,cnm0,&
-&                            cnm1,cutv,cutm,ndv0,ndv1,ndm0,elv0ndm1,    &
-&                            elv1,flux)
+  SUBROUTINE update_nd_basis(id1,id2,nshape,nel2,nnod2,nsz,dencut,cut,  &
+&                            ielel,ielsd,ielsrt,zparallel,ielnd,delv,   &
+&                            delm,dndv,dndm,cnm0,cnm1,cutv,cutm,ndv0,   &
+&                            ndv1,ndm0,elv0ndm1,elv1,flux)
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)    :: id1,id2,   &
-&                                                            nel,nnod,  &
+    INTEGER(KIND=ink),                       INTENT(IN)   :: id1,id2,   &
+&                                                            nel2,nnod2,&
 &                                                            nsz,nshape
-    REAL(KIND=rlk),                         INTENT(IN)    :: dencut,cut
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)    :: ielel,     &
+    REAL(KIND=rlk),                          INTENT(IN)   :: dencut,cut
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN)   :: ielel,     &
 &                                                            ielsd,     &
 &                                                            ielnd
-    REAL(KIND=rlk),   DIMENSION(nel),       INTENT(IN)    :: elv1
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)    :: delv,delm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT)   :: dndv,dndm, &
+    INTEGER(KIND=ink),DIMENSION(nel2),       INTENT(IN)   :: ielsrt
+    LOGICAL(KIND=lok),                       INTENT(IN)   :: zparallel
+    REAL(KIND=rlk),   DIMENSION(nel2),       INTENT(IN)   :: elv1
+    REAL(KIND=rlk),   DIMENSION(nshape,nsz), INTENT(IN)   :: delv,delm
+    REAL(KIND=rlk),   DIMENSION(nshape,nsz), INTENT(OUT)  :: dndv,dndm, &
 &                                                            cnm0,flux
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(OUT)   :: ndv0,ndv1, &
+    REAL(KIND=rlk),   DIMENSION(nsz),        INTENT(OUT)  :: ndv0,ndv1, &
 &                                                            ndm0,cutv, &
 &                                                            cutm
-    REAL(KIND=rlk),   DIMENSION(nsz),       INTENT(INOUT) :: elv0ndm1
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(INOUT) :: cnm1
+    REAL(KIND=rlk),   DIMENSION(nsz),        INTENT(INOUT):: elv0ndm1
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(INOUT):: cnm1
     ! Local
-    INTEGER(KIND=ink) :: ind,iel,i1,i2,ie1,ie2,is1,is2
+    INTEGER(KIND=ink) :: ind,iel,ii,i1,i2,ie1,ie2,is1,is2
     REAL(KIND=rlk)    :: w1,w2,w3,w4,t0,t1
 
     ! Timer
     t0=get_time()
 
     ! initialise
-    DO ind=1,nnod
+    DO ind=1,nnod2
       ndv0(ind)=0.0_rlk
       ndv1(ind)=0.0_rlk
       ndm0(ind)=0.0_rlk
     ENDDO
 
     ! construct pre/post nodal volumes and pre nodal/corner mass
-    DO iel=1,nel
+    DO ii=1,nel2
+      IF (zparallel) THEN
+        iel=ielsrt(ii)
+      ELSE
+        iel=ii
+      ENDIF
       w1=0.25_rlk*elv0ndm1(iel)
       w2=0.25_rlk*elv1(iel)
       w3=cnm1(1,iel)
@@ -353,7 +395,12 @@ CONTAINS
     flux=0.0_rlk
     DO i1=id1,id2
       i2=i1+2_ink
-      DO iel=1,nel
+      DO ii=1,nel2
+        IF (zparallel) THEN
+          iel=ielsrt(ii)
+        ELSE
+          iel=ii
+        ENDIF
         ie1=ielel(i1,iel)
         ie2=ielel(i2,iel)
         is1=ielsd(i1,iel)
@@ -389,10 +436,15 @@ CONTAINS
     ENDDO
 
     ! construct post nodal/corner mass
-    DO ind=1,nnod
+    DO ind=1,nnod2
       elv0ndm1(ind)=ndm0(ind)
     ENDDO
-    DO iel=1,nel
+    DO ii=1,nel2
+      IF (zparallel) THEN
+        iel=ielsrt(ii)
+      ELSE
+        iel=ii
+      ENDIF
       cnm1(1,iel)=cnm1(1,iel)+flux(1,iel)
       cnm1(2,iel)=cnm1(2,iel)+flux(2,iel)
       cnm1(3,iel)=cnm1(3,iel)+flux(3,iel)
@@ -408,7 +460,7 @@ CONTAINS
     ENDDO
 
     ! construct cut-offs
-    DO ind=1,nnod
+    DO ind=1,nnod2
       cutv(ind)=cut
       cutm(ind)=dencut*ndv0(ind)
     ENDDO
@@ -421,29 +473,33 @@ CONTAINS
 
   END SUBROUTINE update_nd_basis
 
-  SUBROUTINE update_nd_var(nshape,nel,nnod,ielel,ielsd,ielnd,indstatus, &
-&                          indtype,ndv0,ndm0,ndv1,ndm1,cutv,cutm,cnv,   &
-&                          cnm,delv,delm,flux,eluv,tflux,zactive)
+  SUBROUTINE update_nd_var(nshape,nel,nel1,nel2,nnod,nnod2,ielel,ielsd, &
+&                          ielnd,ielsrt,zparallel,indstatus,indtype,    &
+&                          ndv0,ndm0,ndv1,ndm1,cutv,cutm,cnv,cnm,delv,  &
+&                          delm,flux,eluv,elvv,tflux,zactive)
 
     USE ale_advectors_mod,ONLY: flux_n1_VL,update_n1
     USE pointers_mod,     ONLY: ndu,ndv
-    USE utilities_mod,    ONLY: gather
 
     ! Argument list
-    INTEGER(KIND=ink),                      INTENT(IN)  :: nshape,nel,  &
-&                                                          nnod
-    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)  :: ielel,ielsd, &
+    INTEGER(KIND=ink),                       INTENT(IN) :: nshape,nel,  &
+&                                                          nel1,nel2,   &
+&                                                          nnod,nnod2
+    INTEGER(KIND=ink),DIMENSION(nshape,nel2),INTENT(IN) :: ielel,ielsd, &
 &                                                          ielnd
-    INTEGER(KIND=ink),DIMENSION(nnod),      INTENT(IN)  :: indstatus,   &
+    INTEGER(KIND=ink),DIMENSION(nel1),       INTENT(IN) :: ielsrt
+    LOGICAL(KIND=lok),                       INTENT(IN) :: zparallel
+    INTEGER(KIND=ink),DIMENSION(nnod2),      INTENT(IN) :: indstatus,   &
 &                                                          indtype
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(IN)  :: ndv0,ndm0,   &
+    REAL(KIND=rlk),   DIMENSION(nnod2),      INTENT(IN) :: ndv0,ndm0,   &
 &                                                          ndv1,ndm1,   &
 &                                                          cutv,cutm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(IN)  :: cnv,cnm,delv,&
-&                                                          delm
-    REAL(KIND=rlk),   DIMENSION(nshape,nel),INTENT(OUT) :: flux,eluv
-    REAL(KIND=rlk),   DIMENSION(nnod),      INTENT(OUT) :: tflux
-    LOGICAL(KIND=lok),DIMENSION(nnod),      INTENT(OUT) :: zactive
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(IN) :: cnv,cnm,delv,&
+&                                                          delm,eluv,   &
+&                                                          elvv
+    REAL(KIND=rlk),   DIMENSION(nshape,nel2),INTENT(OUT):: flux
+    REAL(KIND=rlk),   DIMENSION(nnod2),      INTENT(OUT):: tflux
+    LOGICAL(KIND=lok),DIMENSION(nnod2),      INTENT(OUT):: zactive
     ! Local
     INTEGER(KIND=ink) :: ind
     REAL(KIND=rlk)    :: t0,t1
@@ -452,8 +508,10 @@ CONTAINS
     t0=get_time()
 
     ! momentum (mass weighted)
-    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),eluv(1,1))
-    DO ind=1,nnod
+
+! gather here must happen before comms and out to nel (needs nnod1) and comm eluv
+!    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),eluv(1,1))
+    DO ind=1,nnod2
       IF ((indstatus(ind).GT.0_ink).AND.(indtype(ind).NE.-1_ink).AND.   &
 &         (indtype(ind).NE.-3_ink)) THEN
         zactive(ind)=.TRUE._lok
@@ -461,12 +519,15 @@ CONTAINS
         zactive(ind)=.FALSE._lok
       ENDIF
     ENDDO
-    CALL flux_n1_VL(nshape,nel,nel,ielel(1,1),ielsd(1,1),cnm(1,1),      &
+    CALL flux_n1_VL(nshape,nel1,nel2,ielel(1,1),ielsd(1,1),cnm(1,1),    &
 &                   delm(1,1),eluv(1,1),flux(1,1))
-    CALL update_n1(nshape,nel,nel,nnod,ielnd(1,1),ndm0(1),ndm1(1),      &
-&                  cutm(1),zactive(1),flux(1,1),tflux(1),ndu(1))
-    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),eluv(1,1))
-    DO ind=1,nnod
+    CALL update_n1(nshape,nnod,nel1,nel1,nnod2,ielnd(1,1),ielsrt(1),    &
+&                  zparallel,ndm0(1),ndm1(1),cutm(1),zactive(1),        &
+&                  flux(1,1),tflux(1),ndu(1))
+
+! gather here must happen before comms and can't reuse eluv
+!    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),eluv(1,1))
+    DO ind=1,nnod2
       IF ((indstatus(ind).GT.0_ink).AND.(indtype(ind).NE.-2_ink).AND.   &
 &         (indtype(ind).NE.-3_ink)) THEN
         zactive(ind)=.TRUE._lok
@@ -474,10 +535,11 @@ CONTAINS
         zactive(ind)=.FALSE._lok
       ENDIF
     ENDDO
-    CALL flux_n1_VL(nshape,nel,nel,ielel(1,1),ielsd(1,1),cnm(1,1),      &
-&                   delm(1,1),eluv(1,1),flux(1,1))
-    CALL update_n1(nshape,nel,nel,nnod,ielnd(1,1),ndm0(1),ndm1(1),      &
-&                  cutm(1),zactive(1),flux(1,1),tflux(1),ndv(1))
+    CALL flux_n1_VL(nshape,nel1,nel2,ielel(1,1),ielsd(1,1),cnm(1,1),    &
+&                   delm(1,1),elvv(1,1),flux(1,1))
+    CALL update_n1(nshape,nnod,nel1,nel1,nnod2,ielnd(1,1),ielsrt(1),    &
+&                  zparallel,ndm0(1),ndm1(1),cutm(1),zactive(1),        &
+&                  flux(1,1),tflux(1),ndv(1))
 
     ! Timing data
     t1=get_time()

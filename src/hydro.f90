@@ -35,6 +35,8 @@ SUBROUTINE hydro()
   ! Local
   REAL(KIND=rlk) :: dt,t0,t1,t2,grind
 
+  CHARACTER(LEN=4) :: str
+
   ! Timer
   bookleaf_times%time_hydro=get_time()
 
@@ -49,6 +51,7 @@ SUBROUTINE hydro()
     t0=get_time()
     ! increment step
     nstep=nstep+1_ink
+
     ! calculate timestep
     IF (nstep.GT.1_ink) CALL getdt(dt)
     !# Missing code here that can't be merged

@@ -117,6 +117,7 @@ MODULE pointers_mod
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE        :: ielreg,ielmat, &
 &                                                        indtype,       &
 &                                                        ielsort1,      &
+&                                                        ielsort2,      &
 &                                                        iellocglob,    &
 &                                                        indlocglob
   INTEGER(KIND=ink),DIMENSION(:,:),ALLOCATABLE        :: ielel,ielsd,   &
@@ -150,7 +151,9 @@ MODULE scratch_mod
 &                                                        rscratch24,    &
 &                                                        rscratch25,    &
 &                                                        rscratch26,    &
-&                                                        rscratch27
+&                                                        rscratch27,    &
+&                                                        rscratch28,    &
+&                                                        rscratch29
   INTEGER(KIND=ink),DIMENSION(:),  ALLOCATABLE,TARGET :: iscratch11
   LOGICAL(KIND=lok),DIMENSION(:),  ALLOCATABLE,TARGET :: zscratch11
 

@@ -24,15 +24,16 @@ MODULE comms_mod
   IMPLICIT NONE
 
   INTEGER(KIND=ink)    :: neltot,nnodtot
-  INTEGER(KIND=TSIZEK) :: VISCOSITY,HALFSTEP
+  INTEGER(KIND=TSIZEK) :: VISCOSITY,HALFSTEP,ADV_EXCH_EL,ADV_EXCH_ND
   INTEGER(KIND=TSIZEK) :: key_comm_cells,key_comm_nodes
   INTEGER(KIND=TSIZEK) :: cnmassID,cnwtID,elfxID,elfyID,rho05ID,duID,  &
-&                         dvID,dxID,dyID
+&                         dvID,dxID,dyID,dfvID,dfmID,einID,rhoID,      &
+&                         eluvID,elvvID,elv0ID,elvolID
   INTEGER(KIND=ink),DIMENSION(:),ALLOCATABLE   :: nodproc,nnodiel
   INTEGER(KIND=ink), PARAMETER                 :: NGSTLAY=2_ink
 
   PRIVATE
-  PUBLIC :: register,exchange,VISCOSITY,HALFSTEP
+  PUBLIC :: register,exchange,VISCOSITY,HALFSTEP,ADV_EXCH_EL,ADV_EXCH_ND
 #ifndef NOMPI
   PUBLIC :: partition_mesh
 #endif
@@ -42,19 +43,19 @@ CONTAINS
   SUBROUTINE register()
 
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
-    USE pointers_mod, ONLY: cnmass,cnwt,ielnd,ielownerproc,iellocglob, &
-&                           indownerproc,indlocglob
+    USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1,nel2,nnod2
+    USE pointers_mod, ONLY: cnmass,cnwt,ein,elvol,ielnd,ielownerproc,  &
+&                           iellocglob,indownerproc,indlocglob,rho
     USE error_mod,    ONLY: halt
-    USE scratch_mod,  ONLY: rscratch11,rscratch23,rscratch24,rscratch25,&
-&                           rscratch26
+    USE scratch_mod,  ONLY: rscratch11,rscratch21,rscratch22,          &
+&                           rscratch23,rscratch24,rscratch25,          &
+&                           rscratch26,rscratch27,rscratch28
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
     ! Local
     INTEGER(KIND=ink)                           :: ierr
     INTEGER(KIND=TSIZEK)                        :: WHOLEMESH
-    INTEGER(KIND=TSIZEK),PARAMETER              :: nglayer=1_TSIZEK
     REAL(KIND=rlk)                              :: t0,t1
     INTEGER(KIND=TSIZEK),DIMENSION(:),  POINTER :: nel_tot
     INTEGER(KIND=TSIZEK),DIMENSION(:),  POINTER :: nnod_tot
@@ -67,7 +68,7 @@ CONTAINS
     ierr = TYPH_Start_Register()
 
     ! Partition Info
-    ALLOCATE(nel_tot(0:nglayer),nnod_tot(0:nglayer),STAT=ierr)
+    ALLOCATE(nel_tot(0:NGSTLAY),nnod_tot(0:NGSTLAY),STAT=ierr)
     IF (ierr.NE.0_ink) THEN
       CALL halt("ERROR: failed to allocate T3 memory",0)
     ENDIF
@@ -75,27 +76,35 @@ CONTAINS
     nnod_tot(0)=nnod
     nel_tot(1)=nel1
     nnod_tot(1)=nnod1
+    nel_tot(2)=nel2
+    nnod_tot(2)=nnod2
     conn=>ielnd(:,1:)
-    ierr=TYPH_Set_Partition_Info(WHOLEMESH,4_TSIZEK,nglayer,nel_tot,    &
+    ierr=TYPH_Set_Partition_Info(WHOLEMESH,4_TSIZEK,NGSTLAY,nel_tot,    &
 &                                nnod_tot,ielownerproc,indownerproc,    &
 &                                iellocglob,indlocglob,conn)
     DEALLOCATE(nel_tot,nnod_tot,ielownerproc,indownerproc)
 
     ! Keys - which cells go to which procs
     ierr=TYPH_Create_Key_Set(key_comm_cells,TYPH_KTYPE_CELL,1_TSIZEK,   &
-&                            1_TSIZEK,WHOLEMESH)
+&                            2_TSIZEK,WHOLEMESH)
 
     ! Phases
     ierr=TYPH_Add_Phase(VISCOSITY,"Viscosity",TYPH_GHOSTS_ONE,          &
 &                       TYPH_PURE,KeySetID=key_comm_cells)
     ierr=TYPH_Add_Phase(HALFSTEP,"Half Step",TYPH_GHOSTS_ONE,           &
 &                       TYPH_PURE,KeySetID=key_comm_cells)
+    ierr=TYPH_Add_Phase(ADV_EXCH_EL,"Pre Ele Adv Exchange",             &
+&                       TYPH_GHOSTS_TWO,TYPH_PURE,                      &
+&                       KeySetID=key_comm_cells)
+    ierr=TYPH_Add_Phase(ADV_EXCH_ND,"Pre Nod Adv Exchange",             &
+&                       TYPH_GHOSTS_TWO,TYPH_PURE,                      &
+&                       KeySetID=key_comm_cells)
 
     ! 2D Quants
-    ierr=TYPH_Add_Quant(cnmassID,"cnmass",TYPH_GHOSTS_ONE,TYPH_REAL,    &
+    ierr=TYPH_Add_Quant(cnmassID,"cnmass",TYPH_GHOSTS_TWO,TYPH_REAL,    &
 &                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
 &                       Dims=[nshape,TYPH_MESH_DIM])
-    ierr=TYPH_Add_Quant(cnwtID,"cnwt",TYPH_GHOSTS_ONE,TYPH_REAL,        &
+    ierr=TYPH_Add_Quant(cnwtID,"cnwt",TYPH_GHOSTS_TWO,TYPH_REAL,        &
 &                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
 &                       Dims=[nshape,TYPH_MESH_DIM])
     ierr=TYPH_Add_Quant(elfxID,"elfx",TYPH_GHOSTS_ONE,TYPH_REAL,        &
@@ -116,9 +125,29 @@ CONTAINS
     ierr=TYPH_Add_Quant(dyID,"dy",TYPH_GHOSTS_ONE,TYPH_REAL,            &
 &                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
 &                       Dims=[nshape,TYPH_MESH_DIM])
+    ierr=TYPH_Add_Quant(dfvID,"dfv",TYPH_GHOSTS_TWO,TYPH_REAL,          &
+&                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
+&                       Dims=[nshape,TYPH_MESH_DIM])
+    ierr=TYPH_Add_Quant(dfmID,"dfm",TYPH_GHOSTS_TWO,TYPH_REAL,          &
+&                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
+&                       Dims=[nshape,TYPH_MESH_DIM])
+    ierr=TYPH_Add_Quant(eluvID,"eluv",TYPH_GHOSTS_TWO,TYPH_REAL,        &
+&                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
+&                       Dims=[nshape,TYPH_MESH_DIM])
+    ierr=TYPH_Add_Quant(elvvID,"elvv",TYPH_GHOSTS_TWO,TYPH_REAL,        &
+&                       TYPH_CENTRE_CELL,TYPH_PURE,                     &
+&                       Dims=[nshape,TYPH_MESH_DIM])
 
     ! 1D Quants
     ierr=TYPH_Add_Quant(rho05ID,"rho05",TYPH_GHOSTS_ONE,TYPH_REAL,      &
+&                       TYPH_CENTRE_CELL,TYPH_PURE)
+    ierr=TYPH_Add_Quant(einID,"ein",TYPH_GHOSTS_TWO,TYPH_REAL,          &
+&                       TYPH_CENTRE_CELL,TYPH_PURE)
+    ierr=TYPH_Add_Quant(rhoID,"rho",TYPH_GHOSTS_TWO,TYPH_REAL,          &
+&                       TYPH_CENTRE_CELL,TYPH_PURE)
+    ierr=TYPH_Add_Quant(elv0ID,"elv0",TYPH_GHOSTS_TWO,TYPH_REAL,        &
+&                       TYPH_CENTRE_CELL,TYPH_PURE)
+    ierr=TYPH_Add_Quant(elvolID,"elvol",TYPH_GHOSTS_TWO,TYPH_REAL,      &
 &                       TYPH_CENTRE_CELL,TYPH_PURE)
 
     ! Attach quantities to phase                      
@@ -131,6 +160,19 @@ CONTAINS
     ierr=TYPH_Add_Quant_to_Phase(VISCOSITY,dvID)
     ierr=TYPH_Add_Quant_to_Phase(VISCOSITY,dxID)
     ierr=TYPH_Add_Quant_to_Phase(VISCOSITY,dyID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_EL,dfvID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_EL,einID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_EL,rhoID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_EL,cnwtID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_EL,cnmassID)
+
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,dfvID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,dfmID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,eluvID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,elvvID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,elv0ID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,elvolID)
+    ierr=TYPH_Add_Quant_to_Phase(ADV_EXCH_ND,cnmassID)
 
     ! Set addresses
     ierr=TYPH_Set_Quant_Address(cnmassID,cnmass)
@@ -142,6 +184,14 @@ CONTAINS
     ierr=TYPH_Set_Quant_Address(dvID,rscratch24)
     ierr=TYPH_Set_Quant_Address(dxID,rscratch25)
     ierr=TYPH_Set_Quant_Address(dyID,rscratch26)
+    ierr=TYPH_Set_Quant_Address(dfvID,rscratch21)
+    ierr=TYPH_Set_Quant_Address(dfmID,rscratch22)
+    ierr=TYPH_Set_Quant_Address(einID,ein)
+    ierr=TYPH_Set_Quant_Address(rhoID,rho)
+    ierr=TYPH_Set_Quant_Address(eluvID,rscratch27)
+    ierr=TYPH_Set_Quant_Address(elvvID,rscratch28)
+    ierr=TYPH_Set_Quant_Address(elv0ID,rscratch11)
+    ierr=TYPH_Set_Quant_Address(elvolID,elvol)
 
     ! Finish
     ierr=Typh_Finish_Register()
@@ -179,7 +229,7 @@ CONTAINS
 #ifndef NOMPI
   SUBROUTINE partition_mesh(nl,nk,nprocW)
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel,nel1,nnod,nnod1
+    USE integers_mod, ONLY: nel,nel1,nnod,nnod1,nnod2
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
     INTEGER(KIND=ink), INTENT(INOUT) :: nl,nk,nprocW
@@ -195,7 +245,7 @@ CONTAINS
     icolour=-1_ink
     CALL rcb((nl-1_ink),(nk-1_ink),npartl,nparth,ipart,icolour)
     CALL partition((nl-1_ink),(nk-1_ink),icolour,nprocW)
-    CALL transfer_partition(nel,nel1,nnod,nnod1)
+    CALL transfer_partition(nel,nel1,nnod,nnod1,nnod2)
 
     ! Timing data
     t1 = get_time()
@@ -251,13 +301,14 @@ CONTAINS
   SUBROUTINE partition(nl,nk,icolour,nprocW)
 
     USE kinds_mod,    ONLY: ink,lok
-    USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1,rankw,commS
+    USE integers_mod, ONLY: nel,nnod,nshape,nel1,nel2,     &
+&                           nnod1,nnod2,rankw,commS
     USE logicals_mod, ONLY: zparallel
     USE pointers_mod, ONLY: ielnd,ielownerproc,iellocglob, &
 &                           indownerproc,indlocglob
     USE error_mod,    ONLY: halt
 
-    INTEGER(KIND=ink),              INTENT(IN)   :: nl,nk,nprocW
+    INTEGER(KIND=ink),                 INTENT(IN):: nl,nk,nprocW
     INTEGER(KIND=ink),DIMENSION(nl,nk),INTENT(IN):: icolour
     ! local
     INTEGER(KIND=ink)                            :: iproc,ii,jj,k,kk,igst,node,nn,np
@@ -494,22 +545,22 @@ CONTAINS
 &                   nnod_proc,pariel,parnod,nodiel,ielndg)
 
     nel1=nelghost(1)
-!    nel2=nelghost(2)
+    nel2=nelghost(2)
     nnod1=nnodghost(1)
-!    nnod2=nnodghost(2)
+    nnod2=nnodghost(2)
     DEALLOCATE(nelghost,nnodghost)
     DEALLOCATE(nodiel,nnodiel,nodproc)
 
     ! New local connectivity
-    ALLOCATE(ielnd(nshape,1:nel1))
+    ALLOCATE(ielnd(nshape,1:nel2))
     ALLOCATE(nod_glob_loc(nnodtot))
     ielnd=0_ink
     nod_glob_loc=0_ink
-    DO ii=1,nnod1
+    DO ii=1,nnod2
       nod_glob_loc(parnod(rankW,ii))=ii
     ENDDO
     DO k=1,nshape
-      DO ii=1,nel1
+      DO ii=1,nel2
         iel=pariel(rankW,ii)
         node=ielndg(k,iel)
         jj=nod_glob_loc(node)
@@ -521,11 +572,11 @@ CONTAINS
 
     ! ownership of elements and nodes for comms and local to global mapping
 
-    ALLOCATE(ielownerproc(2,nel1))
-    ALLOCATE(iellocglob(nel1))
+    ALLOCATE(ielownerproc(2,nel2))
+    ALLOCATE(iellocglob(nel2))
     ielownerproc=-2000000_ink
     iellocglob=-2000000_ink
-    DO iel=1,nel1
+    DO iel=1,nel2
       iellocglob(iel)=pariel(rankW,iel)
       iowner=ielpar(iellocglob(iel))
       ielownerproc(1,iel)=iowner
@@ -541,11 +592,11 @@ CONTAINS
       ENDIF
     ENDDO
 
-    ALLOCATE(indownerproc(2,nnod1))
-    ALLOCATE(indlocglob(nnod1))
+    ALLOCATE(indownerproc(2,nnod2))
+    ALLOCATE(indlocglob(nnod2))
     indownerproc=-2000000_ink
     indlocglob=-2000000_ink
-    DO inod=1,nnod1
+    DO inod=1,nnod2
       indlocglob(inod)=parnod(rankW,inod)
       iowner=nodowner(indlocglob(inod))
       indownerproc(1,inod)=iowner
@@ -728,20 +779,20 @@ CONTAINS
 
   END SUBROUTINE get_ghost_layer
 
-  SUBROUTINE transfer_partition(nel,nel1,nnod,nnod1)
+  SUBROUTINE transfer_partition(nel,nel1,nnod,nnod1,nnod2)
     USE kinds_mod,   ONLY: ink,rlk
     USE pointers_mod,ONLY: ndx,ndy,ielreg,indtype,ielmat,ndu,ndv, &
 &                          iellocglob,indlocglob
 
-    INTEGER(KIND=ink), INTENT(IN) :: nel,nel1,nnod,nnod1
+    INTEGER(KIND=ink), INTENT(IN) :: nel,nel1,nnod,nnod1,nnod2
     ! local
     INTEGER(KIND=ink) :: ii,iig
     REAL(KIND=rlk),    DIMENSION(:), ALLOCATABLE :: gndx,gndy,gndu,gndv
     INTEGER(KIND=ink), DIMENSION(:), ALLOCATABLE :: gielreg,gindtype,gielmat
 
     ! copy global data into temproaries then reallocate global arrays to local
-    ALLOCATE(gndx(nnodtot),gndy(nnodtot),gndu(nnodtot),gndv(nnodtot))
-    ALLOCATE(gindtype(nnodtot),gielreg(neltot),gielmat(neltot))
+    ALLOCATE(gndx(1:nnodtot),gndy(1:nnodtot),gndu(1:nnodtot),gndv(1:nnodtot))
+    ALLOCATE(gindtype(1:nnodtot),gielreg(1:neltot),gielmat(1:neltot))
     gndx=ndx
     gndy=ndy
     gndu=ndu
@@ -751,8 +802,8 @@ CONTAINS
     gindtype=indtype
 
     DEALLOCATE(ndx,ndy,ielreg,indtype,ielmat,ndu,ndv)
-    ALLOCATE(ndx(nnod1),ndy(nnod1),ndu(nnod1),ndv(nnod1))
-    ALLOCATE(indtype(nnod1),ielmat(nel1),ielreg(nel1))
+    ALLOCATE(ndx(1:nnod1),ndy(1:nnod1),ndu(1:nnod1),ndv(1:nnod1))
+    ALLOCATE(indtype(1:nnod2),ielmat(1:nel1),ielreg(1:nel1))
 
     DO ii=1,nnod
       DO iig=1,nnodtot

@@ -131,7 +131,7 @@ CONTAINS
             w8=(w4*w6*w6+w3*w5*w5)/(w5*w6*(w5+w6))
             rGrad=w7*MIN(ABS(w8),w3/w5,w4/w6)
             IF (w1*w2.LE.0.0_rlk) rGrad=0.0_rlk
-            rD=rDel(ii,iel)*(rV+rGrad*rD)
+            rD=rDel(ii,iEl)*(rV+rGrad*rD)
           ENDIF
           IF (rDel(ii,iEl).LT.0.0_rlk) THEN
             iLNNdL=MOD(iSdR+iCorner-2,iShape)+1_ink
@@ -139,9 +139,9 @@ CONTAINS
             rV=rVar(iLNdR,iEl)
             rD=rCorner(iLNdR,iEl)+0.5_rlk*rDel(ii,iEl)
             w5=rCorner(iLNdL,iEl)+rCorner(iLNdR,iEl)
-            w6=rCorner(iLNNdL,iElR)+rCorner(iLNNdR,iElR)
+            w6=rCorner(iLNNdL,iElR)+rCorner(iLNNdR,iElR)  ! nel2
             w1=rV-rVar(iLNdL,iEl)
-            w2=rVar(iLNNdR,iElR)-rV
+            w2=rVar(iLNNdR,iElR)-rV   ! nel2
             w3=ABS(w1)
             w4=ABS(w2)
             w7=SIGN(1.0_rlk,w2)
@@ -150,7 +150,7 @@ CONTAINS
             IF (w1*w2.LE.0.0_rlk) rGrad=0.0_rlk
             rD=rDel(ii,iel)*(rV+rGrad*rD)
           ENDIF
-          rFlux(iLNdL,iEl)=rFlux(iLNdL,iEl)-rD
+          rFlux(iLNdL,iEl)=rFlux(iLNdL,iEl)-rD ! nel1
           rFlux(iLNdR,iEl)=rFlux(iLNdR,iEl)+rD
         ENDDO
       ENDDO
@@ -190,15 +190,19 @@ CONTAINS
 
   END SUBROUTINE update_c1  
 
-  SUBROUTINE update_n1(iShape,iUSize,iCSize,iNSize,iElNd,rBase0,rBase1, &
-&                      rCut,zActive,rFlux,rTotFlux,rVar)
+  SUBROUTINE update_n1(iShape,iUSize,iESize,iCSize,iNSize,iElNd,iElSrt, &
+&                      zparallel,rBase0,rBase1,rCut,zActive,rFlux,      &
+&                      rTotFlux,rVar)
 
     ! Argument list
     INTEGER(KIND=ink),                         INTENT(IN)    :: iShape, &
 &                                                               iUSize, &
+&                                                               iESize, &
 &                                                               iCSize, &
 &                                                               iNSize
     INTEGER(KIND=ink),DIMENSION(iShape,iCSize),INTENT(IN)    :: iElNd
+    INTEGER(KIND=ink),DIMENSION(iCSize),       INTENT(IN)    :: iElSrt
+    LOGICAL(KIND=lok),                         INTENT(IN)    :: zparallel
     REAL(KIND=rlk),   DIMENSION(iNSize),       INTENT(IN)    :: rBase0, &
 &                                                               rBase1, &
 &                                                               rCut
@@ -207,11 +211,16 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(iNSize),       INTENT(OUT)   :: rTotFlux
     REAL(KIND=rlk),   DIMENSION(iNSize),       INTENT(INOUT) :: rVar
     ! Local
-    INTEGER(KIND=ink) :: iEl,iNd,ii
+    INTEGER(KIND=ink) :: iEl,iNd,ii,jj
 
     ! construct total flux
     rTotFlux=0.0_rlk
-    DO iEl=1,iCSize
+    DO jj=1,iESize
+      IF (zparallel) THEN
+        iEl=iElSrt(jj)
+      ELSE
+        iEl=jj
+      ENDIF
       DO ii=1,iShape
         iNd=iElNd(ii,iEl)
         rTotFlux(iNd)=rTotFlux(iNd)+rFlux(ii,iEl)
@@ -227,8 +236,8 @@ CONTAINS
 
   END SUBROUTINE update_n1
 
-  SUBROUTINE sum_flux(iD1,iD2,iShape,iLSize,iASize,iElEl,iElSd,rFlux,   &
-&                     rTotFlux)
+  SUBROUTINE sum_flux(iD1,iD2,iShape,iLSize,iASize,iElEl,iElSd,  &
+&                     rFlux,rTotFlux)
 
     ! Argument list
     INTEGER(KIND=ink),                         INTENT(IN)    :: iD1,iD2,&
@@ -240,7 +249,7 @@ CONTAINS
     REAL(KIND=rlk),   DIMENSION(iShape,iASize),INTENT(IN)    :: rFlux
     REAL(KIND=rlk),   DIMENSION(iASize),       INTENT(OUT)   :: rTotFlux
     ! Local
-    INTEGER(KIND=ink) :: i1,i2,j1,j2,iEl,iE1,iE2
+    INTEGER(KIND=ink) :: i1,i2,j1,j2,iEl,iE1,iE2,kk
     REAL(KIND=rlk)    :: w1,w2
 
     rTotFlux=0.0_rlk

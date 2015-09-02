@@ -24,7 +24,7 @@ MODULE ale_getmesh_mod
 
 CONTAINS
 
-  SUBROUTINE alegetmesh(nnod,indstatus)
+  SUBROUTINE alegetmesh(nnod2,indstatus)
 
     USE kinds_mod,    ONLY: ink,rlk
     USE logicals_mod, ONLY: zeul
@@ -32,8 +32,8 @@ CONTAINS
     USE typh_util_mod,ONLY: get_time
 
     ! Argument list
-    INTEGER(KIND=ink),                INTENT(IN)  :: nnod
-    INTEGER(KIND=ink),DIMENSION(nnod),INTENT(OUT) :: indstatus
+    INTEGER(KIND=ink),                 INTENT(IN)  :: nnod2
+    INTEGER(KIND=ink),DIMENSION(nnod2),INTENT(OUT) :: indstatus
     ! Local
     INTEGER(KIND=ink) :: inod
     REAL(KIND=rlk)    :: t0,t1
@@ -43,7 +43,7 @@ CONTAINS
 
     ! Select mesh to be moved
     IF (zeul) THEN
-      DO inod=1,nnod
+      DO inod=1,nnod2
         indstatus(inod)=2_ink
       ENDDO
     ELSE

@@ -14,7 +14,7 @@
 ! details.
 !
 ! You should have received a copy of the GNU General Public License along with
-! Bookleaf. If not, see http://www.gnu.org/licenses/.
+! Bookleaf. If not, see http://www.gnu.org/licenses/ . 
 
 MODULE silo_mod
 
@@ -34,12 +34,13 @@ CONTAINS
     USE utils_f_mod,  ONLY: utils_mkdir_f,utils_ln_f,UTILS_SUCCESS
     USE typh_util_mod,ONLY: get_time
     USE timing_mod,   ONLY: bookleaf_times
+    USE TYPH_util_mod, ONLY: TYPH_Barrier
     INCLUDE "silo.inc"
 
     ! Argument list
     CHARACTER(LEN=*),INTENT(IN)                  :: cDirName
     ! Local
-    INTEGER(KIND=ink)                            :: iErr,ii,iFileID,    &
+    INTEGER(KIND=ink)                            :: iErr,ii,ij,iFileID, &
 &                                                   iOptionID,jj,kk
     INTEGER(KIND=ink),  PARAMETER                :: SLEN=80,NSHAPE=1
     CHARACTER(LEN=4)                             :: cNum
@@ -48,17 +49,21 @@ CONTAINS
 &                                                   cHeaderFile='Top.silo'
     CHARACTER(LEN=SLEN),DIMENSION(:),ALLOCATABLE :: cMat
     INTEGER(KIND=ink),  DIMENSION(:),ALLOCATABLE :: iMat,lMat,iNodeList
-    CHARACTER(LEN=SLEN),DIMENSION(NprocW)        :: cTemp,cName
+    CHARACTER(LEN=SLEN),DIMENSION(NprocW)        :: cTemp,cName,meshname
     INTEGER(KIND=ink),  DIMENSION(NprocW)        :: iName,iType
     INTEGER(KIND=ink),  DIMENSION(NSHAPE)        :: iShapeType,         &
 &                                                   iShapeSize,         &
 &                                                   iShapeCount
     REAL(KIND=rlk)                               :: t0,t1
+    LOGICAL                                      :: dbfilef
+
 
     ! Timer
     t0=get_time()
+    dbfilef = .false.
 
     ! make directory
+    ! probably needs to change ut_mkdir in util.c for overwrite???
     IF (zMProcW) THEN
       iErr=utils_mkdir_f(TRIM(cDirName))
       IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to make silo "&
@@ -85,7 +90,9 @@ CONTAINS
       ! open
       cString=TRIM(cDirName)//'/'//TRIM(cHeaderFile)
       iErr=DBCreate(TRIM(cString),LEN_TRIM(cString),DB_CLOBBER,DB_LOCAL,&
-      &                   'SILO file from Bookleaf',23,DB_HDF5,iFileID)
+      &                   'SILO file from Bookleaf',23,DB_PDb,iFileID)
+      iErr=DBSet2DStrLen(SLEN)
+
       IF (iFileID.EQ.-1) CALL halt("ERROR: failed to create silo file",0)
       ! write mesh
       DO ii=1,NProcW
@@ -93,13 +100,14 @@ CONTAINS
         cTemp(ii)=TRIM(cDirName)//'/'//TRIM(cDataName)//cNum(2:4)//     &
 &        '.silo'
         cName(ii)=TRIM(cTemp(ii))//':MESH'
-        iName(ii)=LEN_TRIM(cName(ii))
+        meshname(ii:)=cName(ii:)
+        iName(ii)=LEN_TRIM(meshname(ii))
         iType(ii)=DB_UCDMESH
       ENDDO
-      iErr=DBPutMMesh(iFileID,'mesh',4,nProcW,cName,iName,iType,        &
+      iErr=DBPutMMesh(iFileID,'mesh',4,nProcW,meshname,iName,iType,        &
 &                     DB_F77NULL,ii)
       ! write material
-      iErr=DBSet2DStrLen(SLEN)
+!      iErr=DBSet2DStrLen(SLEN)
       iErr=DBMkOptList(4,iOptionID)
       iErr=DBAddIOpt(iOptionID,DBOPT_NMATNOS,nMat)
       iErr=DBAddIOpt(iOptionID,DBOPT_MATNOS,iMat)
@@ -152,13 +160,20 @@ CONTAINS
       iErr=DBClose(iFileID)
     ENDIF
 
-    ! data file on each PE
+    iErr= TYPH_Barrier()
+
+    if (dbfilef) then 
+      iErr=DBClose(iFileID)
+    end if
+
     WRITE(cNum,'(i4)') rankW+1000_ink
     cString=TRIM(cDirName)//'/'//TRIM(cDataName)//cNum(2:4)//'.silo'
     iErr=DBCreate(TRIM(cString),LEN_TRIM(cString),DB_CLOBBER,DB_LOCAL,  &
-&                 'SILO file from bookleaf',23,DB_HDF5,iFileID)
+&                 'SILO file from bookleaf',23,DB_PDB,iFileID)
     IF (iFileID.EQ.-1) CALL halt("ERROR: failed to create silo data "   &
 &    //"file",0)
+
+
     ! write mesh
     iErr=DBMkOptList(3,iOptionID)
     cString(1:1)='X'
@@ -213,6 +228,8 @@ CONTAINS
 &                 DB_F77NULL,0,DB_DOUBLE,DB_NODECENT,DB_F77NULL,ii)
     ! close data file
     iErr=DBClose(iFileID)
+    dbfilef = .true.
+
 
     ! create symbolic link
     IF (zMProcW) THEN
@@ -221,6 +238,7 @@ CONTAINS
       IF (iErr.NE.UTILS_SUCCESS) CALL halt("ERROR: failed to create "   &
 &      //"silo link",0)
     ENDIF
+
 
     ! Timing data
     t1=get_time()

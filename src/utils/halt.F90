@@ -67,11 +67,11 @@ SUBROUTINE halt(smessage,iout,zend)
 #ifdef SILO
     ! Dump Silo file
     CALL write_silo_dump("final_dump")
-#endif
+#endif  
 #ifdef TIO
-  CALL write_tio_dump("final_dump.h5",.NOT.zfin)
+    ! Dump TyphonIO file
+    CALL write_tio_dump("final_dump.h5",.NOT.zfin)
 #endif
-  
   ENDIF
 
   IF (zfin) THEN
