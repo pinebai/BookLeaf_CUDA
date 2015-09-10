@@ -697,7 +697,7 @@ CONTAINS
 
     INTEGER(KIND=ink),                 INTENT(IN)    :: ilayer,nel_proc,nnod_proc,nshape
     INTEGER(KIND=ink),                 INTENT(INOUT) :: nelprev  ! total no els so far
-    INTEGER(KIND=ink),                 INTENT(OUT)   :: nnodprev  ! total no nodes so far
+    INTEGER(KIND=ink),                 INTENT(INOUT) :: nnodprev  ! total no nodes so far
     INTEGER(KIND=ink),                 INTENT(INOUT) :: nelbnd    ! no. boundary els
     INTEGER(KIND=ink), DIMENSION(:),ALLOCATABLE,INTENT(INOUT) :: iboundlist
     LOGICAL(KIND=lok), DIMENSION(0:,:), INTENT(INOUT) :: zelghost
