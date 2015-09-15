@@ -7,9 +7,13 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
-Version 1.1 allows for in-situ mesh partitioning.
+Current BookLeaf_ref as V1.1, plus:
+* serial ALE capability
+* Modified makefile.intel
+* Input endtimes modified to match test runs
 
-Current Bookleaf_Ref includes ALE.
+
+Wiki: https://github.com/UK-MAC/BookLeaf/wiki
 
 
 ## BookLeaf Build Procedure
@@ -76,7 +80,17 @@ by running:
 This file is a copy of the files found in the inputs directory, depending on 
 which problem you wish to run.
 
-## Versions
+## Version History
+
+BookLeaf_ref - As V1.1 plus:
+* serial ALE capability
+* Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi, -qopt-report=3 no longer default flag
+* Makefile help has PHI option added plus version updated to v1.1
+* End times for sod and sedov test cases changed to reflect test cases run
+
+
+V1.1   - Adds in mesh partitioning. Parallel running now available.
 
 V1.0   - Initial version. Contains MPI comms, but only serial meshes can be contructed.
-V1.1   - Adds in mesh partitioning. Parallel running now available.
+
+

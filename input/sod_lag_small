@@ -1,6 +1,6 @@
 &CONTROL
  time_start=0.0
- time_end=20.0
+ time_end=200.0
  dt_initial=1.0e-3
  dt_max=1.0e-1
  dt_min=1.0e-8
