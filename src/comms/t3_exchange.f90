@@ -78,7 +78,7 @@ contains
     iNSend = iSchedule%nsend
     iNRecv = iSchedule%nrecv
 
-    iSendRequests => iSchedule%send_requests
+!   iSendRequests => iSchedule%send_requests
     iRecvRequests => iSchedule%recv_requests
 
     iMpiTag = PhaseID
@@ -103,17 +103,18 @@ contains
 
 !   Perform Sends
     if (iNSend > 0) then
-      iSendRequests = MPI_REQUEST_NULL
+!     iSendRequests = MPI_REQUEST_NULL
       do iSend = 1, iNSend
         iDestin = iSchedule%send_proc(iSend)
         if (iSchedule%mpi_send_tp(iSend) /= MPI_DATATYPE_NULL) then
-          call MPI_ISEND(MPI_BOTTOM,                      &
+!         call MPI_ISEND(MPI_BOTTOM,                      &
+          call MPI_SEND( MPI_BOTTOM,                      &
                          1,                               &
                          iSchedule%mpi_send_tp(iSend),    &
                          iDestin,                         &
                          iMpiTag,                         &
                          iMP%comm,                        &
-                         iSendRequests(iSend),            &
+!                        iSendRequests(iSend),            &
                          irc)
         endif
       enddo
@@ -159,16 +160,16 @@ contains
     iNSend = aSchedule%nsend
     iNRecv = aSchedule%nrecv
 
-    iSendRequests => aSchedule%send_requests
+!   iSendRequests => aSchedule%send_requests
     iRecvRequests => aSchedule%recv_requests
 
     if (iNRecv > 0) then
       call MPI_WAITALL(iNRecv, iRecvRequests, iStatuses, irc)
     endif
 
-    if (iNSend > 0) then
-      call MPI_WAITALL(iNSend, iSendRequests, iStatuses, irc)
-    endif
+!   if (iNSend > 0) then
+!     call MPI_WAITALL(iNSend, iSendRequests, iStatuses, irc)
+!   endif
 
     mCompleteExch = irc
 

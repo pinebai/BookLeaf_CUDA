@@ -30,12 +30,10 @@ endif
 ifeq ($(LEV),TV)
   DBG     = -g -O0
   CDBG    = -g -O0
-  IEEE   += -no-ftz
 endif
 ifeq ($(LEV),MEMTV)
   DBG     = -g -O0
   CDBG    = -g -O0
-  IEEE   += -no-ftz
   CHECK   = -O nooverindex
 endif
 ifeq ($(LEV),OPTDEBUG)
