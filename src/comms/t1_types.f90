@@ -32,6 +32,7 @@ module TYPH_Types_mod
   integer(kind=TYPHK), parameter :: TY_MEM_ALLOC   = 1111
   integer(kind=TYPHK), parameter :: TY_MEM_DEALLOC = 1112
   integer(kind=TYPHK), parameter :: TYPH_GHOSTS_ONE   = 1
+  integer(kind=TYPHK), parameter :: TYPH_GHOSTS_TWO   = 2
   integer(kind=TYPHK), parameter :: TYPH_MESH_DIM     = -88
 
 end module TYPH_Types_mod

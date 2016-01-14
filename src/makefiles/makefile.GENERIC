@@ -1,6 +1,12 @@
 # Alias
 MAKE    = gmake
 
+# Metis library location
+ifneq ($(METIS),)
+  MET_DIR    = 
+  MET_LIB    = -L$(MET_DIR)/lib -lmetis
+endif
+
 # Silo library location
 ifneq ($(SILO),)
   SILODIR    = 

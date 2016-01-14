@@ -412,23 +412,30 @@ contains
     ! MPI_SIZEOF is specific to F90 MPI and simply returns size in bytes of intrinsics F90 types.
     ! Can't be bothered to check iMPIerr for sizes here!
     
-    call MPI_SIZEOF(0.0_REALK, iSize, iMPIerr)
-    call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_REAL, iSize, mMPtypes%real, iMPIerr)
+!   call MPI_SIZEOF(0.0_REALK, iSize, iMPIerr)
+!   call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_REAL, iSize, mMPtypes%real, iMPIerr)
     
-    call MPI_SIZEOF(0_INTK, iSize, iMPIerr)
-    call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%integer, iMPIerr)
+    mMPtypes%real    = MPI_REAL8
+    mMPtypes%integer = MPI_INTEGER
+    
+!   call MPI_SIZEOF(0_INTK, iSize, iMPIerr)
+!   call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%integer, iMPIerr)
     
     mMPtypes%logical   = MPI_LOGICAL
     mMPtypes%character = MPI_CHARACTER
     
-    call MPI_SIZEOF(0_TMEMK, iSize, iMPIerr)
-    call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%mem, iMPIerr)
-    
-    call MPI_SIZEOF(0_TSIZEK, iSize, iMPIerr)
-    call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%size, iMPIerr)
-    
-    call MPI_SIZEOF(0_MPIK, iSize, iMPIerr)
-    call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%mpi, iMPIerr)
+    mMPtypes%mem  = MPI_INTEGER
+    mMPtypes%size = MPI_INTEGER
+    mMPtypes%mpi  = MPI_INTEGER
+
+!   call MPI_SIZEOF(0_TMEMK, iSize, iMPIerr)
+!   call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%mem, iMPIerr)
+!   
+!   call MPI_SIZEOF(0_TSIZEK, iSize, iMPIerr)
+!   call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%size, iMPIerr)
+!   
+!   call MPI_SIZEOF(0_MPIK, iSize, iMPIerr)
+!   call MPI_TYPE_MATCH_SIZE(MPI_TYPECLASS_INTEGER, iSize, mMPtypes%mpi, iMPIerr)
     
     mInitMPtypes = 0
     

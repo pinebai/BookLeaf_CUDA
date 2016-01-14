@@ -229,9 +229,10 @@ CONTAINS
 #ifndef NOMPI
   SUBROUTINE partition_mesh(nl,nk,nprocW)
     USE kinds_mod,    ONLY: ink,rlk
-    USE integers_mod, ONLY: nel,nel1,nnod,nnod1,nnod2
+    USE integers_mod, ONLY: nel,nel1,nnod,nnod1,nnod2,nshape
     USE timing_mod,   ONLY: bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
+    USE pointers_mod, ONLY: ielnd
     INTEGER(KIND=ink), INTENT(INOUT) :: nl,nk,nprocW
     INTEGER(KIND=ink) :: npartl,nparth,ipart,neltot,nnodtot
     INTEGER(KIND=ink),DIMENSION(nl,nk) :: icolour
@@ -243,7 +244,11 @@ CONTAINS
     nparth=nprocW-1
     ipart=-1_ink
     icolour=-1_ink
+#ifdef METIS
+    CALL part_metis(nshape,nel,nnod,ielnd,nprocW,nl-1_ink,nk-1_ink,icolour)
+#else
     CALL rcb((nl-1_ink),(nk-1_ink),npartl,nparth,ipart,icolour)
+#endif
     CALL partition((nl-1_ink),(nk-1_ink),icolour,nprocW)
     CALL transfer_partition(nel,nel1,nnod,nnod1,nnod2)
 
@@ -297,6 +302,173 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE rcb
+
+#ifdef METIS
+  SUBROUTINE part_metis(nshape,nel,nnod,ielnd,nparts,nl,nk,icolour)
+
+    use ISO_C_BINDING
+    USE integers_mod, ONLY: rankw
+
+    INTEGER(KIND=ink),                      INTENT(IN)   :: nshape,nel,nnod
+    INTEGER(KIND=ink),                      INTENT(IN)   :: nparts,nl,nk
+    INTEGER(KIND=ink),DIMENSION(nshape,nel),INTENT(IN)   :: ielnd
+    INTEGER(KIND=ink),DIMENSION(nl,nk),     INTENT(OUT)  :: icolour
+
+    INTEGER(KIND=c_int)                      :: nnod_m,nel_m,ncommon, &
+&                                               nparts_m,objval
+    INTEGER(KIND=c_int),DIMENSION(nel+1_ink) :: eptr
+    INTEGER(KIND=c_int),DIMENSION(nel*4_ink) :: eind
+    INTEGER(KIND=c_int),DIMENSION(0:24)      :: options
+    TYPE(c_ptr)                              :: vsize,vwgt,tpwgts
+    INTEGER(KIND=c_int),DIMENSION(nel)       :: epart
+    INTEGER(KIND=c_int),DIMENSION(nnod)      :: npart
+    INTEGER(KIND=ink)                        :: ii,jj,kk,ll,maxpart
+
+
+   INTERFACE
+
+      SUBROUTINE METIS_PartMeshDual(nel_m,nnod_m,eptr,eind,vwgt,vsize,ncommon,  &
+                                    nparts_m,tpwgts,options,objval,epart,npart) &
+                                    bind(C, name="METIS_PartMeshDual")
+        USE ISO_C_BINDING
+
+        INTEGER(KIND=c_int)                 :: nnod_m,nel_m,ncommon,nparts_m,objval
+        INTEGER(KIND=c_int),DIMENSION(*)    :: eptr,eind
+        TYPE(c_ptr), VALUE                  :: vsize, vwgt, tpwgts
+        INTEGER(KIND=c_int),DIMENSION(0:24) :: options
+        INTEGER(KIND=c_int),DIMENSION(*)    :: epart
+        INTEGER(KIND=c_int),DIMENSION(*)    :: npart
+      END SUBROUTINE METIS_PartMeshDual
+
+    END INTERFACE
+
+    nel_m    = nel
+    nnod_m   = nnod
+    nparts_m = nparts
+
+    ! convert global mesh to a format understood by Metis
+    jj = 1
+    eptr(1)=1
+    DO ii=1,nel
+      DO kk=1,nshape
+        eind(jj)=ielnd(kk,ii)
+        jj=jj+1
+      ENDDO
+      eptr(ii+1)=jj
+    ENDDO
+
+    ! Metis options    
+    !  - OK/NO/? on RHS for each option indicates whether the array index
+    !    value is correct in relation to the METIS_OPTION_xxx name
+    !  - values set for each option seem reasonable after playing with them 
+    !    a little, a proper study would be needed though
+    
+    options=1   ! partitioning options, none set
+    options(0) = 1                                        !          OK
+                   ! 0 METIS PTYPE RB   Multilevel recursive bisectioning.
+                   ! 1 METIS PTYPE KWAY Multilevel k-way partitioning.
+
+    ! option 1 K-way only
+    options(1) = 0                                        !          OK
+                   ! 0 METIS OBJTYPE CUT Edge-cut minimization.
+                   ! 1 METIS OBJTYPE VOL Total communication volume minimization.
+
+    options(2) = 1 ! 0 METIS CTYPE RM   Random matching.             OK
+                   ! 1 METIS CTYPE SHEM Sorted heavy-edge matching.
+
+    options(3) = 0 ! METIS_OPTION_IPTYPE                             NO
+
+    ! Determines the algorithm used during initial partitioning.
+    ! 0 METIS IPTYPE GROW           Grows a bisection using a greedy strategy.
+    ! 1 METIS IPTYPE RANDOM         Computes a bisection at random followed by a reﬁnemen
+    ! 2 METIS IPTYPE EDGE           Derives a separator from an edge cut.
+    ! 3 METIS IPTYPE NODE           Grow a bisection using a greedy node-based strategy.
+
+    options(4) = 3 ! METIS_OPTION_RTYPE                              NO
+    !   Determines the algorithm used for reﬁnement. Possible values are:
+    !   METIS RTYPE FM                 FM-based cut reﬁnement.
+    !   METIS RTYPE GREEDY             Greedy-based cut and volume reﬁnement.
+    !   METIS RTYPE SEP2SIDED          Two-sided node FM reﬁnement.
+    !   METIS RTYPE SEP1SIDED          One-sided node FM reﬁnement.
+
+    options(5) = 0   ! METIS_OPTION_DBGLVL debug printout on/off     OK
+
+    options(6) = 50  ! options[METIS OPTION NITER]                   OK
+    !  Speciﬁes the number of iterations for the reﬁnement algorithms at
+    ! each stage of the uncoarsening process. Default is 10.
+
+    ! need to check if repeated partitioning is
+    ! required ????
+
+    options(7) = nparts_m  !  options[METIS OPTION NCUTS]           OK
+    ! Speciﬁes the number of different partitionings that it will compute.
+    ! The ﬁnal partitioning is the one that
+    ! achieves the best edgecut or communication volume. Default is 1.
+
+    ! options(8) = 3571 !  options[METIS OPTION SEED]                ?
+    !  Speciﬁes the seed for the random number generator.
+
+    options(9) =  1 !  options[METIS_OPTION_NO2HOP]     OK (user manual swapped 0/1)
+    ! Speciﬁes that the coarsening will not perform any 2–hop matchings 
+    ! 1   Performs a 2–hop matching.
+    ! 0   Does not perform a 2–hop matching.
+
+    options(10) = 1 !options[METIS_OPTION_MINCONN]                  OK
+    ! 0 dont minimise maximum connectivity of sub-domain graph
+    ! 1 minimise
+
+    ! option 11 k-way only
+    options(11) = 0 ! METIS_OPTION_CONTIG                           OK
+                    ! 1 Forces contiguous partitions.
+                    ! 0 Does not force contiguous partitions.
+
+    options(13) = 0 ! METIS OPTION COMPRESS                          ?
+                    ! 0 Does not try to compress the graph.
+                    ! 1 Tries to compress the graph.
+
+    IF (options(0) == 0) THEN                             !         OK
+      options(16) = 1
+    ELSE
+      options(16) = 5 
+    ENDIF
+
+    ! options(17) = 1     ! METIS_OPTION_NUMBERING 
+
+    ! Fortran style numbering. First node is number 1
+
+    ncommon=2_ink ! changed to ncommon in 5.1 shared nodes 
+
+    vwgt   = c_null_ptr
+    vsize  = c_null_ptr
+    tpwgts = c_null_ptr
+
+    CALL METIS_PartMeshDual(nel_m,nnod_m,eptr,eind,vwgt,vsize,ncommon,   &
+ &                          nparts_m,tpwgts,options,objval,epart,npart)
+
+    maxpart = -200000
+    DO ii = 1,nparts_m
+      maxpart = MAX(maxpart,COUNT(epart==ii))
+    ENDDO
+    IF (rankw==0) THEN
+      WRITE(6,*) ''
+      WRITE(6,'(a29,e13.6)') ' Calculated load imbalance : ', &
+&                 (REAL(nparts_m)*REAL(maxpart))/REAL(nel_m)
+      WRITE(6,'(a29,i5)')    ' Calculated objective value: ',objval
+      WRITE(6,*) ''
+    ENDIF
+
+    ! Convert element partition back to Bookleaf partitoner compatible array
+
+    ii=0_ink
+    DO kk=1,nk
+      DO ll=1,nl
+        ii=ii+1_ink
+        icolour(ll,kk)=epart(ii)-1_ink
+      ENDDO
+    ENDDO
+
+  END SUBROUTINE part_metis
+#endif
 
   SUBROUTINE partition(nl,nk,icolour,nprocW)
 

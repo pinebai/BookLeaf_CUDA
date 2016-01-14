@@ -12,7 +12,7 @@ F2C_DEF   = -DF2C_UNDERSCORE
 # General flags
 REAL_SIZE   = -fdefault-real-8
 INT_SIZE    = 
-FORM        = -ffree-form -std=f2003
+FORM        = -ffree-form
 BIG_ENDIAN  = -fconvert=big-endian
 AUTO_ARRAYS = 
 IEEE        =
@@ -57,8 +57,8 @@ ifeq ($(LEV),RELEASE)
   COPT    = -O2 -ftree-vectorize
 endif
 ifeq ($(LEV),OPT)
-  OPT     =
-  COPT    =
+  OPT     = -O2
+  COPT    = -O2
 #Disable following for OPT
   BIG_ENDIAN   =
   AUTO_ARRAYS  =

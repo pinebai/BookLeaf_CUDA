@@ -37,6 +37,7 @@ UTLDIR  = $(SRCDIR)/utils
 NO_MPI  =
 NO_OMP  =
 PHI     =
+METIS   =
 SILO    =
 DEP     =
 # Version
@@ -71,6 +72,7 @@ help:
 	#  NO_MPI      - Do not compile MPI routines
 	#  NO_OMP      - Do not use OpenMP threads
 	#  PHI         - Build executable for Intel Xeon Phi
+	#  METIS       - Use Metis for partitoning (default rcb) - requires version 5.1.0
 	#  SILO        - Compile Silo routines
 	#  TIO         - Compile TyphonIO routines
 	#
@@ -97,6 +99,13 @@ ifneq (,$(findstring $(MAKECMDGOALS),$(EXE)))
 endif
 
 # set pre-processor flags, adjust object list and dependency list
+ifneq ($(METIS),)
+  ifeq ($(MKFILEC), makefile.xl)
+    PP_METIS=-WF,-DMETIS
+  else
+    PP_METIS=-DMETIS
+  endif
+endif
 ifneq ($(SILO),)
   ifeq ($(MKFILEC), makefile.xl)
     PP_SILO=-WF,-DSILO
@@ -158,6 +167,7 @@ VPATH=$(ALEDIR):$(COMDIR):$(CUTDIR):$(EOSDIR):$(HYDDIR):$(IAODIR):      \
 # Collect all pre-processor options
 PREPRO = $(PP_MOD)   \
 	 $(PP_MPI)   \
+	 $(PP_METIS) \
 	 $(PP_SILO)  \
 	 $(PP_TIO)   \
 	 $(PP_OMP)
@@ -173,7 +183,8 @@ INC =	$(SILOINC)   \
 LIB = 	$(SILOLIB)   \
 	$(TIO_LIB)   \
 	$(HDF5LIB)   \
-	$(ZLIBLIB)
+	$(ZLIBLIB)   \
+	$(MET_LIB)
 
 # Rules
 .SUFFIXES:

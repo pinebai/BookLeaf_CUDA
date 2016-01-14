@@ -166,8 +166,10 @@ CONTAINS
       w5=bookleaf_times%time_total-w1-w2-w4
       WRITE(6,ft)   ' remaining time                  ',w5,w5*fac,' %'
       WRITE(6,*) ' '
-      WRITE(6,'(a13,e13.6,a2)') ' Run time =  ',                        &
+      WRITE(6,'(a21,e13.6,a2)') ' Run time          = ',  &
 &      bookleaf_times%time_total,' s'
+      WRITE(6,*) ' '
+      WRITE(6,'(a21,e13.6,a2)') ' Time in main loop = ',w1,' s'
       WRITE(6,*) ' '
     ENDIF
 

@@ -500,6 +500,12 @@ contains
     mMaxCommProc = max(mMaxCommProc, iSchedule%nsend, iSchedule%nrecv)
     mMaxParts    = max(mMaxParts, maxval(iScounts), maxval(iRcounts))
 
+    deallocate(iScounts, stat = iAllocStat)
+    irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iScounts")
+    deallocate(iRcounts, stat = iAllocStat)
+    irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iRcounts")
+
+
     ty_BuildSchedule = irc
 
   end function ty_BuildSchedule
@@ -511,8 +517,9 @@ contains
 
     type (Phase_tp),        pointer  :: iPhase    => null()
     type(V3_Schedule_tp),   pointer  :: iSchedule => null()
+    type(V3_SchedulePart_tp),pointer :: iSchedulePart => null()
     integer(kind=TSIZEK)             :: iAllocStat
-    integer(kind=TSIZEK)             :: irc
+    integer(kind=TSIZEK)             :: ii,irc
 
     irc =  ty_GetPhase(aPhaseID, iPhase)
     iSchedule => iPhase%schedule
@@ -523,6 +530,11 @@ contains
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%recv_proc")
     endif
     if (allocated(iSchedule%mpi_send_tp)) then
+      do ii=1,iSchedule%nsend
+        if (iSchedule%mpi_send_tp(ii) /= MPI_DATATYPE_NULL) then
+          call MPI_TYPE_FREE(iSchedule%mpi_send_tp(ii), irc)
+        endif
+      enddo
       deallocate(iSchedule%mpi_send_tp, stat = iAllocStat)
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%mpi_send_tp")
     endif
@@ -543,6 +555,11 @@ contains
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%recv_proc")
     endif
     if (allocated(iSchedule%mpi_recv_tp)) then
+      do ii=1,iSchedule%nrecv
+        if (iSchedule%mpi_recv_tp(ii) /= MPI_DATATYPE_NULL) then
+          call MPI_TYPE_FREE(iSchedule%mpi_recv_tp(ii), irc)
+        endif
+      enddo
       deallocate(iSchedule%mpi_recv_tp, stat = iAllocStat)
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%mpi_recv_tp")
     endif
@@ -559,6 +576,13 @@ contains
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%recv_start")
     endif
     if (associated(iSchedule%parts)) then
+      do ii = 1, iSchedule%nsend+iSchedule%nrecv
+        iSchedulePart => iSchedule%parts(ii)
+        if (iSchedulePart%new_mpi_tp /= MPI_DATATYPE_NULL) then
+          call MPI_TYPE_FREE(iSchedulePart%new_mpi_tp, irc)
+        endif
+        nullify(iSchedulePart%key,iSchedulePart%address,iSchedulePart%old_mpi_tp)
+      enddo
       deallocate(iSchedule%parts, stat = iAllocStat)
       irc = ty_MemCheck(iAllocStat, TY_MEM_DEALLOC, "iSchedule%parts")
     endif

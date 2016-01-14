@@ -46,6 +46,8 @@ Note that the noh deck does not require a MOD command and the executable will si
 ## MPI
 
 Bookleaf will automatically partition the mesh according to the number of cores that the problem is run on.
+The default paritioner is rcb, however Metis 5.1.0 can be used if bookleaf has it linked in. To buld a 
+Metis version set METIS=1.
 
 By default Bookleaf builds with MPI, however a truly serial version can be built
 by adding:
@@ -68,6 +70,10 @@ by adding:
 
 `make SRCDIR=../src bookleaf`
 
+4) Building the Noh problem in a seperate build directory and linking in Metis 5.1.0:
+
+`make METIS=1 SRCDIR=../src bookleaf`
+
 
 ## Running the Code
 
@@ -75,14 +81,21 @@ BookLeaf can run with no command line arguments. By default it expects to find a
 file called "control" in the directory it is running in. This can be changed 
 by running:
 
-`bookleaf_sod FILE=<newfile>`
+`bookleaf_sod FILE=<[path_to_file/]newfile>`
 
 This file is a copy of the files found in the inputs directory, depending on 
 which problem you wish to run.
 
 ## Version History
 
-BookLeaf_ref - As V1.2
+BookLeaf_ref - As V1.3
+
+V1.3   - Adds in Metis 5.1.0 support. Plus:
+* new noh_lag_medium input added
+* bug fixes for memory leaks during comms
+* bug fix in comms that would cause some examples to hang on step 1
+* bug fix in geometry that would (incorrectly) declare that the cell volume had collapsed
+* final timing print now also shows the time spent outside of initialisation, as the initialisation can be very slow.
 
 V1.2   - Adds in parallel ALE. Plus:
 * Modified makefile.intel for Xeon vectorisation at OPT level and PHI=1 option to build for Xeon Phi, -qopt-report=3 no longer default flag

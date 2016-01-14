@@ -79,8 +79,8 @@ ifeq ($(LEV),RELEASE)
   IEEE   += -no-ftz
 endif
 ifeq ($(LEV),OPT)
-  OPT     = -O3 -g $(XHOST)
-  COPT    = -O3 -g $(XHOST)
+  OPT     = -O2
+  COPT    = -O2
 #Disable following for OPT 
   BIG_ENDIAN   =
   AUTO_ARRAYS  =

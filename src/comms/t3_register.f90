@@ -293,6 +293,7 @@ contains
 
     iPhase%ghostsMax = NumGhosts
     iPhase%isBuilt   = .false.
+    iPhase%isCommit  = .false.
 
     TYPH_Add_Phase = irc
 
