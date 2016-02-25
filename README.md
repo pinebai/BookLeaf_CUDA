@@ -9,23 +9,11 @@ Four test problems are provided: Sod, Sedov, Saltzmann and Noh.
 
 Ten test cases are provided relating to these four problems:
 
-noh_lag_small
+noh_lag_small, noh_lag_medium, noh_lag_large 
 
-noh_lag_medium
+sedov_lag_small, sedov_eul_small 
 
-noh_lag_large 
-
-sedov_lag_small
-
-sedov_eul_small
-
-sod_eul_small
-
-sod_lag_small
-
-sod_lag_medium
-
-sod_lag_large
+sod_eul_small, sod_lag_small, sod_lag_medium, sod_lag_large
 
 saltzmann
 
@@ -37,9 +25,7 @@ https://github.com/UK-MAC/BookLeaf/wiki/Performance-Table
 
 These five cases are:
 
-sod_lag_small
-
-sod_lag_medium
+sod_lag_small, sod_lag_medium
 
 sedov_lag_small
 
