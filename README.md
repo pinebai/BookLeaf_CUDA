@@ -7,10 +7,7 @@ Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
 Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
 
-Current BookLeaf_ref as V1.1, plus:
-* parallel ALE capability
-* Modified makefile.intel
-* Input endtimes modified to match test runs
+Current BookLeaf_ref is v1.3
 
 
 Wiki: https://github.com/UK-MAC/BookLeaf/wiki
@@ -91,6 +88,8 @@ which problem you wish to run.
 BookLeaf_ref - As V1.3
 
 V1.3   - Adds in Metis 5.1.0 support. Plus:
+* optional beta OpenMP versions of getq.f90 added
+* new sod_lag_medium input added
 * new noh_lag_medium input added
 * bug fixes for memory leaks during comms
 * bug fix in comms that would cause some examples to hang on step 1
