@@ -5,7 +5,25 @@
 
 Bookleaf is an unstructured Lagrangian Hydro mini-app.
 
-Four input decks are provided: Sod, Sedov, Saltzmann and Noh.
+Four test problems are provided: Sod, Sedov, Saltzmann and Noh.
+
+Ten test cases are provided relating to these four problems:
+noh_lag_large   noh_lag_small  sedov_eul_small  sod_eul_small  sod_lag_medium
+noh_lag_medium  saltzmann      sedov_lag_small  sod_lag_large  sod_lag_small
+
+
+As of v1.3 five of these test cases have been rigorously tested and ported, with a host of results &
+timings available from the wiki link 
+
+https://github.com/UK-MAC/BookLeaf/wiki/Performance-Table
+
+These five cases are:
+sod_lag_small
+sod_lag_medium
+sedov_lag_small
+saltzmann
+noh_lag_small
+
 
 Current BookLeaf_ref is v1.3 plus
 * optional beta OpenMP versions of getq.f90 added
