@@ -18,8 +18,9 @@
 
 SUBROUTINE hydro()
 
+  use cudafor
   USE kinds_mod,    ONLY: ink,rlk
-  USE integers_mod, ONLY: nel,nstep,idtel,idtreg
+  USE integers_mod, ONLY: nel,nshape,nstep,idtel,idtreg
   USE logicals_mod, ONLY: zale,zaleon,zmprocw
   USE strings_mod,  ONLY: sdt
   USE reals_mod,    ONLY: time,time_end,dt_initial,time_alemin,         &
@@ -30,6 +31,15 @@ SUBROUTINE hydro()
   USE timing_mod,   ONLY: bookleaf_times
   USE Typh_util_mod,ONLY: get_time
 
+  USE pointers_mod, ONLY: rho,elmass,elvol,ielmat,ein,pre,csqrd,      &
+&                           ndx,ndy,elx,ely,ndu,ndv,ielnd
+  USE pointers_mod, ONLY: ielel,ielsd,indtype,qq,qx,qy
+  USE scratch_mod,  ONLY: elu=>rscratch21,elv=>rscratch22,            &
+&                           elfx=>rscratch23,elfy=>rscratch24,          &
+&                           rho05=>rscratch11,ein05=>rscratch12,        &
+&                           pre05=>rscratch13,ndxu=>rscratch14,         &
+&                           ndyv=>rscratch15,dx=>rscratch25,            &
+&                           dy=>rscratch26,scratch=>rscratch27
   IMPLICIT NONE
 
   ! Local
@@ -38,7 +48,21 @@ SUBROUTINE hydro()
   CHARACTER(LEN=4) :: str
 
   ! Timer
-  bookleaf_times%time_hydro=get_time()
+
+  !device data
+    INTEGER(KIND=ink), allocatable, device             :: d_ielnd(:,:),d_ielel(:,:), &
+&                                                         d_ielsd(:,:),d_indtype(:)
+
+    REAL(KIND=rlk),allocatable,dimension(:),device     :: d_qq, d_csqrd
+
+    REAL(KIND=rlk),allocatable,dimension(:,:),device   :: d_qx, d_qy
+
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device        :: d_elx,d_ely,d_elu,d_elv
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device   :: d_dx,d_dy,d_du,d_dv,d_scratch
+    REAL(KIND=rlk),DIMENSION(:),allocatable, device                 :: d_rho
+
+    bookleaf_times%time_hydro=get_time()
+
 
   ! initialise
   nstep=0_ink
@@ -59,7 +83,8 @@ SUBROUTINE hydro()
     time=time+dt
     !# Code here that can't be taken out
     ! lagrangian step
-    CALL lagstep(dt)
+    CALL lagstep(dt, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
+&                d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd)
     ! ale step
     IF (zale) THEN
       zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)

@@ -3,7 +3,8 @@ ifeq ($(NO_MPI),)
   FC=mpif90
   CC=mpicc
 else
-  FC=gfortran
+  FC=pgf90 -Mcuda -L/opt/pgi/linux86-64/2016/lib 
+  CF=pgf90 
   CC=gcc
 endif
 # Fortran to C interface
@@ -12,13 +13,13 @@ F2C_DEF   = -DF2C_UNDERSCORE
 # General flags
 REAL_SIZE   = -fdefault-real-8
 INT_SIZE    = 
-FORM        = -ffree-form
+FORM        = #-ffree-form
 BIG_ENDIAN  = -fconvert=big-endian
 AUTO_ARRAYS = 
 IEEE        =
 # Open MP
 ifeq ($(NO_OMP),)
-  OPENMP    = -fopenmp
+  OPENMP    = 
 else
   OPENMP    =
 endif

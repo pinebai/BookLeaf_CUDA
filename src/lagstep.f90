@@ -24,11 +24,14 @@ MODULE lagstep_mod
 
 CONTAINS
 
-  SUBROUTINE lagstep(dt)
+  SUBROUTINE lagstep(dt, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
+&                d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd)
 
+    use cudafor
     USE kinds_mod,    ONLY: rlk,ink,lok
     USE integers_mod, ONLY: nel,nnod,nshape,nel1,nnod1
     USE geometry_mod, ONLY: getgeom
+    USE pointers_mod, ONLY: ielel,ielsd,indtype,qq,qx,qy
     USE pointers_mod, ONLY: rho,elmass,elvol,ielmat,ein,pre,csqrd,      &
 &                           ndx,ndy,elx,ely,ndu,ndv,ielnd
     USE getacc_mod,   ONLY: getacc
@@ -52,6 +55,19 @@ CONTAINS
     INTEGER(KIND=ink)         :: iel,inod
     REAL(KIND=rlk)            :: dt05, t0, t1
 
+    !device data
+
+    INTEGER(KIND=ink),allocatable, device             :: d_ielnd(:,:),d_ielel(:,:), &
+&                                                         d_ielsd(:,:),d_indtype(:)
+
+    REAL(KIND=rlk),dimension(:),allocatable, device     :: d_qq, d_csqrd
+
+    REAL(KIND=rlk),dimension(:,:),allocatable, device   :: d_qx, d_qy
+
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable, device        :: d_elx,d_ely,d_elu,d_elv
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable, device   :: d_dx,d_dy,d_du,d_dv,d_scratch
+    REAL(KIND=rlk),DIMENSION(:), allocatable, device                 :: d_rho
+
     ! Timer
     t0=get_time()
 
@@ -62,8 +78,9 @@ CONTAINS
     CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),elu(1,1))
     CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),elv(1,1))
     ! Artificial viscosity
-    CALL getq(nshape,nel,elx(1,1),ely(1,1),elu(1,1),elv(1,1),rho(1),    &
-&             pre(1),dx,dy,elfx,elfy,scratch)
+    CALL getq(nshape,nel, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
+& d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, rho, elv, elu, ely, elx, elfx, elfy, dx, dy, scratch)
+    
     ! Force
     CALL getforce(nshape,nel,dt05,elx(1,1),ely(1,1),elu(1,1),elv(1,1),  &
 &                 elfx(1,1),elfy(1,1),pre(1),rho(1),.FALSE._lok)
@@ -94,8 +111,10 @@ CONTAINS
     ! Corrector
     ! ###############
     ! Artificial viscosity
-    CALL getq(nshape,nel,elx(1,1),ely(1,1),elu(1,1),elv(1,1),rho05(1),  &
-&             pre05(1),dx,dy,elfx,elfy,scratch)    
+    CALL getq(nshape,nel, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
+&   d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, rho05, elv, elu, ely, elx, elfx, elfy, dx, dy, scratch)
+    !cALL getq(nshape,nel,elx(1,1),ely(1,1),elu(1,1),elv(1,1),rho05(1),  &
+!&             pre05(1),dx,dy,elfx,elfy,scratch)    
     ! Force
     CALL getforce(nshape,nel,dt,elx(1,1),ely(1,1),elu(1,1),elv(1,1),    &
 &                 elfx(1,1),elfy(1,1),pre05(1),rho05(1),.TRUE._lok)

@@ -26,7 +26,7 @@ CONTAINS
 
   SUBROUTINE getq(nshape,nel,elx,ely,elu,elv,rho,pre,dx,dy,du,dv,       &
 &                 scratch)
-
+    use cubfor
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: zerocut,cq1,cq2
     USE logicals_mod, ONLY: zparallel
@@ -51,6 +51,9 @@ CONTAINS
 &                                                         w1,w2,w3,w4,  &
 &                                                         w5,w6,w7,w8,t1
     ! Timer
+
+    REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN), device::d_test
+
     t0=get_time()
 
     !# Missing code here that can't be merged
@@ -69,6 +72,7 @@ CONTAINS
     ENDDO
 
     ! gradient construction
+
     DO iel=1,nel
       du(1,iel)=elu(2,iel)-elu(1,iel)
       du(2,iel)=elu(3,iel)-elu(2,iel)
