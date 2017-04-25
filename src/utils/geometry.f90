@@ -15,7 +15,6 @@
 !
 ! You should have received a copy of the GNU General Public License along with
 ! Bookleaf. If not, see http://www.gnu.org/licenses/.
-
 MODULE geometry_mod
 
   IMPLICIT NONE
@@ -100,7 +99,64 @@ CONTAINS
 
   END FUNCTION dln
 
-  SUBROUTINE getgeom(nshape,nel,nnod,ndx,ndy,elx,ely,timer)
+  attributes(global) subroutine getgeom_err_kenel(nel,elvol)
+
+    integer,parameter::ink=4, rlk=8
+    INTEGER(KIND=ink),  value, INTENT(IN)               :: nel
+    INTEGER(KIND=ink)               :: ierr
+    REAL(KIND=rlk),DIMENSION(:)   :: elvol, tmp, MASK
+    INTEGER           :: iel
+
+    iel = threadIdx%x + (blockIdx%x-1)*blockDim%x
+  end subroutine getgeom_err_kenel
+
+  attributes(global) subroutine getgeom_kenel(nel,elx,ely, a1, a2, a3, b1, b2, b3, elvol, cnwt)
+
+    use cudafor
+    implicit none
+    integer,parameter::ink=4, rlk=8
+    REAL(KIND=rlk),   PARAMETER :: ONEBYNINE=1.0_rlk/9.0_rlk
+
+    INTEGER(KIND=ink),  value, INTENT(IN)               :: nel
+    REAL(KIND=rlk),dimension(:)    :: a1,a2, a3, b1, b2, b3 
+    REAL(KIND=rlk),DIMENSION(:,:)  :: elx,ely,cnwt
+
+    REAL(KIND=rlk),DIMENSION(:)   :: elvol
+    INTEGER(KIND=ink)            :: ielnd(:,:)
+
+    
+    !REAL(KIND=rlk),DIMENSION(nnod),       INTENT(IN)   :: ndx,ndy
+    !REAL(KIND=rlk),DIMENSION(nshape,nel), INTENT(OUT)  :: elx,ely
+    ! Local
+    INTEGER           :: iel
+
+    iel = threadIdx%x + (blockIdx%x-1)*blockDim%x
+
+    if(iel<=nel) then
+      a1(iel)=0.25_rlk*(-elx(1,iel)+elx(2,iel)+elx(3,iel)-elx(4,iel))
+      a2(iel)=0.25_rlk*( elx(1,iel)-elx(2,iel)+elx(3,iel)-elx(4,iel))
+      a3(iel)=0.25_rlk*(-elx(1,iel)-elx(2,iel)+elx(3,iel)+elx(4,iel))
+      b1(iel)=0.25_rlk*(-ely(1,iel)+ely(2,iel)+ely(3,iel)-ely(4,iel))
+      b2(iel)=0.25_rlk*( ely(1,iel)-ely(2,iel)+ely(3,iel)-ely(4,iel))
+      b3(iel)=0.25_rlk*(-ely(1,iel)-ely(2,iel)+ely(3,iel)+ely(4,iel))
+      cnwt(1,iel)=ONEBYNINE*                                            &
+&                 ((3.0_rlk*b3(iel)-b2(iel))*(3.0_rlk*a1(iel)-a2(iel))  &
+&                 -(3.0_rlk*a3(iel)-a2(iel))*(3.0_rlk*b1(iel)-b2(iel)))
+      cnwt(2,iel)=ONEBYNINE*                                            &
+&                 ((3.0_rlk*b3(iel)+b2(iel))*(3.0_rlk*a1(iel)-a2(iel))  &
+&                 -(3.0_rlk*a3(iel)+a2(iel))*(3.0_rlk*b1(iel)-b2(iel)))
+      cnwt(3,iel)=ONEBYNINE*                                            &
+&                 ((3.0_rlk*b3(iel)+b2(iel))*(3.0_rlk*a1(iel)+a2(iel))  &
+                  -(3.0_rlk*a3(iel)+a2(iel))*(3.0_rlk*b1(iel)+b2(iel)))
+      cnwt(4,iel)=ONEBYNINE*                                            &
+&                 ((3.0_rlk*b3(iel)-b2(iel))*(3.0_rlk*a1(iel)+a2(iel))  &
+                  -(3.0_rlk*a3(iel)-a2(iel))*(3.0_rlk*b1(iel)+b2(iel)))
+      elvol(iel)=4.0_rlk*(a1(iel)*b3(iel)-a3(iel)*b1(iel))
+    endif
+
+  end subroutine getgeom_kenel
+
+ SUBROUTINE getgeom(nshape,nel,nnod,ndx,ndy,elx,ely,timer)
 
     USE kinds_mod,     ONLY: ink,rlk
     USE utilities_mod, ONLY: gather
@@ -159,6 +215,61 @@ CONTAINS
     timer=timer+t1
 
   END SUBROUTINE getgeom
+
+  SUBROUTINE getgeom_host(nshape,nel,nnod,d_ndx,d_ndy,d_elx,d_ely,d_a1, d_a2, d_a3, d_b1, d_b2, d_b3,&
+&                    d_elvol, d_cnwt, d_ielnd, timer)
+
+    use cudafor
+    USE kinds_mod,     ONLY: ink,rlk
+    USE utilities_mod, ONLY: gather, gather_kernel
+    USE pointers_mod,  ONLY: elvol !a1,a2,a3,b1,b2,b3,elvol,cnwt,ielnd
+    USE error_mod,     ONLY: halt
+    USE parameters_mod,ONLY: ONEBYNINE
+    USE TYPH_util_mod, ONLY: get_time
+
+    ! Argument list
+    INTEGER(KIND=ink),                    INTENT(IN)   :: nshape,nel, nnod
+    REAL(KIND=rlk),dimension(:),allocatable, device     :: d_a1,d_a2, d_a3, d_b1, d_b2, d_b3 
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable, device   :: d_elx,d_ely,d_cnwt
+
+    REAL(KIND=rlk),DIMENSION(:), allocatable, device    :: d_elvol, d_ndx, d_ndy
+    INTEGER(KIND=ink),allocatable, device             :: d_ielnd(:,:)
+
+    
+    !REAL(KIND=rlk),DIMENSION(nnod),       INTENT(IN)   :: ndx,ndy
+    !REAL(KIND=rlk),DIMENSION(nshape,nel), INTENT(OUT)  :: elx,ely
+    REAL(KIND=rlk),                       INTENT(INOUT):: timer
+    ! Local
+    INTEGER(KIND=ink)                                  :: iel,ierr
+    REAL(KIND=rlk)                                     :: t0,t1
+    integer::thread_num, block_num
+
+    ! Timer
+    t0=get_time()
+
+    ! Gather position to element
+    thread_num = 128
+    block_num = ceiling(real(nel)/thread_num)
+
+    CALL gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd, d_ndx,d_elx)
+    CALL gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd,d_ndy,d_ely)
+
+    call getgeom_kenel<<<block_num, thread_num>>>(nel,d_elx,d_ely, d_a1, d_a2, d_a3, d_b1, d_b2, d_b3, d_elvol, d_cnwt)
+    !elvol = d_elvol
+
+    ! Calculate volume and iso-parametric terms
+    !IF (ANY(elvol(1:nel).LT.0.0_rlk)) THEN
+    !  print *, 'here ',size(MINLOC(elvol(1:nel),MASK=(elvol(1:nel).LT.0.0_rlk))-1_ink)
+    !  ierr=MINVAL(MINLOC(elvol(1:nel),MASK=(elvol(1:nel).LT.0.0_rlk))-1_ink)
+    !  IF (ierr.NE.0_ink) CALL halt("ERROR: cell volume < 0",1)
+    !ENDIF
+
+    ! Timing data
+    t1=get_time()
+    t1=t1-t0
+    timer=timer+t1
+
+  END SUBROUTINE getgeom_host
 
   PURE FUNCTION denom(x1,y1,x2,y2)
 

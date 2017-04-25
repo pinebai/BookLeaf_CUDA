@@ -20,11 +20,94 @@ MODULE eos_mod
 
   IMPLICIT NONE
 
-  PUBLIC :: getpre,getcc
+  PUBLIC :: getpre,getcc, getpre_kernel, getcc_kernel
 
 CONTAINS
 
-  PURE FUNCTION getpre(im,rr,ie)
+  PURE attributes(device) FUNCTION getpre_kernel(im,rr,ie, eos_type, eos_param, pcut)
+
+    USE kinds_mod,      ONLY: ink,rlk
+    !USE integers_mod,   ONLY: eos_type
+    !USE reals_mod,      ONLY: eos_param,pcut
+
+    INTEGER(KIND=ink),INTENT(IN) :: im
+    REAL(KIND=rlk),   INTENT(IN) :: rr
+    REAL(KIND=rlk),   INTENT(IN) :: ie
+    integer(kind=ink),intent(in) :: eos_type(:)
+    real(kind=rlk),   intent(in) :: eos_param(:,:)
+    real(kind=rlk),   value, intent(in) :: pcut
+    ! Result
+    REAL(KIND=rlk) :: getpre_kernel
+    ! Local
+    REAL(KIND=rlk) :: t1,t2,t3,t4,t5
+
+    SELECT CASE(eos_type(im))
+      CASE(0_ink) ! VOID
+        getpre_kernel=eos_param(1,im)
+      CASE(1_ink) ! IDEAL GAS
+        getpre_kernel=ie*rr*(eos_param(1,im)-1.0_rlk)
+      CASE(2_ink) ! TAIT
+        t1=rr/eos_param(3,im)
+        getpre_kernel=eos_param(1,im)*(t1**eos_param(2,im)-1.0_rlk)
+        getpre_kernel=MAX(getpre_kernel,eos_param(4,im))
+      CASE(3_ink) ! JWL
+        t1=eos_param(4,im)*eos_param(6,im)/rr
+        t2=eos_param(5,im)*eos_param(6,im)/rr
+        t3=eos_param(1,im)*rr*ie
+        t4=(1.0_rlk-eos_param(1,im)/t1)*eos_param(2,im)*EXP(-t1)
+        t5=(1.0_rlk-eos_param(1,im)/t2)*eos_param(3,im)*EXP(-t2)
+        getpre_kernel=t3+t4+t5
+      CASE DEFAULT
+        getpre_kernel=-1_rlk
+    END SELECT
+    IF (ABS(getpre_kernel).LT.pcut) getpre_kernel=0.0_rlk
+
+  END FUNCTION getpre_kernel
+
+  PURE attributes(device) FUNCTION getcc_kernel(im,rr,ie, eos_type, eos_param, pcut)
+
+    USE kinds_mod,   ONLY: ink,rlk
+    !USE integers_mod,ONLY: eos_type
+    !USE reals_mod,   ONLY: eos_param
+
+    INTEGER(KIND=ink),INTENT(IN) :: im
+    REAL(KIND=rlk),   INTENT(IN) :: rr
+    REAL(KIND=rlk),   INTENT(IN) :: ie
+    integer(kind=ink),intent(in) :: eos_type(:)
+    real(kind=rlk),   intent(in) :: eos_param(:,:)
+    real(kind=rlk),   value, intent(in) :: pcut
+    ! Result
+    REAL(KIND=rlk) :: getcc_kernel
+    ! Local
+    REAL(KIND=rlk) :: t1,t2,t3,t4,t5
+
+    SELECT CASE(eos_type(im))
+      CASE(0_ink) ! VOID
+        getcc_kernel=1.0e-6_rlk
+      CASE(1_ink) ! IDEAL GAS
+        getcc_kernel=eos_param(1,im)*(eos_param(1,im)-1.0_rlk)*ie
+      CASE(2_ink) ! TAIT
+        t1=rr/eos_param(3,im)
+        t2=eos_param(2,im)-1.0_rlk
+        getcc_kernel=(eos_param(1,im)*eos_param(2,im))/eos_param(3,im)
+        getcc_kernel=getcc_kernel*t1**t2
+      CASE(3_ink) ! JWL
+        t1=eos_param(6,im)/rr
+        t2=getpre_kernel(im,rr,ie, eos_type, eos_param, pcut)
+        t3=eos_param(4,im)*t1
+        t4=eos_param(1,im)/eos_param(4,im)+eos_param(1,im)*t1-t3*t1
+        t4=t4*eos_param(2,im)*EXP(-t3)
+        t3=eos_param(5,im)*t1
+        t5=eos_param(1,im)/eos_param(5,im)+eos_param(1,im)*t1-t3*t1
+        t5=t5*eos_param(3,im)*EXP(-t3)
+        getcc_kernel=eos_param(1,im)*t2/rr+eos_param(1,im)*ie-t4-t5
+      CASE DEFAULT
+        getcc_kernel=-1_rlk
+    END SELECT
+
+  END FUNCTION getcc_kernel
+
+ PURE FUNCTION getpre(im,rr,ie)
 
     USE kinds_mod,      ONLY: ink,rlk
     USE integers_mod,   ONLY: eos_type
@@ -64,6 +147,7 @@ CONTAINS
   PURE FUNCTION getcc(im,rr,ie)
 
     USE kinds_mod,   ONLY: ink,rlk
+
     USE integers_mod,ONLY: eos_type
     USE reals_mod,   ONLY: eos_param
 

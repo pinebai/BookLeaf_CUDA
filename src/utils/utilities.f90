@@ -18,7 +18,6 @@
 
 
 MODULE utilities_mod
-
   IMPLICIT NONE
 
   PUBLIC  :: convupper,findstr,gather,getconn,getsconn,corrconn,sort,   &
@@ -86,6 +85,28 @@ CONTAINS
     ENDDO l1
 
   END FUNCTION findstr
+
+  attributes(global) SUBROUTINE gather_kernel(n1,n2,n3,indx,aa,bb)
+
+    use cudafor
+    integer,parameter::ink=4, rlk=8
+
+    ! Argument list
+    INTEGER(KIND=ink),value :: n1,n2,n3
+    INTEGER(KIND=ink),DIMENSION(:,:)      :: indx
+    REAL(KIND=rlk),   DIMENSION(:) :: aa
+    REAL(KIND=rlk),   DIMENSION(:,:) :: bb
+    ! Local
+    INTEGER(KIND=ink)                              :: ii,jj
+    integer::i, j
+
+    i = threadIdx%x + (blockIdx%x-1)*blockDim%x
+    DO jj=1,n1
+        if (i<=n2) then
+            bb(jj,i)=aa(indx(jj,i))
+        endif
+    enddo
+  END SUBROUTINE gather_kernel
 
   SUBROUTINE gather(n1,n2,n3,indx,aa,bb)
 
