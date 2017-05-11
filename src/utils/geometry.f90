@@ -19,10 +19,147 @@ MODULE geometry_mod
 
   IMPLICIT NONE
 
-  PUBLIC  :: dlm,dln,getgeom
-  PRIVATE :: denom,distpp,distpl
+  PUBLIC  :: dlm,dln,getgeom, dlm_kernel, dln_kernel
+  PRIVATE :: denom,distpp,distpl, denom_kernel, distpp_kernel, distpl_kernel
 
 CONTAINS
+
+  attributes(device) function dlm_kernel(nshape, elx1,elx2, elx3, elx4, ely1, ely2,ely3,ely4) result(res)
+    integer,parameter::ink=4, rlk=8
+    INTEGER(KIND=ink) :: nshape
+    REAL(KIND=rlk),INTENT(IN) :: elx1,elx2, elx3, elx4,ely1, ely2, ely3, ely4
+    ! Result
+    REAL(KIND=rlk),DIMENSION(nshape)            :: res
+    REAL(KIND=rlk)            :: res_value
+    ! Local
+    REAL(KIND=rlk)                              :: x1,x2,y1,y2
+    integer:: i
+    
+    !elx ely can be put in shared memory here
+
+    x1=elx1+elx1
+    x2=elx3+elx4
+    y1=ely1+ely2
+    y2=ely3+ely4
+    x1=0.5_rlk*(x1-x2)
+    y1=0.5_rlk*(y1-y2)
+    res(1)=x1*x1+y1*y1
+    x1=elx3+elx3
+    x2=elx1+elx4
+    y1=ely3+ely2
+    y2=ely1+ely4
+    x1=0.5_rlk*(x1-x2)
+    y1=0.5_rlk*(y1-y2)
+    res(2)=x1*x1+y1*y1
+    res(3)=res(1)
+    res(4)=res(2)
+
+    !res_value = res(1)
+    !do i=2, nshape
+    !    if(res_value > res(i) ) res_value = res(i)
+    !enddo
+  end function dlm_kernel
+
+  attributes(device) pure function denom_kernel(x1,y1,x2, y2) 
+
+    use cudafor
+    integer,parameter:: rlk=8
+    ! Argument list
+    REAL(KIND=rlk),value,INTENT(IN) :: x1,y1,x2,y2
+    ! Result
+    REAL(KIND=rlk)            :: denom_kernel
+    ! Local
+    REAL(KIND=rlk)            :: w1,w2
+
+    w1=y1-y2
+    w2=x1-x2
+    denom_kernel=w1*w1+w2*w2
+  end function denom_kernel
+
+  attributes(device) pure function dln_kernel(nshape, elx1d,elx2d, elx3d, elx4d, ely1d, ely2d,ely3d,ely4d, zcut) result(res)
+
+    use cudafor
+    integer,parameter::ink=4, rlk=8
+
+    ! Argument list
+    INTEGER(KIND=ink) :: nshape
+    REAL(KIND=rlk),INTENT(IN) :: elx1d,elx2d, elx3d, elx4d,ely1d, ely2d, ely3d, ely4d
+    REAL(KIND=rlk) :: elx1,elx2, elx3, elx4,ely1, ely2, ely3, ely4, tmp
+    real(kind=rlk), value,           intent(in) :: zcut
+    ! Result
+    REAL(KIND=rlk),DIMENSION(nshape)            :: res
+    REAL(KIND=rlk)            :: res_value
+    ! Local
+    REAL(KIND=rlk)                              :: w1
+    integer:: i
+
+    elx1 = elx1d
+    elx2 = elx2d
+    elx3 = elx3d
+    elx4 = elx4d
+    ely1 = ely1d
+    ely2 = ely2d
+    ely3 = ely3d
+    ely4 = ely4d
+
+    !w1=denom_kernel(elx3,ely3,elx4,ely4)
+    w1 = (ely3-ely4)*(ely3-ely4)+(elx3-elx4)*(elx3-elx4)
+    IF (w1.LT.zcut) THEN
+      res(1) = (0.5_rlk*(elx1+elx2)-elx3)*(0.5_rlk*(elx1+elx2)-elx3) + &
+&              (0.5_rlk*(ely1+ely2)-ely3)*(0.5_rlk*(ely1+ely2)-ely3) 
+!      res(1)=distpp_kernel(elx1,ely1,elx2,ely2,elx3,ely3)
+    ELSE
+!      res(1)=distpl_kernel(elx1,ely1,elx2,ely2,elx3,ely3,elx4,   &
+!&                   ely4)/w1
+      tmp=0.5_rlk*(ely3-ely4)*(elx1+elx2)+0.5_rlk*(ely1+ely2)*(elx4-elx3)+ely4*elx3-ely3*elx4
+      tmp = tmp*tmp
+      res(1) = tmp/w1
+    ENDIF
+    !w1=denom_kernel(elx4,ely4,elx1,ely1)
+    w1 = (ely4-ely1)*(ely4-ely1)+(elx4-elx1)*(elx4-elx1)
+    IF (w1.LT.zcut) THEN
+      !res(2)=distpp_kernel(elx2,ely2,elx3,ely3,elx4,ely4)
+      res(2) = (0.5_rlk*(elx2+elx3)-elx4)*(0.5_rlk*(elx2+elx3)-elx4) + &
+&              (0.5_rlk*(ely2+ely3)-ely4)*(0.5_rlk*(ely2+ely3)-ely4)
+    ELSE
+!      res(2)=distpl_kernel(elx2,ely2,elx3,ely3,elx4,ely4,elx1,   &
+!&                   ely1)/w1
+      tmp=0.5_rlk*(ely4-ely1)*(elx2+elx3)+0.5_rlk*(ely2+ely3)*(elx1-elx4)+ely1*elx4-ely4*elx1
+      tmp = tmp*tmp
+      res(2) = tmp/w1
+    ENDIF
+    !w1=denom_kernel(elx1,ely1,elx2,ely2)
+    w1 = (ely1-ely2)*(ely1-ely2)+(elx1-elx2)*(elx1-elx2)
+    IF (w1.LT.zcut) THEN
+      !res(3)=distpp_kernel(elx3,ely3,elx4,ely4,elx1,ely1)
+      res(3) = (0.5_rlk*(elx3+elx4)-elx1)*(0.5_rlk*(elx3+elx4)-elx1) + &
+&              (0.5_rlk*(ely3+ely4)-ely1)*(0.5_rlk*(ely3+ely4)-ely1)
+    ELSE
+!      res(3)=distpl_kernel(elx3,ely3,elx4,ely4,elx1,ely1,elx2,   &
+!&                   ely2)/w1
+      tmp=0.5_rlk*(ely1-ely2)*(elx3+elx4)+0.5_rlk*(ely3+ely4)*(elx2-elx1)+ely2*elx1-ely1*elx2
+      tmp = tmp*tmp
+      res(3) = tmp/w1
+    ENDIF
+    !w1=denom_kernel(elx2,ely2,elx3,ely3)
+    w1 = (ely2-ely3)*(ely2-ely3)+(elx2-elx3)*(elx2-elx3)
+    IF (w1.LT.zcut) THEN
+      !res(4)=distpp_kernel(elx4,ely4,elx1,ely1,elx2,ely2)
+      res(4) = (0.5_rlk*(elx4+elx1)-elx2)*(0.5_rlk*(elx4+elx1)-elx2) + &
+&              (0.5_rlk*(ely4+ely1)-ely2)*(0.5_rlk*(ely4+ely1)-ely2)
+    ELSE
+      !res(4)=distpl_kernel(elx4,ely4,elx1,ely1,elx2,ely2,elx3,   &
+!&                   ely3)/w1
+      tmp=0.5_rlk*(ely2-ely3)*(elx4+elx1)+0.5_rlk*(ely4+ely1)*(elx3-elx2)+ely3*elx2-ely2*elx3
+      tmp = tmp*tmp
+      res(4) = tmp/w1
+    ENDIF
+
+    !res_value = res(1)
+    !do i=2, 4
+    !    if(res_value > res(i) ) res_value = res(i)
+    !enddo
+end function dln_kernel
 
   PURE FUNCTION dlm(nshape,elx,ely) RESULT(res)
 
@@ -67,6 +204,7 @@ CONTAINS
     REAL(KIND=rlk),DIMENSION(nshape)            :: res
     ! Local
     REAL(KIND=rlk)                              :: w1
+
 
     w1=denom(elx(3),ely(3),elx(4),ely(4))
     IF (w1.LT.zcut) THEN
@@ -271,6 +409,7 @@ CONTAINS
 
   END SUBROUTINE getgeom_host
 
+
   PURE FUNCTION denom(x1,y1,x2,y2)
 
     USE kinds_mod,ONLY: rlk
@@ -288,6 +427,23 @@ CONTAINS
 
   END FUNCTION denom
 
+  attributes(device) pure function distpp_kernel(x3,y3,x4,y4,x1,y1)
+
+    integer,parameter:: rlk=8
+
+    ! Argument list
+    REAL(KIND=rlk),value,INTENT(IN) :: x3,y3,x4,y4,x1,y1
+    ! Result
+    REAL(KIND=rlk)            :: distpp_kernel
+    ! Local
+    REAL(KIND=rlk)            :: w1,w2
+
+    w1=0.5_rlk*(x3+x4)-x1
+    w2=0.5_rlk*(y3+y4)-y1
+    distpp_kernel=w1*w1+w2*w2
+
+  end function distpp_kernel  
+
   PURE FUNCTION distpp(x3,y3,x4,y4,x1,y1)
 
     USE kinds_mod,ONLY: rlk
@@ -304,6 +460,20 @@ CONTAINS
     distpp=w1*w1+w2*w2
 
   END FUNCTION distpp  
+
+  attributes(device) PURE FUNCTION distpl_kernel(x3,y3,x4,y4,x1,y1,x2,y2)
+
+    integer,parameter:: rlk=8
+
+    ! Argument list
+    REAL(KIND=rlk),value, INTENT(IN) :: x3,y3,x4,y4,x1,y1,x2,y2
+    ! Result
+    REAL(KIND=rlk)            :: distpl_kernel
+
+    distpl_kernel=0.5_rlk*(y1-y2)*(x3+x4)+0.5_rlk*(y3+y4)*(x2-x1)+y2*x1-y1*x2
+    distpl_kernel=distpl_kernel*distpl_kernel
+
+  END FUNCTION distpl_kernel
 
   PURE FUNCTION distpl(x3,y3,x4,y4,x1,y1,x2,y2)
 

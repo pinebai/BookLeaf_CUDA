@@ -19,13 +19,13 @@
 SUBROUTINE hydro()
 
   use cudafor
-  USE kinds_mod,    ONLY: ink,rlk
+  USE kinds_mod,    ONLY: ink,rlk, lok
   USE integers_mod, ONLY: nel,nshape,nstep,idtel,idtreg
   USE logicals_mod, ONLY: zale,zaleon,zmprocw
   USE strings_mod,  ONLY: sdt
   USE reals_mod,    ONLY: time,time_end,dt_initial,time_alemin,         &
 &                         time_alemax, pmeritreg, kappareg
-  USE getdt_mod,    ONLY: getdt
+  USE getdt_mod,    ONLY: getdt, getdt_host
   USE lagstep_mod,  ONLY: lagstep
   USE alestep_mod,  ONLY: alestep
   USE timing_mod,   ONLY: bookleaf_times
@@ -42,9 +42,16 @@ SUBROUTINE hydro()
 &                           pre05=>rscratch13,ndxu=>rscratch14,         &
 &                           ndyv=>rscratch15,dx=>rscratch25,            &
 &                           dy=>rscratch26,scratch=>rscratch27
+  USE pointers_mod,   ONLY: ielsort2
+  USE scratch_mod,    ONLY: store6=>rscratch16,elvv=>rscratch28,        &
+&                           indstatus=>iscratch11,zactive=>zscratch11
     USE integers_mod,   ONLY: eos_type
     USE reals_mod,      ONLY: eos_param,pcut
     USE parameters_mod, ONLY: LI
+
+
+    USE logicals_mod,    ONLY: zdtnotreg,zmidlength
+    USE pointers_mod,    ONLY: iellocglob
   IMPLICIT NONE
 
   ! Local
@@ -58,18 +65,22 @@ SUBROUTINE hydro()
     INTEGER(KIND=ink), allocatable, device             :: d_ielnd(:,:),d_ielel(:,:), &
 &                                                         d_ielsd(:,:),d_indtype(:), &
 &                                                         d_ielreg(:), d_ielmat(:),  &
-&                                                         d_eos_type(:), d_ielsort1(:)
+&                                                         d_eos_type(:), d_ielsort1(:), &
+&                                                         d_iellocglob(:), d_ielsort2(:), &
+&                                                         d_indstatus(:)
 
     REAL(KIND=rlk),allocatable,dimension(:),device     :: d_qq, d_csqrd, d_a1, d_a2, d_a3, d_b1,d_b2, d_b3, d_pre, d_pre05
 
     REAL(KIND=rlk),allocatable,dimension(:,:),device   :: d_qx, d_qy
 
-    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device        :: d_elx,d_ely,d_elu,d_elv, d_cnwt, d_cnmass
-    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device   :: d_dx,d_dy,d_du,d_dv,d_scratch, d_spmass, d_eos_param
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device   :: d_elx,d_ely,d_elu,d_elv, d_cnwt, d_cnmass
+    REAL(KIND=rlk),DIMENSION(:,:),allocatable,device   :: d_dx,d_dy,d_du,d_dv,d_scratch, d_spmass, d_eos_param, &
+&                                                         d_elvv
     REAL(KIND=rlk),DIMENSION(:),allocatable, device    :: d_rho, d_rho05,d_ndu, d_ndv, d_pmeritreg, d_elvol, &
 &                                                         d_kappareg, d_ndx, d_ndy, d_ndxu, d_ndyv, d_elmass, &
-&                                                         d_ein05, d_ein
+&                                                         d_ein05, d_ein, d_store6
 
+    logical(kind=lok), dimension(:), allocatable, device :: d_zdtnotreg, d_zmidlength, d_zactive
     bookleaf_times%time_hydro=get_time()
 
 
@@ -87,7 +98,17 @@ SUBROUTINE hydro()
     allocate(d_rho(nel))
     allocate(d_rho05(nel))
     allocate(d_eos_param(6,LI))
-	
+    allocate(d_zdtnotreg(LI))
+    allocate(d_zmidlength(LI))
+
+
+    !allocate(d_zactive(size(zactive)))
+    !allocate(d_store6(size(store6)))
+    !allocate(d_indstatus(size(indstatus)))
+    !allocate(d_elvv(size(elvv)/size(elvv(0,:)),size(elvv(0,:))))
+
+    if(size(iellocglob)>0) allocate(d_iellocglob(size(iellocglob)))
+
    allocate(d_qq(size(qq)))
    allocate(d_qx(size(qx)/size(qx(0,:)),size(qx(0,:))))
    allocate(d_qy(size(qy)/size(qy(0,:)),size(qy(0,:))))
@@ -129,6 +150,9 @@ SUBROUTINE hydro()
    allocate(d_ielsort1(size(ielsort1)))
    !allocate(d_spmass(size(spmass)/size(spmass(0,:)), size(spmass(0,:))))
 
+   !d_spmass = spmass
+
+   !d_elvol = elvol
    d_ielreg = ielreg
    d_pmeritreg = pmeritreg
    d_kappareg = kappareg   
@@ -155,6 +179,7 @@ SUBROUTINE hydro()
    d_ndx = ndx
    d_ndy = ndy
    d_elmass = elmass
+   d_rho05 = rho05
    d_ein = ein
    d_ein05 = ein05
    d_ielmat = ielmat
@@ -162,24 +187,62 @@ SUBROUTINE hydro()
    d_eos_type = eos_type
    d_cnmass = cnmass
    d_ielsort1 = ielsort1
-   !d_spmass = spmass
-
+   d_elvol = elvol
+   !d_elu = elu
+   !d_elv = elv
+   d_zdtnotreg = zdtnotreg
+   d_zmidlength = zmidlength
+   !d_qq = qq
   l1:DO
     t0=get_time()
     ! increment step
     nstep=nstep+1_ink
 
+
     ! calculate timestep
-    IF (nstep.GT.1_ink) CALL getdt(dt)
+    IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
+&                               d_a1, d_a3, d_b1, d_b3, d_ielnd, d_elvol, d_ndu, d_ndv, d_iellocglob, d_rho05, &
+&                               d_ein05, d_elu, d_elv)
+    !IF (nstep.GT.1_ink) CALL getdt(dt)
+    time=time+dt
+    !d_elu = elu
+    !d_elv = elv
+    !d_rho05 = rho05
+    !d_ein05 = ein05
+
     !# Missing code here that can't be merged
     ! update time
-    time=time+dt
     !# Code here that can't be taken out
     ! lagrangian step
     call  lagstep(dt, d_elu, d_elv, d_elx, d_ely, d_rho, d_rho05,d_qq, d_qx, d_qy, d_du, d_dv, d_dx, &
 &    d_dy, d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, d_ndu, d_ndv, d_a1, d_a3, d_b1, &
 &    d_b3, d_pre,d_pre05, d_ielreg, d_pmeritreg, d_spmass, d_elvol, d_kappareg, d_ndx, d_ndy, d_ndxu, d_ndyv,&
 &    d_a2, d_b2, d_cnwt, d_elmass, d_ein05, d_ein, d_ielmat, d_eos_type, d_eos_param, d_cnmass, d_ielsort1)
+
+
+    ! ale step
+    IF (zale) THEN
+      zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
+      print *, 'called'
+      IF (zaleon) CALL alestep(nstep,dt)
+    ENDIF
+    !# Missing code here that can't be merged
+    t1=get_time()
+    t2=t1-t0
+    grind=t2*1.0e6_rlk/nel
+    IF (zmprocw) THEN
+      WRITE(6,'(" step=",i7,"  el=",i9,"  reg=",i3,"  dt=",1pe16.9,'    &
+&      //'"  time=",1pe16.9,"  grind=",1pe8.1,"  timer=",1pe16.9," s",' &
+&      //'2X,a8)') nstep,idtel,idtreg,dt,time,grind,t2,sdt
+    ENDIF
+    ! IO Timing data
+    t2=get_time()
+    t2=t2-t1
+    bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
+    ! test for end of calculation
+    IF (time.GE.time_end) EXIT l1
+    !# test for resources
+  ENDDO l1
 
 qq = d_qq
 qx = d_qx
@@ -208,36 +271,13 @@ rho = d_rho
 ein05 = d_ein05
 pre05 = d_pre05
 pre = d_pre
+pre05 = d_pre05
 csqrd = d_csqrd
 ndx = d_ndx
 ndy = d_ndy
 ndu = d_ndu
 ndv = d_ndv
 ein = d_ein
-
-    ! ale step
-    IF (zale) THEN
-      zaleon=(time.GE.time_alemin).AND.(time.LE.time_alemax)
-      IF (zaleon) CALL alestep(nstep,dt)
-    ENDIF
-    !# Missing code here that can't be merged
-    t1=get_time()
-    t2=t1-t0
-    grind=t2*1.0e6_rlk/nel
-    IF (zmprocw) THEN
-      WRITE(6,'(" step=",i7,"  el=",i9,"  reg=",i3,"  dt=",1pe16.9,'    &
-&      //'"  time=",1pe16.9,"  grind=",1pe8.1,"  timer=",1pe16.9," s",' &
-&      //'2X,a8)') nstep,idtel,idtreg,dt,time,grind,t2,sdt
-    ENDIF
-    ! IO Timing data
-    t2=get_time()
-    t2=t2-t1
-    bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
-    ! test for end of calculation
-    IF (time.GE.time_end) EXIT l1
-    !# test for resources
-  ENDDO l1
-
 	deallocate(d_elu)
 	deallocate(d_elv)
 	deallocate(d_elx)

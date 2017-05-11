@@ -19,6 +19,7 @@
 module TYPH_Types_mod
   
   use MPI
+  !include 'mpif.h'
   
   implicit none
   

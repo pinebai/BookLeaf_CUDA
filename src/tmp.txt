@@ -1,0 +1,31 @@
+
+    w2=TINY(1.0_rlk)
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndu(1),elv(1,1))
+    CALL gather(nshape,nel,nnod,ielnd(1,1),ndv(1),elu(1,1))
+    DO iel=1,nel
+      w1=elu(1,iel)*(-b3(iel)+b1(iel))+elv(1,iel)*( a3(iel)-a1(iel))+   &
+&        elu(2,iel)*( b3(iel)+b1(iel))+elv(2,iel)*(-a3(iel)-a1(iel))+   &
+&        elu(3,iel)*( b3(iel)-b1(iel))+elv(3,iel)*(-a3(iel)+a1(iel))+   &
+&        elu(4,iel)*(-b3(iel)-b1(iel))+elv(4,iel)*( a3(iel)+a1(iel))
+      w1=ABS(w1)/elvol(iel)
+      hww(iel) = w1
+      IF (w1.GT.w2) THEN
+        w2=w1
+        ii=iel
+      ENDIF
+    ENDDO
+
+    if(h_w1 == w2) then 
+        print *, 'value correct'
+    else
+        print *, 'value error'
+        !call halt("ii error", 1, .true.)
+    endif
+
+    if(ii == h_loc) then 
+        print *, 'ii correct'
+    else
+        print *, 'ii error', ii, h_loc, nel
+        !call halt("ii error", 1, .true.)
+    endif
+
