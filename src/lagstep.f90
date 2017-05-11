@@ -79,6 +79,9 @@ CONTAINS
     USE timing_mod,   ONLY: timer=>bookleaf_times
     USE TYPH_util_mod,ONLY: get_time
 
+    USE scratch_mod,  ONLY: elfx=>rscratch23,elfy=>rscratch24,          &
+&                           dx=>rscratch25, dy=>rscratch26, rho05=>rscratch11
+
     ! Argument list
     REAL(KIND=rlk),INTENT(IN) :: dt
     ! Local
@@ -119,7 +122,7 @@ CONTAINS
     call gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd,d_ndv,d_elv)
 	
     CALL getq_host(nshape,nel, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
-& d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd)
+& d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, elfx, elfy,dx, dy)
 
 	    ! Force
 	    CALL getforce_host(nshape,nel,dt05, .FALSE._lok, d_elx, d_ely, d_elu, d_elv, &
@@ -159,7 +162,7 @@ CONTAINS
 	    ! ###############
 	    ! Artificial viscosity
     	CALL getq_host(nshape,nel, d_elu, d_elv, d_elx, d_ely, d_rho05, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
-&   					d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd)
+&              d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, elfx, elfy, dx, dy)
 
 	    ! Force
 
@@ -173,7 +176,8 @@ CONTAINS
 
     	CALL getacc_host(nshape,nel,nel1,nnod,nnod1,d_du,d_dv,d_ndxu, &
 &               	d_ndyv,d_elu, d_elv,d_rho05,dt05,dt, d_ielnd,d_cnmass, &
-&               	d_cnwt,d_indtype,d_ndu,d_ndv,d_ndx,d_ndy, d_ielsort1)
+&               	d_cnwt,d_indtype,d_ndu,d_ndv,d_ndx,d_ndy, d_ielsort1, &
+&                   elfx(1,1), elfy(1,1), rho05(1))
 
 
 	    ! Update geometry and iso-parametric terms

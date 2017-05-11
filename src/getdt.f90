@@ -333,7 +333,6 @@ CONTAINS
 &                               d_ein05, d_elu, d_elv)
 
     use cudafor
-    use cublas_v2
     use getdt_mod_kernel
     USE kinds_mod,       ONLY: rlk,ink, lok
     USE reals_mod,       ONLY: ccut,zcut,cfl_sf,div_sf,ale_sf,dt_g,     &
@@ -352,8 +351,8 @@ CONTAINS
     USE utilities_mod,   ONLY: gather_kernel, gather
     USE timing_mod,      ONLY: bookleaf_times
     USE TYPH_util_mod,   ONLY: get_time
+    use pointers_mod,    only: iellocglob
     USE TYPH_Collect_mod,ONLY: TYPH_Gather
-    type(cublasHandle) :: handle
 
     INTEGER(KIND=ink), allocatable, device             :: d_ielnd(:,:), d_ielreg(:), d_iellocglob(:)
 
@@ -419,34 +418,23 @@ CONTAINS
     CALL gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd,d_ndv,d_elu)
 
     call divergence_kernel<<<block_num, thread_num>>>(nel, d_elvol, d_elu, d_elv, d_a1, d_a3, d_b1, d_b3, w1_array)
-
-       t1=get_time()
-       t1=t1-t0
-       bookleaf_times%time_in_getdt=bookleaf_times%time_in_getdt+t1
     d_tmp_array = TINY(1.0_rlk)
-
-    t0=get_time()
     call reduction(w1_array, d_tmp_array, nel, 1, block_num, thread_num)
     call get_max_loc<<<block_num, thread_num>>>(d_tmp_array,w1_array, d_w1, loc, nel, d_rdt, d_idt, div_sf)
 
-       t1=get_time()
-       t1=t1-t0
-       bookleaf_times%time_in_getdt=bookleaf_times%time_in_getdt+t1
-    !h_loc = loc
-    !h_w1 = d_w1
-    !rdt(2)=div_sf/h_w1
-    !idt(2)=loc
-
        ! ALE
-       t0=get_time()
        IF (zale.AND.zaleon) THEN
+             print *, "in ale"
          w2=HUGE(1.0_rlk)
          IF (zeul) THEN
+             print *, "in ale"
              call ale_kernel<<<block_num, thread_num>>>(nel, d_elu, d_elv, d_ein05, zerocut, ale_sf, w1_array)
              d_tmp_array = HUGE(1.0_rlk)
              call reduction(d_ein05, d_tmp_array, nel, 0, block_num, thread_num)
              loc = nel+1
              call get_min_loc<<<block_num, thread_num>>>(d_tmp_array, d_ein05, d_w1, loc, nel, d_rdt, d_idt, ale_sf, 3)
+             !w2 = d_w1
+             !ii = loc
              !hw1_array = w1_array
              !do iel=1, nel
              !IF (hw1_array(iel).LT.w2) THEN
@@ -455,15 +443,14 @@ CONTAINS
              !ENDIF
              !ENDDO
          ENDIF
-         !rdt(3)=ale_sf*SQRT(w2)
+         
+        !print *, "after ale"
+        !rdt(3)=ale_sf*SQRT(w2)
          !idt(3)=ii
        ENDIF
        ! Growth
-       t1=get_time()
-       t1=t1-t0
-       bookleaf_times%time_in_getdt=bookleaf_times%time_in_getdt+t1
-        rdt = d_rdt
-        idt = d_idt
+       rdt = d_rdt
+       idt = d_idt
        rdt(4)=dt_g*dt
        idt(4)=-1_ink
        ! Maximum
@@ -474,6 +461,7 @@ CONTAINS
 
        ! Find smallest timestep, store info
        ii=MINVAL(MINLOC(rdt))
+       if(ii==3) print *, "undefined 3"
        dt=rdt(ii)
        idtel=idt(ii)
        IF (idtel.GT.0_ink) THEN
@@ -509,6 +497,9 @@ CONTAINS
 
        ! Check minimum
        IF (dt.LT.dt_min) CALL halt("ERROR: dt < dt_min",1,.true.)
+       t1=get_time()
+       t1=t1-t0
+       bookleaf_times%time_in_getdt=bookleaf_times%time_in_getdt+t1
 
        ! Timing data
 end subroutine getdt_host
@@ -603,6 +594,7 @@ end subroutine getdt_host
     idt(2)=ii
     ! ALE
     IF (zale.AND.zaleon) THEN
+          print *, "in ale"
       w2=HUGE(1.0_rlk)
       IF (zeul) THEN
         DO iel=1,nel
@@ -619,6 +611,7 @@ end subroutine getdt_host
       ELSE
         ! Other options
       ENDIF
+      print *, 'after ale'
       rdt(3)=ale_sf*SQRT(w2)
       idt(3)=ii
     ENDIF
@@ -633,6 +626,7 @@ end subroutine getdt_host
 
     ! Find smallest timestep, store info
     ii=MINVAL(MINLOC(rdt))
+       if(ii==3) print *, "undefined 3"
     dt=rdt(ii)
     idtel=idt(ii)
     IF (idtel.GT.0_ink) THEN

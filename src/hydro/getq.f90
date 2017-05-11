@@ -317,7 +317,7 @@ MODULE getq_mod
 
 CONTAINS
   SUBROUTINE getq_host(nshape,nel, d_elu, d_elv, d_elx, d_ely, d_rho, d_qq, d_qx, d_qy, d_du, d_dv, d_dx, d_dy, &
-& d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd)!, rho, elv, elu, ely, elx, du, dv, dx, dy, scratch)
+          & d_scratch, d_ielel, d_ielnd, d_ielsd, d_indtype, d_csqrd, du, dv, dx, dy)!, rho, elv, elu, ely, elx, du, dv, dx, dy, scratch)
     use cudafor
     use cublas
     use getq_kernel
@@ -334,7 +334,7 @@ CONTAINS
     !REAL(KIND=rlk),DIMENSION(nshape,nel),INTENT(IN)    :: elx,ely,elu,  &
 !&                                                         elv
     !REAL(KIND=rlk),DIMENSION(nel),       INTENT(IN)    :: rho
-    !REAL(KIND=rlk),DIMENSION(:,:)                      :: dx,dy,du,dv,  &
+    REAL(KIND=rlk),DIMENSION(:,:)                      :: dx,dy,du,dv  
 !&                                                         scratch
     ! Local
     INTEGER(KIND=ink)                                  :: iel,iside,in1,&
@@ -373,7 +373,15 @@ CONTAINS
 
     ! MPI parallelism
     IF (zparallel) THEN
+        du = d_du
+        dv = d_dv
+        dx = d_dx
+        dy = d_dy
       CALL exchange(VISCOSITY)
+        d_du = du
+        d_dv = dv
+        d_dx = dx
+        d_dy = dy
     ENDIF
 
     ! Christiensen monotonic limit
@@ -381,7 +389,6 @@ CONTAINS
       is1=MOD(iside+2_ink,nshape)+1_ink
       is2=iside+1_ink
       
-      !print *, 'o kernel', iside, nel, is1, is2, zerocut
       call compute_edge_kernel<<<block_num,thread_num>>>(d_ielel, iside, d_du, d_dv, d_dx, d_dy, &
 &                                                     is1,is2, d_ielsd, nshape, d_scratch, zerocut, nel)
 

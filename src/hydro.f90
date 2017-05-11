@@ -21,7 +21,7 @@ SUBROUTINE hydro()
   use cudafor
   USE kinds_mod,    ONLY: ink,rlk, lok
   USE integers_mod, ONLY: nel,nshape,nstep,idtel,idtreg
-  USE logicals_mod, ONLY: zale,zaleon,zmprocw
+  USE logicals_mod, ONLY: zale,zaleon,zmprocw, zparallel
   USE strings_mod,  ONLY: sdt
   USE reals_mod,    ONLY: time,time_end,dt_initial,time_alemin,         &
 &                         time_alemax, pmeritreg, kappareg
@@ -200,16 +200,20 @@ SUBROUTINE hydro()
 
 
     ! calculate timestep
-    IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
+
+    if(zparallel) then
+        IF (nstep.GT.1_ink) CALL getdt(dt)
+        d_elu = elu
+        d_elv = elv
+        d_rho05 = rho05
+        d_ein05 = ein05
+    else
+        IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
 &                               d_a1, d_a3, d_b1, d_b3, d_ielnd, d_elvol, d_ndu, d_ndv, d_iellocglob, d_rho05, &
 &                               d_ein05, d_elu, d_elv)
-    !IF (nstep.GT.1_ink) CALL getdt(dt)
+    endif
+    
     time=time+dt
-    !d_elu = elu
-    !d_elv = elv
-    !d_rho05 = rho05
-    !d_ein05 = ein05
-
     !# Missing code here that can't be merged
     ! update time
     !# Code here that can't be taken out
@@ -238,64 +242,134 @@ SUBROUTINE hydro()
     ! IO Timing data
     t2=get_time()
     t2=t2-t1
+
+    if(zparallel) then
+        qq = d_qq
+        qx = d_qx
+        qy = d_qy
+        elfx = d_du
+        elfy = d_dv
+        dx = d_dx
+        dy = d_dy
+        elu = d_elu
+        elv = d_elv
+        scratch = d_scratch
+        ndxu = d_ndxu
+        ndyv = d_ndyv
+        elx = d_elx
+        ely = d_ely
+        a1 = d_a1
+        a2 = d_a2
+        a3 = d_a3
+        b1 = d_b1
+        b2 = d_b2
+        b3 = d_b3
+        cnwt = d_cnwt
+        elvol = d_elvol
+        rho05 = d_rho05
+        rho = d_rho
+        ein05 = d_ein05
+        pre05 = d_pre05
+        pre = d_pre
+        pre05 = d_pre05
+        csqrd = d_csqrd
+        ndx = d_ndx
+        ndy = d_ndy
+        ndu = d_ndu
+        ndv = d_ndv
+        ein = d_ein
+    endif
     bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
     ! test for end of calculation
     IF (time.GE.time_end) EXIT l1
     !# test for resources
   ENDDO l1
 
-qq = d_qq
-qx = d_qx
-qy = d_qy
-elfx = d_du
-elfy = d_dv
-dx = d_dx
-dy = d_dy
-elu = d_elu
-elv = d_elv
-scratch = d_scratch
-ndxu = d_ndxu
-ndyv = d_ndyv
-elx = d_elx
-ely = d_ely
-a1 = d_a1
-a2 = d_a2
-a3 = d_a3
-b1 = d_b1
-b2 = d_b2
-b3 = d_b3
-cnwt = d_cnwt
-elvol = d_elvol
-rho05 = d_rho05
-rho = d_rho
-ein05 = d_ein05
-pre05 = d_pre05
-pre = d_pre
-pre05 = d_pre05
-csqrd = d_csqrd
-ndx = d_ndx
-ndy = d_ndy
-ndu = d_ndu
-ndv = d_ndv
-ein = d_ein
-	deallocate(d_elu)
-	deallocate(d_elv)
-	deallocate(d_elx)
-	deallocate(d_ely)
-    deallocate(d_rho)
-    deallocate(d_rho05)
-		
-    deallocate(d_qq)
-    deallocate(d_qx)
-    deallocate(d_qy)
-    deallocate(d_du)
-    deallocate(d_dv)
-    deallocate(d_dx)
-    deallocate(d_dy)
-    deallocate(d_scratch)
-    deallocate(d_ielel)
-    deallocate(d_ielnd)
-    deallocate(d_ielsd)
-    deallocate(d_indtype)
-    deallocate(d_csqrd)
+    qq = d_qq
+    qx = d_qx
+    qy = d_qy
+    elfx = d_du
+    elfy = d_dv
+    dx = d_dx
+    dy = d_dy
+    elu = d_elu
+    elv = d_elv
+    scratch = d_scratch
+    ndxu = d_ndxu
+    ndyv = d_ndyv
+    elx = d_elx
+    ely = d_ely
+    a1 = d_a1
+    a2 = d_a2
+    a3 = d_a3
+    b1 = d_b1
+    b2 = d_b2
+    b3 = d_b3
+    cnwt = d_cnwt
+    elvol = d_elvol
+    rho05 = d_rho05
+    rho = d_rho
+    ein05 = d_ein05
+    pre05 = d_pre05
+    pre = d_pre
+    pre05 = d_pre05
+    csqrd = d_csqrd
+    ndx = d_ndx
+    ndy = d_ndy
+    ndu = d_ndu
+    ndv = d_ndv
+    ein = d_ein
+    ! deallocate(d_elu)
+    ! deallocate(d_elv)!(nshape, nel))
+    ! deallocate(d_elx)!(nshape, nel))
+    ! deallocate(d_ely)!(nshape, nel))
+    ! deallocate(d_rho)!(nel))
+    ! deallocate(d_rho05)!(nel))
+    ! deallocate(d_eos_param)!(6,LI))
+    ! deallocate(d_zdtnotreg)!(LI))
+    ! deallocate(d_zmidlength)!(LI))
+    !
+    !
+    ! if(size(iellocglob)>0) deallocate(d_iellocglob)!(size(iellocglob)))
+    !
+    !deallocate(d_qq)!(size(qq)))
+    !deallocate(d_qx)!(size(qx)/size(qx(0,:)),size(qx(0,:))))
+    !deallocate(d_qy)!(size(qy)/size(qy(0,:)),size(qy(0,:))))
+    !deallocate(d_du)!(size(elfx)/size(elfx(0,:)),size(elfx(0,:))))
+    !deallocate(d_dv)!(size(elfy)/size(elfy(0,:)),size(elfy(0,:))))
+    !deallocate(d_dx)!(size(dx)/size(dx(0,:)),size(dx(0,:))))
+    !deallocate(d_dy)!(size(dy)/size(dy(0,:)),size(dy(0,:))))
+    !deallocate(d_scratch)!(size(scratch)/size(scratch(0,:)), size(scratch(0,:))))
+    !deallocate(d_ielel)!(size(ielel)/size(ielel(0,:)),size(ielel(0,:))))
+    !deallocate(d_ielnd)!(size(ielnd)/size(ielnd(0,:)),size(ielnd(0,:))))
+    !deallocate(d_ielsd)!(size(ielsd)/size(ielsd(0,:)),size(ielsd(0,:))))
+    !deallocate(d_cnwt)!(size(cnwt)/size(cnwt(0,:)),size(cnwt(0,:))))
+    !deallocate(d_cnmass)!(size(cnmass)/size(cnmass(0,:)),size(cnmass(0,:))))
+    !deallocate(d_indtype)!(size(indtype)))
+    !deallocate(d_csqrd)!(size(csqrd)))
+    !deallocate(d_ndu)!(size(ndu)))
+    !deallocate(d_ndv)!(size(ndv)))
+    !deallocate(d_ndx)!(size(ndx)))
+    !deallocate(d_ndy)!(size(ndy)))
+    !deallocate(d_a1)!(size(a1)))
+    !deallocate(d_a2)!(size(a2)))
+    !deallocate(d_a3)!(size(a3)))
+    !deallocate(d_b1)!(size(b1)))
+    !deallocate(d_b2)!(size(b2)))
+    !deallocate(d_b3)!(size(b3)))
+    !deallocate(d_pre)!(size(pre)))
+    !deallocate(d_pre05)!(size(pre05)))
+    !deallocate(d_ielreg)!(size(ielreg)))
+    !deallocate(d_pmeritreg)!(size(pmeritreg)))
+    !deallocate(d_elvol)!(size(elvol)))
+    !deallocate(d_kappareg)!(size(kappareg)))
+    !deallocate(d_ndxu)!(size(ndxu)))
+    !deallocate(d_ndyv)!(size(ndyv)))
+    !deallocate(d_elmass)!(size(elmass)))
+    !deallocate(d_ein05)!(size(ein05)))
+    !deallocate(d_ein)!(size(ein)))
+    !deallocate(d_ielmat)!(size(ielmat)))
+    !deallocate(d_eos_type)!(size(eos_type)))
+    !deallocate(d_ielsort1)!(size(ielsort1)))
+	
 END SUBROUTINE hydro

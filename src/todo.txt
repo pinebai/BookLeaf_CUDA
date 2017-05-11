@@ -1,3 +1,2 @@
 spmass varibale in getsp function
 geometry getgeometry function if any part
-getpc merge funciton

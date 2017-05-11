@@ -298,15 +298,15 @@ SUBROUTINE getacc(nshape,nel,nes,nnod,nns,cnfx,cnfy,ndub,ndvb,elu,elv,&
 
 
   SUBROUTINE getacc_host(nshape,nel,nes,nnod,nns,cnfx,cnfy,ndub,ndvb,elu,elv,&
-&                   rho,dt05,dt, ielnd,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy,  &
-&                   ielsort1)
+&                   d_rho,dt05,dt, ielnd,d_cnmass,d_cnwt,indtype,ndu,ndv,ndx,ndy,  &
+&                   ielsort1, elfx, elfy, rho05)
 
     use getacc_mod_kernel
     USE kinds_mod,    ONLY: ink,rlk
     USE reals_mod,    ONLY: zerocut,dencut,accut
     USE logicals_mod, ONLY: zparallel
     USE comms_mod,    ONLY: HALFSTEP,exchange
-!    USE pointers_mod, ONLY: ielnd,cnmass,cnwt,indtype,ndu,ndv,ndx,ndy,  &
+    USE pointers_mod, ONLY: cnmass,cnwt
 !&                           ielsort1
     USE utilities_mod,ONLY: gather, gather_kernel
     USE timing_mod,   ONLY: bookleaf_times
@@ -315,14 +315,17 @@ SUBROUTINE getacc(nshape,nel,nes,nnod,nns,cnfx,cnfy,ndub,ndvb,elu,elv,&
     ! Argument list
     INTEGER(KIND=ink),                   INTENT(IN)  :: nshape,nel,nnod,&
 &                                                       nes,nns
+    REAL(KIND=rlk),DIMENSION(nshape,nes) :: elfx,elfy
+    REAL(KIND=rlk),DIMENSION(nes)        :: rho05
+
     integer(kind=ink), dimension(:,:), device        :: ielnd
     integer(kind=ink), dimension(:), device        :: indtype,ielsort1
-    REAL(KIND=rlk),DIMENSION(:,:),INTENT(IN),device  :: cnfx,cnfy
+    REAL(KIND=rlk),DIMENSION(:,:),device  :: cnfx,cnfy
     REAL(KIND=rlk),DIMENSION(:), INTENT(OUT), device :: ndub,ndvb
     REAL(KIND=rlk),DIMENSION(:,:),INTENT(OUT),device :: elu,elv
-    REAL(KIND=rlk),DIMENSION(:),  INTENT(IN),device  :: rho
+    REAL(KIND=rlk),DIMENSION(:),device  :: d_rho
     REAL(KIND=rlk),                      INTENT(IN)  :: dt05,dt
-    real(kind=rlk), dimension(:,:), device           :: cnmass,cnwt
+    real(kind=rlk), dimension(:,:), device           :: d_cnmass,d_cnwt
     real(kind=rlk), dimension(:), device             :: ndu,ndv,ndx,ndy
     ! Local
     INTEGER(KIND=ink)                                :: ii,jj,kk,iel,   &
@@ -342,7 +345,17 @@ SUBROUTINE getacc(nshape,nel,nes,nnod,nns,cnfx,cnfy,ndub,ndvb,elu,elv,&
 
     ! MPI parallelism
     IF (zparallel) THEN
+        cnmass = d_cnmass 
+        cnwt = d_cnwt 
+        elfx = cnfx 
+        elfy = cnfy 
+        rho05 = d_rho 
       call exchange(HALFSTEP)
+        d_cnmass = cnmass 
+        d_cnwt = cnwt 
+        cnfx = elfx 
+        cnfy= elfy 
+        d_rho = rho05 
     ENDIF
 
     ! Construct nodal mass and scatter force to nodes
@@ -353,16 +366,16 @@ SUBROUTINE getacc(nshape,nel,nes,nnod,nns,cnfx,cnfy,ndub,ndvb,elu,elv,&
 
     block_num = ceiling(real(nes)/thread_num)
     call construct_force<<<block_num, thread_num>>>(nes, zparallel, ielsort1, ielnd, &
-&                                                   cnmass, ndmass, rho, cnwt, ndarea, &
+&                                                   d_cnmass, ndmass, d_rho, d_cnwt, ndarea, &
 &                                                   ndub, ndvb, cnfx, cnfy, 1, zerocut)
     call construct_force<<<block_num, thread_num>>>(nes, zparallel, ielsort1, ielnd, &
-&                                                   cnmass, ndmass, rho, cnwt, ndarea, &
+&                                                   d_cnmass, ndmass, d_rho, d_cnwt, ndarea, &
 &                                                   ndub, ndvb, cnfx, cnfy, 2, zerocut)
     call construct_force<<<block_num, thread_num>>>(nes, zparallel, ielsort1, ielnd, &
-&                                                   cnmass, ndmass, rho, cnwt, ndarea, &
+&                                                   d_cnmass, ndmass, d_rho, d_cnwt, ndarea, &
 &                                                   ndub, ndvb, cnfx, cnfy, 3, zerocut)
     call construct_force<<<block_num, thread_num>>>(nes, zparallel, ielsort1, ielnd, &
-&                                                   cnmass, ndmass, rho, cnwt, ndarea, &
+&                                                   d_cnmass, ndmass, d_rho, d_cnwt, ndarea, &
 &                                                   ndub, ndvb, cnfx, cnfy, 4, zerocut)
     ! Calculate acceleration
     block_num = ceiling(real(nnod)/thread_num)

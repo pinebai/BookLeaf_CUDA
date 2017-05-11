@@ -51,8 +51,6 @@ module getpc_mod_kernel
             pre(idx)=getpre_kernel(ielmat(idx),rho(idx),ein(idx), eos_type, eos_param, pcut)
             csqrd(idx)=getcc_kernel(ielmat(idx),rho(idx),ein(idx), eos_type, eos_param, pcut)
         endif
-        
-        !csqrd=MERGE(csqrd,0.0_rlk,csqrd.GT.0.0_rlk)
 
         end subroutine getpc_kernel
 end module getpc_mod_kernel
