@@ -50,44 +50,69 @@ contains
 
         integer::idx 
         INTEGER(KIND=ink), value::nel
+        real(kind=rlk) :: elu1, elu2, elu3, elu4, elv1, elv2, elv3, elv4, elx1, elx2, elx3, elx4 ,&
+&                         ely1, ely2, ely3, ely4
 
         idx = threadIdx%x + (blockIdx%x-1)*blockDim%x
         !nel = size(d_qq)
         
         if(idx <= nel) then
-            d_du(1,idx)=d_elu(2,idx)-d_elu(1,idx)
-            d_du(2,idx)=d_elu(3,idx)-d_elu(2,idx)
-            d_du(3,idx)=d_elu(4,idx)-d_elu(3,idx)
-            d_du(4,idx)=d_elu(1,idx)-d_elu(4,idx)
-            d_dv(1,idx)=d_elv(2,idx)-d_elv(1,idx)
-            d_dv(2,idx)=d_elv(3,idx)-d_elv(2,idx)
-            d_dv(3,idx)=d_elv(4,idx)-d_elv(3,idx)
-            d_dv(4,idx)=d_elv(1,idx)-d_elv(4,idx)
-            d_dx(1,idx)=d_elx(2,idx)-d_elx(1,idx)
-            d_dx(2,idx)=d_elx(3,idx)-d_elx(2,idx)
-            d_dx(3,idx)=d_elx(4,idx)-d_elx(3,idx)
-            d_dx(4,idx)=d_elx(1,idx)-d_elx(4,idx)
-            d_dy(1,idx)=d_ely(2,idx)-d_ely(1,idx)
-            d_dy(2,idx)=d_ely(3,idx)-d_ely(2,idx)
-            d_dy(3,idx)=d_ely(4,idx)-d_ely(3,idx)
-            d_dy(4,idx)=d_ely(1,idx)-d_ely(4,idx)
+
+            elu1 = d_elu(1, idx)
+            elu2 = d_elu(2, idx)
+            elu3 = d_elu(3, idx)
+            elu4 = d_elu(4, idx)
+
+            elv1 = d_elv(1, idx)
+            elv2 = d_elv(2, idx)
+            elv3 = d_elv(3, idx)
+            elv4 = d_elv(4, idx)
+
+            elx1 = d_elx(1, idx)
+            elx2 = d_elx(2, idx)
+            elx3 = d_elx(3, idx)
+            elx4 = d_elx(4, idx)
+
+            ely1 = d_ely(1, idx)
+            ely2 = d_ely(2, idx)
+            ely3 = d_ely(3, idx)
+            ely4 = d_ely(4, idx)
+
+            d_du(1,idx)=elu2-elu1
+            d_du(2,idx)=elu3-elu2
+            d_du(3,idx)=elu4-elu3
+            d_du(4,idx)=elu1-elu4
+            d_dv(1,idx)=elv2-elv1
+            d_dv(2,idx)=elv3-elv2
+            d_dv(3,idx)=elv4-elv3
+            d_dv(4,idx)=elv1-elv4
+            d_dx(1,idx)=elx2-elx1
+            d_dx(2,idx)=elx3-elx2
+            d_dx(3,idx)=elx4-elx3
+            d_dx(4,idx)=elx1-elx4
+            d_dy(1,idx)=ely2-ely1
+            d_dy(2,idx)=ely3-ely2
+            d_dy(3,idx)=ely4-ely3
+            d_dy(4,idx)=ely1-ely4
         endif
     end subroutine init_kernel_array
 
-    attributes(global) subroutine compute_edge_kernel(d_ielel, d_iside, d_du, d_dv, d_dx, d_dy, &
-&                                                     d_is1,d_is2, d_ielsd, d_nshape, d_scratch, d_zerocut, d_nel)
+    attributes(global) subroutine compute_edge_kernel1(d_ielel, d_iside, d_du, d_dv, d_dx, d_dy, &
+&                                                     d_ielsd, d_nshape, d_scratch, d_zerocut, d_nel)
     implicit none
     integer, parameter::ink=4, rlk=8
 
 		!parameters
 		integer(kind=ink):: d_ielnd(:,:),d_ielel(:,:),d_ielsd(:,:)
-		integer(kind=ink), value::d_iside, d_nshape,d_is1, d_is2
+		integer(kind=ink), value::d_iside, d_nshape
 		integer(kind=ink), value,intent(in)::d_nel
 		real(kind=rlk), dimension(:,:)::d_du, d_dv, d_dx, d_dy, d_scratch
         real(kind=rlk), value::d_zerocut
 		!local variable
-		integer(kind=ink):: d_in1, d_in2, d_ins 
+		integer(kind=ink):: d_in1, d_in2, d_ins, d_is1, d_is2
 		real(kind=rlk):: d_w1, d_w2, d_w3, d_w4, d_den, d_uhat, d_vhat, d_xhat, d_yhat 
+        real(kind=rlk):: d_du1, d_du2, d_du3, d_du4, d_dv1, d_dv2,d_dv3, d_dv4, d_dx1,d_dx2,d_dx3,d_dx4,d_dy1,d_dy2,d_dy3,d_dy4
+        integer(kind=ink)::ielel1, ielel2, ielel3, ielel4
 		integer::idx 
 		
         idx = threadIdx%x + (blockIdx%x-1)*blockDim%x
@@ -97,14 +122,49 @@ contains
         !print *, 'i kernel', d_iside, d_nel, d_is1, d_is2, d_zerocut
         !endif
 		if(idx<=d_nel) then
-			d_in1=d_ielel(d_iside,idx)
-			d_in2=d_ielel(d_iside+2,idx)
+
+            ielel1=d_ielel(1, idx)
+            !ielel2=d_ielel(2, idx)
+            ielel3=d_ielel(3, idx)
+            !ielel4=d_ielel(4, idx)
+
+            !d_du1 = d_du(1, idx)
+            d_du2 = d_du(2, idx)
+            !d_du3 = d_du(3, idx)
+            d_du4 = d_du(4, idx)
+
+            !d_du1 = d_du(1, idx)
+            d_du2 = d_du(2, idx)
+            !d_du3 = d_du(3, idx)
+            d_du4 = d_du(4, idx)
+
+            !d_dv1 = d_dv(1, idx)
+            d_dv2 = d_dv(2, idx)
+            !d_dv3 = d_dv(3, idx)
+            d_dv4 = d_dv(4, idx)
+
+            !d_dx1 = d_dx(1, idx)
+            d_dx2 = d_dx(2, idx)
+            !d_dx3 = d_dx(3, idx)
+            d_dx4 = d_dx(4, idx)
+
+            !d_dy1 = d_dy(1, idx)
+            d_dy2 = d_dy(2, idx)
+            !d_dy3 = d_dy(3, idx)
+            d_dy4 = d_dy(4, idx)
+
+            d_is1=4
+            d_is2=2
+
+			d_in1=ielel1
+			d_in2=ielel3
 			! edge 1
-			d_w1=d_du(d_is1,idx)
-			d_w2=d_dv(d_is1,idx)
-			d_w3=d_dx(d_is1,idx)
-			d_w4=d_dy(d_is1,idx)
-			d_den=sqrt(d_w1*d_w1+d_w2*d_w2)
+			d_w1=d_du4
+			d_w2=d_dv4	
+            d_w3=d_dx4
+			d_w4=d_dy4
+		
+            d_den=sqrt(d_w1*d_w1+d_w2*d_w2)
 			d_den=1.0_rlk/MAX(d_den,d_zerocut)
 			d_uhat=d_w1*d_den
 			d_vhat=d_w2*d_den
@@ -115,23 +175,23 @@ contains
 			d_den=d_w3*d_xhat+d_w4*d_yhat
 			d_w1=(d_w1*d_uhat+d_w2*d_vhat)/SIGN(MAX(ABS(d_den),d_zerocut),d_den)
 			d_w1=1.0_rlk/SIGN(MAX(ABS(d_w1),d_zerocut),d_w1)
-			d_ins=d_ielsd(d_iside,idx)
+			d_ins=d_ielsd(1,idx)
 			d_ins=MOD(d_ins,d_nshape)+1_ink
 			d_den=d_dx(d_ins,d_in1)*d_xhat+d_dy(d_ins,d_in1)*d_yhat
 			d_w2=(d_du(d_ins,d_in1)*d_uhat+d_dv(d_ins,d_in1)*d_vhat)/                        &
 &       	SIGN(MAX(ABS(d_den),d_zerocut),d_den)
 			d_scratch(1,idx)=d_w2*d_w1
-			d_ins=d_ielsd(d_iside+2_ink,idx)
+			d_ins=d_ielsd(3,idx)
 			d_ins=MOD(d_ins+2_ink,d_nshape)+1_ink
 			d_den=d_dx(d_ins,d_in2)*d_xhat+d_dy(d_ins,d_in2)*d_yhat
 			d_w3=(d_du(d_ins,d_in2)*d_uhat+d_dv(d_ins,d_in2)*d_vhat)/                        &
 &       	SIGN(MAX(ABS(d_den),d_zerocut),d_den)
 			d_scratch(2,idx)=d_w3*d_w1 
 			! edge 2
-			d_w1=d_du(d_is2,idx)
-			d_w2=d_dv(d_is2,idx)
-			d_w3=d_dx(d_is2,idx)
-			d_w4=d_dy(d_is2,idx)
+			d_w1=d_du2
+			d_w2=d_dv2
+			d_w3=d_dx2
+			d_w4=d_dy2
 			d_den=SQRT(d_w1*d_w1+d_w2*d_w2)
 			d_den=1.0_rlk/MAX(d_den,d_zerocut)
 			d_uhat=d_w1*d_den
@@ -143,20 +203,142 @@ contains
 			d_den=d_w3*d_xhat+d_w4*d_yhat
 			d_w1=(d_w1*d_uhat+d_w2*d_vhat)/SIGN(MAX(ABS(d_den),d_zerocut),d_den)
 			d_w1=1.0_rlk/SIGN(MAX(ABS(d_w1),d_zerocut),d_w1)
-			d_ins=d_ielsd(d_iside,idx)
+			d_ins=d_ielsd(1,idx)
 			d_ins=MOD(d_ins+2_ink,d_nshape)+1_ink
 			d_den=d_dx(d_ins,d_in1)*d_xhat+d_dy(d_ins,d_in1)*d_yhat
 			d_w2=(d_du(d_ins,d_in1)*d_uhat+d_dv(d_ins,d_in1)*d_vhat)/                         &
 &   		SIGN(MAX(ABS(d_den),d_zerocut),d_den)
 			d_scratch(3,idx)=d_w2*d_w1
-			d_ins=d_ielsd(d_iside+2_ink,idx)
+			d_ins=d_ielsd(3,idx)
 			d_ins=MOD(d_ins,d_nshape)+1_ink
 			d_den=d_dx(d_ins,d_in2)*d_xhat+d_dy(d_ins,d_in2)*d_yhat
 			d_w3=(d_du(d_ins,d_in2)*d_uhat+d_dv(d_ins,d_in2)*d_vhat)/                         &
 &   		SIGN(MAX(ABS(d_den),d_zerocut),d_den)
     		d_scratch(4,idx)=d_w3*d_w1
 		endif
-    end subroutine compute_edge_kernel
+    end subroutine compute_edge_kernel1
+
+    attributes(global) subroutine compute_edge_kernel2(d_ielel, d_iside, d_du, d_dv, d_dx, d_dy, &
+&                                                     d_ielsd, d_nshape, d_scratch, d_zerocut, d_nel)
+    implicit none
+    integer, parameter::ink=4, rlk=8
+
+		!parameters
+		integer(kind=ink):: d_ielnd(:,:),d_ielel(:,:),d_ielsd(:,:)
+		integer(kind=ink), value::d_iside, d_nshape
+		integer(kind=ink), value,intent(in)::d_nel
+		real(kind=rlk), dimension(:,:)::d_du, d_dv, d_dx, d_dy, d_scratch
+        real(kind=rlk), value::d_zerocut
+		!local variable
+		integer(kind=ink):: d_in1, d_in2, d_ins, d_is1, d_is2
+		real(kind=rlk):: d_w1, d_w2, d_w3, d_w4, d_den, d_uhat, d_vhat, d_xhat, d_yhat 
+        real(kind=rlk):: d_du1, d_du2, d_du3, d_du4, d_dv1, d_dv2,d_dv3, d_dv4, d_dx1,d_dx2,d_dx3,d_dx4,d_dy1,d_dy2,d_dy3,d_dy4
+        integer(kind=ink)::ielel1, ielel2, ielel3, ielel4
+		integer::idx 
+		
+        idx = threadIdx%x + (blockIdx%x-1)*blockDim%x
+
+        !if(idx == 1) then
+        
+        !print *, 'i kernel', d_iside, d_nel, d_is1, d_is2, d_zerocut
+        !endif
+		if(idx<=d_nel) then
+
+            !ielel1=d_ielel(1, idx)
+            ielel2=d_ielel(2, idx)
+            !ielel3=d_ielel(3, idx)
+            ielel4=d_ielel(4, idx)
+
+            d_du1 = d_du(1, idx)
+            !d_du2 = d_du(2, idx)
+            d_du3 = d_du(3, idx)
+            !d_du4 = d_du(4, idx)
+
+            d_du1 = d_du(1, idx)
+            !d_du2 = d_du(2, idx)
+            d_du3 = d_du(3, idx)
+            !d_du4 = d_du(4, idx)
+
+            d_dv1 = d_dv(1, idx)
+            !d_dv2 = d_dv(2, idx)
+            d_dv3 = d_dv(3, idx)
+            !d_dv4 = d_dv(4, idx)
+
+            d_dx1 = d_dx(1, idx)
+            !d_dx2 = d_dx(2, idx)
+            d_dx3 = d_dx(3, idx)
+            !d_dx4 = d_dx(4, idx)
+
+            d_dy1 = d_dy(1, idx)
+            !d_dy2 = d_dy(2, idx)
+            d_dy3 = d_dy(3, idx)
+            !d_dy4 = d_dy(4, idx)
+
+            d_is1=1
+            d_is2=3
+
+			d_in1=ielel2
+			d_in2=ielel4
+			! edge 1
+			d_w1=d_du1
+			d_w2=d_dv1	
+            d_w3=d_dx1
+			d_w4=d_dy1
+		
+            d_den=sqrt(d_w1*d_w1+d_w2*d_w2)
+			d_den=1.0_rlk/MAX(d_den,d_zerocut)
+			d_uhat=d_w1*d_den
+			d_vhat=d_w2*d_den
+			d_den=SQRT(d_w3*d_w3+d_w4*d_w4)
+			d_den=1.0_rlk/MAX(d_den,d_zerocut)
+			d_xhat=d_w3*d_den
+			d_yhat=d_w4*d_den
+			d_den=d_w3*d_xhat+d_w4*d_yhat
+			d_w1=(d_w1*d_uhat+d_w2*d_vhat)/SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+			d_w1=1.0_rlk/SIGN(MAX(ABS(d_w1),d_zerocut),d_w1)
+			d_ins=d_ielsd(2,idx)
+			d_ins=MOD(d_ins,d_nshape)+1_ink
+			d_den=d_dx(d_ins,d_in1)*d_xhat+d_dy(d_ins,d_in1)*d_yhat
+			d_w2=(d_du(d_ins,d_in1)*d_uhat+d_dv(d_ins,d_in1)*d_vhat)/                        &
+&       	SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+			d_scratch(1,idx)=d_w2*d_w1
+			d_ins=d_ielsd(4,idx)
+			d_ins=MOD(d_ins+2_ink,d_nshape)+1_ink
+			d_den=d_dx(d_ins,d_in2)*d_xhat+d_dy(d_ins,d_in2)*d_yhat
+			d_w3=(d_du(d_ins,d_in2)*d_uhat+d_dv(d_ins,d_in2)*d_vhat)/                        &
+&       	SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+			d_scratch(2,idx)=d_w3*d_w1 
+			! edge 2
+			d_w1=d_du3
+			d_w2=d_dv3
+			d_w3=d_dx3
+			d_w4=d_dy3
+			d_den=SQRT(d_w1*d_w1+d_w2*d_w2)
+			d_den=1.0_rlk/MAX(d_den,d_zerocut)
+			d_uhat=d_w1*d_den
+			d_vhat=d_w2*d_den
+			d_den=SQRT(real(d_w3*d_w3+d_w4*d_w4))
+			d_den=1.0_rlk/MAX(d_den,d_zerocut)
+			d_xhat=d_w3*d_den
+			d_yhat=d_w4*d_den
+			d_den=d_w3*d_xhat+d_w4*d_yhat
+			d_w1=(d_w1*d_uhat+d_w2*d_vhat)/SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+			d_w1=1.0_rlk/SIGN(MAX(ABS(d_w1),d_zerocut),d_w1)
+			d_ins=d_ielsd(2,idx)
+			d_ins=MOD(d_ins+2_ink,d_nshape)+1_ink
+			d_den=d_dx(d_ins,d_in1)*d_xhat+d_dy(d_ins,d_in1)*d_yhat
+			d_w2=(d_du(d_ins,d_in1)*d_uhat+d_dv(d_ins,d_in1)*d_vhat)/                         &
+&   		SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+			d_scratch(3,idx)=d_w2*d_w1
+			d_ins=d_ielsd(4,idx)
+			d_ins=MOD(d_ins,d_nshape)+1_ink
+			d_den=d_dx(d_ins,d_in2)*d_xhat+d_dy(d_ins,d_in2)*d_yhat
+			d_w3=(d_du(d_ins,d_in2)*d_uhat+d_dv(d_ins,d_in2)*d_vhat)/                         &
+&   		SIGN(MAX(ABS(d_den),d_zerocut),d_den)
+    		d_scratch(4,idx)=d_w3*d_w1
+
+		endif
+    end subroutine compute_edge_kernel2
 
 
     attributes(global) subroutine compute_bc_kernel(d_ielel, d_ielnd, d_iside, d_indtype, d_scratch, &
@@ -252,33 +434,63 @@ contains
     end subroutine apply_limits_kernel
 
     attributes(global) subroutine compute_final_q_kernel(d_elx, d_ely, d_elu, d_elv, d_qx, d_qy, d_qq, d_zerocut, &
-&                                                        d_nel, d_iside, d_ins)
+&                                                        d_nel)
     implicit none
     integer, parameter::ink=4, rlk=8
     real(kind=rlk), dimension(:,:), intent(in):: d_elx, d_ely, d_elu, d_elv
     REAL(KIND=rlk), dimension(:,:):: d_qx, d_qy
     REAL(KIND=rlk), dimension(:) :: d_qq
-	integer(kind=ink), value::d_iside, d_ins
+	integer(kind=ink) ::d_iside, d_ins
 	integer(kind=ink), value,intent(in)::d_nel
     real(kind=rlk), value::d_zerocut
 
     !local
 	real(kind=rlk):: d_w1, d_w2, d_w3, d_w4, d_w5, d_w6,d_w7,d_w8, d_den, d_uhat, d_vhat, d_xhat, d_yhat 
     integer::idx
+    real(kind=rlk):: elx1, elx2, elx3, elx4, ely1, ely2, ely3, ely4, d_elu1, d_elu2,d_elu3, d_elu4, d_elv1, d_elv2, d_elv3, d_elv4
     
     idx = threadIdx%x + (blockIdx%x-1)*blockDim%x
 
+    
     if(idx<=d_nel) then
-        d_w1=d_elx(d_iside,idx)
-        d_w2=d_elx(d_ins,idx)
+
+        elx1 = d_elx(1, idx)
+        elx2 = d_elx(2, idx)
+        elx3 = d_elx(3, idx)
+        elx4 = d_elx(4, idx)
+
+        ely1 = d_ely(1, idx)
+        ely2 = d_ely(2, idx)
+        ely3 = d_ely(3, idx)
+        ely4 = d_ely(4, idx)
+
+        d_elu1 = d_elu(1, idx)
+        d_elu2 = d_elu(2, idx)
+        d_elu3 = d_elu(3, idx)
+        d_elu4 = d_elu(4, idx)
+
+        d_elv1 = d_elv(1, idx)
+        d_elv2 = d_elv(2, idx)
+        d_elv3 = d_elv(3, idx)
+        d_elv4 = d_elv(4, idx)
+
+
+        d_iside = 1
+        d_ins = 2
+        d_w1 = elx1
+        d_w2 = elx2
+        d_w4 = ely1
+        d_w5 = ely2
+
+
         d_w3=0.5_rlk*(d_w1+d_w2)
         d_w1=d_w2-d_w1
-        d_w2=0.25_rlk*(d_elx(1,idx)+d_elx(2,idx)+d_elx(3,idx)+d_elx(4,idx))
-        d_w4=d_ely(d_iside,idx)
-        d_w5=d_ely(d_ins,idx)
+        d_w2=0.25_rlk*(elx1+elx2+elx3+elx4)
+        !d_w4=d_ely(d_iside,idx)
+        !d_w5=d_ely(d_ins,idx)
         d_w6=0.5_rlk*(d_w4+d_w5)
         d_w4=d_w5-d_w4
-        d_w5=0.25_rlk*(d_ely(1,idx)+d_ely(2,idx)+d_ely(3,idx)+d_ely(4,idx))
+        d_w5=0.25_rlk*(ely1+ely2+ely3+ely4)
         d_w7=SQRT((d_w2-d_w3)*(d_w2-d_w3)+(d_w5-d_w6)*(d_w5-d_w6))
         d_w8=SQRT(d_w1*d_w1+d_w4*d_w4)
         d_den=1.0_rlk/d_w7
@@ -291,8 +503,137 @@ contains
         d_den=-SIGN(1.0_rlk,d_w3)*d_w7
         d_xhat=d_xhat*d_den
         d_yhat=d_yhat*d_den
-        d_uhat=d_elu(d_ins,idx)-d_elu(d_iside,idx)
-        d_vhat=d_elv(d_ins,idx)-d_elv(d_iside,idx)
+        d_uhat=d_elu2-d_elu1
+        d_vhat=d_elv2-d_elv1
+        d_w5=SQRT((d_uhat*d_uhat)+(d_vhat*d_vhat))
+        d_w6=d_uhat*d_xhat+d_vhat*d_yhat
+        d_den=d_w6/MAX(d_w5,d_zerocut)
+        d_qx(d_iside,idx)=d_qx(d_iside,idx)*d_uhat*d_den
+        d_qy(d_iside,idx)=d_qy(d_iside,idx)*d_vhat*d_den
+        IF ((d_w5.LE.d_zerocut).OR.(d_w6.LE.d_zerocut).OR.(d_w7.LE.d_zerocut).OR.   &
+&           (d_w8.LE.d_zerocut)) THEN
+          d_qx(d_iside,idx)=0.0_rlk
+          d_qy(d_iside,idx)=0.0_rlk
+        ENDIF
+        d_qq(idx)=d_qq(idx)+0.25_rlk*SQRT(d_qx(d_iside,idx)*d_qx(d_iside,idx)+      &
+&               d_qy(d_iside,idx)*d_qy(d_iside,idx))
+
+        d_iside = 2
+        d_ins = 3
+
+        d_w1 = elx2
+        d_w2 = elx3
+        d_w4 = ely2
+        d_w5 = ely3
+
+        d_w3=0.5_rlk*(d_w1+d_w2)
+        d_w1=d_w2-d_w1
+        d_w2=0.25_rlk*(elx1+elx2+elx3+elx4)
+        !d_w4=d_ely(d_iside,idx)
+        !d_w5=d_ely(d_ins,idx)
+        d_w6=0.5_rlk*(d_w4+d_w5)
+        d_w4=d_w5-d_w4
+        d_w5=0.25_rlk*(ely1+ely2+ely3+ely4)
+        d_w7=SQRT((d_w2-d_w3)*(d_w2-d_w3)+(d_w5-d_w6)*(d_w5-d_w6))
+        d_w8=SQRT(d_w1*d_w1+d_w4*d_w4)
+        d_den=1.0_rlk/d_w7
+        d_xhat=(d_w5-d_w6)*d_den
+        d_yhat=(d_w3-d_w2)*d_den
+        d_den=1.0_rlk/d_w8
+        d_w1=d_w1*d_den
+        d_w2=d_w4*d_den
+        d_w3=d_xhat*d_w1+d_yhat*d_w2
+        d_den=-SIGN(1.0_rlk,d_w3)*d_w7
+        d_xhat=d_xhat*d_den
+        d_yhat=d_yhat*d_den
+        d_uhat=d_elu3-d_elu2
+        d_vhat=d_elv3-d_elv2
+        d_w5=SQRT((d_uhat*d_uhat)+(d_vhat*d_vhat))
+        d_w6=d_uhat*d_xhat+d_vhat*d_yhat
+        d_den=d_w6/MAX(d_w5,d_zerocut)
+        d_qx(d_iside,idx)=d_qx(d_iside,idx)*d_uhat*d_den
+        d_qy(d_iside,idx)=d_qy(d_iside,idx)*d_vhat*d_den
+        IF ((d_w5.LE.d_zerocut).OR.(d_w6.LE.d_zerocut).OR.(d_w7.LE.d_zerocut).OR.   &
+&           (d_w8.LE.d_zerocut)) THEN
+          d_qx(d_iside,idx)=0.0_rlk
+          d_qy(d_iside,idx)=0.0_rlk
+        ENDIF
+        d_qq(idx)=d_qq(idx)+0.25_rlk*SQRT(d_qx(d_iside,idx)*d_qx(d_iside,idx)+      &
+&               d_qy(d_iside,idx)*d_qy(d_iside,idx))
+
+        d_iside = 3
+        d_ins = 4
+
+        d_w1 = elx3
+        d_w2 = elx4
+        d_w4 = ely3
+        d_w5 = ely4
+
+        d_w3=0.5_rlk*(d_w1+d_w2)
+        d_w1=d_w2-d_w1
+        d_w2=0.25_rlk*(elx1+elx2+elx3+elx4)
+        !d_w4=d_ely(d_iside,idx)
+        !d_w5=d_ely(d_ins,idx)
+        d_w6=0.5_rlk*(d_w4+d_w5)
+        d_w4=d_w5-d_w4
+        d_w5=0.25_rlk*(ely1+ely2+ely3+ely4)
+        d_w7=SQRT((d_w2-d_w3)*(d_w2-d_w3)+(d_w5-d_w6)*(d_w5-d_w6))
+        d_w8=SQRT(d_w1*d_w1+d_w4*d_w4)
+        d_den=1.0_rlk/d_w7
+        d_xhat=(d_w5-d_w6)*d_den
+        d_yhat=(d_w3-d_w2)*d_den
+        d_den=1.0_rlk/d_w8
+        d_w1=d_w1*d_den
+        d_w2=d_w4*d_den
+        d_w3=d_xhat*d_w1+d_yhat*d_w2
+        d_den=-SIGN(1.0_rlk,d_w3)*d_w7
+        d_xhat=d_xhat*d_den
+        d_yhat=d_yhat*d_den
+        d_uhat=d_elu4-d_elu3
+        d_vhat=d_elv4-d_elv3
+        d_w5=SQRT((d_uhat*d_uhat)+(d_vhat*d_vhat))
+        d_w6=d_uhat*d_xhat+d_vhat*d_yhat
+        d_den=d_w6/MAX(d_w5,d_zerocut)
+        d_qx(d_iside,idx)=d_qx(d_iside,idx)*d_uhat*d_den
+        d_qy(d_iside,idx)=d_qy(d_iside,idx)*d_vhat*d_den
+        IF ((d_w5.LE.d_zerocut).OR.(d_w6.LE.d_zerocut).OR.(d_w7.LE.d_zerocut).OR.   &
+&           (d_w8.LE.d_zerocut)) THEN
+          d_qx(d_iside,idx)=0.0_rlk
+          d_qy(d_iside,idx)=0.0_rlk
+        ENDIF
+        d_qq(idx)=d_qq(idx)+0.25_rlk*SQRT(d_qx(d_iside,idx)*d_qx(d_iside,idx)+      &
+&               d_qy(d_iside,idx)*d_qy(d_iside,idx))
+
+        d_iside = 4
+        d_ins = 1
+
+        d_w1 = elx4
+        d_w2 = elx1
+        d_w4 = ely4
+        d_w5 = ely1
+
+        d_w3=0.5_rlk*(d_w1+d_w2)
+        d_w1=d_w2-d_w1
+        d_w2=0.25_rlk*(elx1+elx2+elx3+elx4)
+        !d_w4=d_ely(d_iside,idx)
+        !d_w5=d_ely(d_ins,idx)
+        d_w6=0.5_rlk*(d_w4+d_w5)
+        d_w4=d_w5-d_w4
+        d_w5=0.25_rlk*(ely1+ely2+ely3+ely4)
+        d_w7=SQRT((d_w2-d_w3)*(d_w2-d_w3)+(d_w5-d_w6)*(d_w5-d_w6))
+        d_w8=SQRT(d_w1*d_w1+d_w4*d_w4)
+        d_den=1.0_rlk/d_w7
+        d_xhat=(d_w5-d_w6)*d_den
+        d_yhat=(d_w3-d_w2)*d_den
+        d_den=1.0_rlk/d_w8
+        d_w1=d_w1*d_den
+        d_w2=d_w4*d_den
+        d_w3=d_xhat*d_w1+d_yhat*d_w2
+        d_den=-SIGN(1.0_rlk,d_w3)*d_w7
+        d_xhat=d_xhat*d_den
+        d_yhat=d_yhat*d_den
+        d_uhat=d_elu1-d_elu4
+        d_vhat=d_elv1-d_elv4
         d_w5=SQRT((d_uhat*d_uhat)+(d_vhat*d_vhat))
         d_w6=d_uhat*d_xhat+d_vhat*d_yhat
         d_den=d_w6/MAX(d_w5,d_zerocut)
@@ -385,27 +726,26 @@ CONTAINS
     ENDIF
 
     ! Christiensen monotonic limit
-    DO iside=1,nshape/2_ink
-      is1=MOD(iside+2_ink,nshape)+1_ink
-      is2=iside+1_ink
-      
-      call compute_edge_kernel<<<block_num,thread_num>>>(d_ielel, iside, d_du, d_dv, d_dx, d_dy, &
-&                                                     is1,is2, d_ielsd, nshape, d_scratch, zerocut, nel)
-
-      ins=iside+2_ink
-      call compute_bc_kernel<<<block_num, thread_num>>>(d_ielel, d_ielnd, iside, d_indtype, d_scratch, &
-    &                                                   nshape, nel, ins)
+      call compute_edge_kernel1<<<block_num,thread_num>>>(d_ielel, iside, d_du, d_dv, d_dx, d_dy, &
+&                                                      d_ielsd, nshape, d_scratch, zerocut, nel)
+      call compute_bc_kernel<<<block_num, thread_num>>>(d_ielel, d_ielnd, 1, d_indtype, d_scratch, &
+    &                                                   nshape, nel, 3)
       call apply_limits_kernel<<<block_num, thread_num>>>(d_csqrd, d_du, d_dv, d_qx, d_qy, d_scratch, &
-    &                                                 cq1, cq2,is1, is2, d_rho, nel)
-	ENDDO
+    &                                                 cq1, cq2, 4, 2, d_rho, nel)
+    call compute_edge_kernel2<<<block_num,thread_num>>>(d_ielel, iside, d_du, d_dv, d_dx, d_dy, &
+&                                                      d_ielsd, nshape, d_scratch, zerocut, nel)
+    call compute_bc_kernel<<<block_num, thread_num>>>(d_ielel, d_ielnd, 2, d_indtype, d_scratch, &
+    &                                                   nshape, nel, 4)
+    call apply_limits_kernel<<<block_num, thread_num>>>(d_csqrd, d_du, d_dv, d_qx, d_qy, d_scratch, &
+    &                                                 cq1, cq2, 1, 3, d_rho, nel)
 	
       ! BC
     ! Final Q calculation
-    DO iside=1,nshape
-      ins=MOD(iside,nshape)+1_ink
+    !DO iside=1,nshape
+    !  ins=MOD(iside,nshape)+1_ink
       call compute_final_q_kernel<<<block_num, thread_num>>>(d_elx, d_ely, d_elu, d_elv, d_qx, d_qy, d_qq,&
-&                                                            zerocut, nel, iside, ins)
-    ENDDO
+&                                                            zerocut, nel)
+    !ENDDO
     
     ! Timing data
     t1=get_time()

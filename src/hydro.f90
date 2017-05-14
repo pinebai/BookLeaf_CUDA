@@ -201,9 +201,6 @@ SUBROUTINE hydro()
 
     ! calculate timestep
 
-    !    IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
-!&                               d_a1, d_a3, d_b1, d_b3, d_ielnd, d_elvol, d_ndu, d_ndv, d_iellocglob, d_rho05, &
-!&                               d_ein05, d_elu, d_elv)
     if(zparallel) then
         IF (nstep.GT.1_ink) CALL getdt(dt)
         d_elu = elu
