@@ -201,6 +201,9 @@ SUBROUTINE hydro()
 
     ! calculate timestep
 
+    !    IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
+!&                               d_a1, d_a3, d_b1, d_b3, d_ielnd, d_elvol, d_ndu, d_ndv, d_iellocglob, d_rho05, &
+!&                               d_ein05, d_elu, d_elv)
     if(zparallel) then
         IF (nstep.GT.1_ink) CALL getdt(dt)
         d_elu = elu
@@ -245,39 +248,21 @@ SUBROUTINE hydro()
 
     if(zparallel) then
         qq = d_qq
-        qx = d_qx
-        qy = d_qy
-        elfx = d_du
-        elfy = d_dv
-        dx = d_dx
-        dy = d_dy
         elu = d_elu
         elv = d_elv
-        scratch = d_scratch
-        ndxu = d_ndxu
-        ndyv = d_ndyv
         elx = d_elx
         ely = d_ely
         a1 = d_a1
-        a2 = d_a2
         a3 = d_a3
         b1 = d_b1
-        b2 = d_b2
         b3 = d_b3
-        cnwt = d_cnwt
         elvol = d_elvol
         rho05 = d_rho05
         rho = d_rho
         ein05 = d_ein05
-        pre05 = d_pre05
-        pre = d_pre
-        pre05 = d_pre05
         csqrd = d_csqrd
-        ndx = d_ndx
-        ndy = d_ndy
         ndu = d_ndu
         ndv = d_ndv
-        ein = d_ein
     endif
     bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
     ! test for end of calculation
@@ -319,6 +304,7 @@ SUBROUTINE hydro()
     ndu = d_ndu
     ndv = d_ndv
     ein = d_ein
+
      deallocate(d_elu)
      deallocate(d_elv)
      deallocate(d_elx)

@@ -20,7 +20,7 @@ MODULE geometry_mod
   IMPLICIT NONE
 
   PUBLIC  :: dlm,dln,getgeom, dlm_kernel, dln_kernel
-  PRIVATE :: denom,distpp,distpl, denom_kernel, distpp_kernel, distpl_kernel
+  PRIVATE :: denom,distpp,distpl, denom_kernel, distpp_kernel, distpl_kernel, distpld
 
 CONTAINS
 
@@ -192,13 +192,13 @@ end function dln_kernel
 
   END FUNCTION dlm
 
-  PURE FUNCTION dln(nshape,elx,ely) RESULT(res)
+  PURE FUNCTION dln(nshape,elx,ely, iel) RESULT(res)
 
     USE kinds_mod,   ONLY: rlk,ink
     USE reals_mod,   ONLY: zcut
 
     ! Argument list
-    INTEGER(KIND=ink),               INTENT(IN) :: nshape
+    INTEGER(KIND=ink),               INTENT(IN) :: nshape, iel
     REAL(KIND=rlk),DIMENSION(nshape),INTENT(IN) :: elx,ely
     ! Result
     REAL(KIND=rlk),DIMENSION(nshape)            :: res
@@ -207,12 +207,14 @@ end function dln_kernel
 
 
     w1=denom(elx(3),ely(3),elx(4),ely(4))
+    !if(iel==3) print *, '1 w1', w1
     IF (w1.LT.zcut) THEN
       res(1)=distpp(elx(1),ely(1),elx(2),ely(2),elx(3),ely(3))
     ELSE
       res(1)=distpl(elx(1),ely(1),elx(2),ely(2),elx(3),ely(3),elx(4),   &
 &                   ely(4))/w1
     ENDIF
+    !if(iel==3) print *, '2 w1', res
     w1=denom(elx(4),ely(4),elx(1),ely(1))
     IF (w1.LT.zcut) THEN
       res(2)=distpp(elx(2),ely(2),elx(3),ely(3),elx(4),ely(4))
@@ -220,6 +222,7 @@ end function dln_kernel
       res(2)=distpl(elx(2),ely(2),elx(3),ely(3),elx(4),ely(4),elx(1),   &
 &                   ely(1))/w1
     ENDIF
+    !if(iel==3) print *, '3 w1', res
     w1=denom(elx(1),ely(1),elx(2),ely(2))
     IF (w1.LT.zcut) THEN
       res(3)=distpp(elx(3),ely(3),elx(4),ely(4),elx(1),ely(1))
@@ -227,13 +230,16 @@ end function dln_kernel
       res(3)=distpl(elx(3),ely(3),elx(4),ely(4),elx(1),ely(1),elx(2),   &
 &                   ely(2))/w1
     ENDIF
+    !if(iel==3) print *, '4 w1', res
     w1=denom(elx(2),ely(2),elx(3),ely(3))
+    !if(iel ==3) print *, 'tmp w1', w1
     IF (w1.LT.zcut) THEN
       res(4)=distpp(elx(4),ely(4),elx(1),ely(1),elx(2),ely(2))
     ELSE
-      res(4)=distpl(elx(4),ely(4),elx(1),ely(1),elx(2),ely(2),elx(3),   &
-&                   ely(3))/w1
+      res(4)=distpld(elx(4),ely(4),elx(1),ely(1),elx(2),ely(2),elx(3),   &
+&                   ely(3),iel)/w1
     ENDIF
+    !if(iel==3) print *, '5 w1', res
 
   END FUNCTION dln
 
@@ -488,5 +494,20 @@ end function dln_kernel
     distpl=distpl*distpl
 
   END FUNCTION distpl
+
+  PURE FUNCTION distpld(x3,y3,x4,y4,x1,y1,x2,y2, iel)
+
+    USE kinds_mod,ONLY: rlk,ink
+
+    ! Argument list
+    REAL(KIND=rlk),INTENT(IN) :: x3,y3,x4,y4,x1,y1,x2,y2
+    integer(kind=ink)         :: iel
+    ! Result
+    REAL(KIND=rlk)            :: distpld
+
+    distpld=0.5_rlk*(y1-y2)*(x3+x4)+0.5_rlk*(y3+y4)*(x2-x1)+y2*x1-y1*x2
+    distpld=distpld*distpld
+
+  END FUNCTION distpld
 
 END MODULE geometry_mod

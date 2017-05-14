@@ -1,8 +1,8 @@
 # Compiler
 ifeq ($(NO_MPI),)
-  FC=mpif90 -Mcuda -L/opt/pgi/linux86-64/2017/mpi/openmpi-1.10.2/lib -L/opt/pgi/linux86-64/2017/lib -Mcudalib=cublas -lblas 
+  FC=mpif90 -Mcuda -O2 -L/opt/pgi/linux86-64/2017/mpi/openmpi-1.10.2/lib -L/opt/pgi/linux86-64/2017/lib -Mcudalib=cublas -lblas 
 else
-  FC=pgf90 -Mcuda -L/opt/pgi/linux86-64/2017/lib -Mcudalib=cublas -lblas
+  FC=pgf90 -Mcuda -O2 -L/opt/pgi/linux86-64/2017/lib 
   CF=pgf90 
   CC=gcc
 endif

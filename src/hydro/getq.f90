@@ -407,8 +407,6 @@ CONTAINS
 &                                                            zerocut, nel, iside, ins)
     ENDDO
     
-    istat =  cudaThreadSynchronize()
-
     ! Timing data
     t1=get_time()
     t1=t1-t0

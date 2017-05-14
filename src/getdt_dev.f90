@@ -39,6 +39,7 @@ contains
 		integer(kind=ink):: i
 				
 	    do i= 1, n
+	        !if(abs(input1(i)-input2(i)) >0.00000000000005) then
 	        if(input1(i) /= input2(i)) then
                 print *, 'location ', i, input1(1), input2(i)
 				call halt("ERROR: array value not match", i,.true.)
@@ -142,6 +143,8 @@ contains
         i=blockDim%x/2
         if(idx<=n) then
             s_data(tid) = input(idx)
+            !if(flag == 1) output(idx) = TINY(1.0_rlk)
+            !if(flag == 0) output(idx) = HUGE(1.0_rlk) 
             call syncthreads()
         endif
 
@@ -172,7 +175,7 @@ contains
     INTEGER(KIND=ink)              :: ielreg(:)
     REAL(KIND=rlk),dimension(:)     :: qq, csqrd, rho, rscratch11, rscratch12
     REAL(KIND=rlk),DIMENSION(:,:)   :: elx,ely
-    REAL(KIND=rlk)   :: elx1,elx2, elx3, elx4,ely1, ely2, ely3, ely4, x1,x2, y1, y2
+    REAL(KIND=rlk)   :: elx1,elx2, elx3, elx4,ely1, ely2, ely3, ely4, x1,x2, y1, y2, res(nshape)
 
     logical(kind=lok), dimension(:) :: zdtnotreg, zmidlength
     ! Argument list
@@ -200,6 +203,7 @@ contains
         ely3 = ely(3, iel)
         ely4 = ely(4, iel)
         IF (zmidlength(ireg)) THEN
+          !w1=minval(dlm_kernel(nshape,elx1, elx2, elx3, elx4, ely1, ely2, ely3, ely4))
             x1=elx1+elx1
             x2=elx3+elx4
             y1=ely1+ely2
@@ -213,53 +217,54 @@ contains
             y2=ely1+ely4
             x1=0.5_rlk*(x1-x2)
             y1=0.5_rlk*(y1-y2)
-            maxw=x1*x1+y1*y1
+            w3=x1*x1+y1*y1
+            if(w1 > w3) w1 = w3
         ELSE
           w1 = (ely3-ely4)*(ely3-ely4)+(elx3-elx4)*(elx3-elx4)
           IF (w1.LT.zcut) THEN
-               maxw = (0.5_rlk*(elx1+elx2)-elx3)*(0.5_rlk*(elx1+elx2)-elx3) + &
+               res(1) = (0.5_rlk*(elx1+elx2)-elx3)*(0.5_rlk*(elx1+elx2)-elx3) + &
 &              (0.5_rlk*(ely1+ely2)-ely3)*(0.5_rlk*(ely1+ely2)-ely3) 
           ELSE
               tmp=0.5_rlk*((ely3-ely4)*(elx1+elx2))+0.5_rlk*((ely1+ely2)*(elx4-elx3))+(ely4*elx3-ely3*elx4)
               tmp = tmp*tmp
-              maxw = tmp/w1
+              res(1) = tmp/w1
           ENDIF
           !if(iel ==3) print *, '2 w1', res
           w1 = (ely4-ely1)*(ely4-ely1)+(elx4-elx1)*(elx4-elx1)
           IF (w1.LT.zcut) THEN
-              w3 = (0.5_rlk*(elx2+elx3)-elx4)*(0.5_rlk*(elx2+elx3)-elx4) + &
+            res(2) = (0.5_rlk*(elx2+elx3)-elx4)*(0.5_rlk*(elx2+elx3)-elx4) + &
 &              (0.5_rlk*(ely2+ely3)-ely4)*(0.5_rlk*(ely2+ely3)-ely4)
           ELSE
             tmp=0.5_rlk*((ely4-ely1)*(elx2+elx3))+0.5_rlk*((ely2+ely3)*(elx1-elx4))+(ely1*elx4-ely4*elx1)
             tmp = tmp*tmp
-            w3 = tmp/w1
+            res(2) = tmp/w1
           ENDIF
-          if(maxw > w3) maxw = w3
-          
+          !if(iel ==3) print *, '3 w1', res
           w1 = (ely1-ely2)*(ely1-ely2)+(elx1-elx2)*(elx1-elx2)
           IF (w1.LT.zcut) THEN
-              w3 = (0.5_rlk*(elx3+elx4)-elx1)*(0.5_rlk*(elx3+elx4)-elx1) + &
+              res(3)= (0.5_rlk*(elx3+elx4)-elx1)*(0.5_rlk*(elx3+elx4)-elx1) + &
 &              (0.5_rlk*(ely3+ely4)-ely1)*(0.5_rlk*(ely3+ely4)-ely1)
           ELSE
             tmp=0.5_rlk*((ely1-ely2)*(elx3+elx4))+0.5_rlk*((ely3+ely4)*(elx2-elx1))+(ely2*elx1-ely1*elx2)
             tmp = tmp*tmp
-            w3 = tmp/w1
+            res(3) = tmp/w1
           ENDIF
-          if(maxw > w3) maxw = w3
+          !if(iel ==3) print *, '4 w1', res
 
           w1 = (ely2-ely3)*(ely2-ely3)+(elx2-elx3)*(elx2-elx3)
           IF (w1.LT.zcut) THEN
-            w3 = (0.5_rlk*(elx4+elx1)-elx2)*(0.5_rlk*(elx4+elx1)-elx2) + &
+            res(4) = (0.5_rlk*(elx4+elx1)-elx2)*(0.5_rlk*(elx4+elx1)-elx2) + &
 &              (0.5_rlk*(ely4+ely1)-ely2)*(0.5_rlk*(ely4+ely1)-ely2)
           ELSE
             tmp=0.5_rlk*((ely2-ely3)*(elx4+elx1))+0.5_rlk*((ely4+ely1)*(elx3-elx2))+(ely3*elx2-ely2*elx3)
             tmp = tmp*tmp
-            w3 = tmp/w1
+            res(4) = tmp/w1
           ENDIF
-          if(maxw > w3) maxw = w3
-          
-        rscratch11(iel)=maxw/w2
-        rscratch12(iel)=maxw
+          if(iel ==3)  print *,'5 w1',  res(1),res(2),res(3), res(4)
+          w1=minval(res)
+          if(iel ==3)  print *,'dev w value',  w1, w2
+        rscratch11(iel)=w1/w2
+        rscratch12(iel)=w1
 		endif
 	endif
     endif
@@ -405,24 +410,68 @@ CONTAINS
 	allocate(loc)
     allocate(d_tmp_array(nel))
     allocate(w1_array(nel))
-    !allocate(h_rho05(nel))
-    !allocate(h_ein05(nel))
-    !allocate(h_elvol(nel))
+    allocate(h_rho05(nel))
+    allocate(h_ein05(nel))
+    allocate(h_elvol(nel))
 
-    !d_rho05 = TINY(1.0_rlk)
-    !rscratch11 = TINY(1.0_rlk)
+    d_rho05 = TINY(1.0_rlk)
+    rscratch11 = TINY(1.0_rlk)
     !CFL
     t0=get_time()
     call cfl_kernel<<<block_num, thread_num>>>(nel,nshape, d_ielreg, d_zdtnotreg, d_rho05, d_ein05, d_rho, zcut, &
 &                               ccut, d_csqrd, d_qq, d_zmidlength, d_elx, d_ely, dt_max, cfl_sf,d_w1, loc) 
-    call reduction(d_rho05, d_tmp_array, nel, 0, block_num, thread_num)
-    loc = nel+1
-    call get_min_loc<<<block_num, thread_num>>>(d_tmp_array, d_rho05, d_w1, loc, nel, d_rdt, d_idt, cfl_sf, 1)
+
+    h_rho05 = d_rho05
+    !call reduction(d_rho05, d_tmp_array, nel, 0, block_num, thread_num)
+    !loc = nel+1
+    
+    !call get_min_loc<<<block_num, thread_num>>>(d_tmp_array, d_rho05, d_w1, loc, nel, d_rdt, d_idt, cfl_sf, 1)
+    !h_w1 = d_tmp_array(1)
+    
+    !h_loc = loc
+
+    print *,'host ', ielreg(1), zdtnotreg(1), rho(1), csqrd(1), qq(1), elx(1,1), ely(1,1), dt_max, zcut, ccut
+    DO iel=1,nel
+      ireg=ielreg(iel)
+      IF (zdtnotreg(ireg)) THEN
+        rscratch11(iel)=dt_max
+        rscratch12(iel)=TINY(1.0_rlk)
+      ELSE
+        w1=MAX(rho(iel),zcut)
+        w2=MAX(ccut,csqrd(iel))+2.0_rlk*qq(iel)/w1
+        IF (zmidlength(ireg)) THEN
+          w1=MINVAL(dlm(nshape,elx(:,iel),ely(:,iel)))
+        ELSE
+          w1=MINVAL(dln(nshape,elx(:,iel),ely(:,iel),iel))
+        if(iel ==3) print *,'w value', w1, w2
+        ENDIF
+        rscratch11(iel)=w1/w2
+        rscratch12(iel)=w1
+      ENDIF
+    ENDDO
+    ii=1_ink
+    DO iel=2,nel
+      IF (rscratch11(iel).LT.rscratch11(ii)) ii=iel
+    ENDDO
+    w1=rscratch11(ii)
+    IF (w1.LT.0.0_rlk) CALL halt("ERROR: dt_cfl < 0",1)
+    rdt(1)=cfl_sf*SQRT(w1)
+    idt(1)=ii
+
+    call test_1d_array(h_rho05, rscratch11, nel)
+
+    if(h_loc == ii) then
+        print *, 'ii equal'
+    endif
+    if(h_w1 == w1) then
+        print *, 'equal'
+    endif
 
     CALL gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd,d_ndu,d_elv)
     CALL gather_kernel<<<block_num, thread_num>>>(nshape,nel,nnod,d_ielnd,d_ndv,d_elu)
 
     call divergence_kernel<<<block_num, thread_num>>>(nel, d_elvol, d_elu, d_elv, d_a1, d_a3, d_b1, d_b3, w1_array)
+    hw1_array = w1_array
     d_tmp_array = TINY(1.0_rlk)
     call reduction(w1_array, d_tmp_array, nel, 1, block_num, thread_num)
     call get_max_loc<<<block_num, thread_num>>>(d_tmp_array,w1_array, d_w1, loc, nel, d_rdt, d_idt, div_sf)
