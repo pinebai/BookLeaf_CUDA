@@ -201,17 +201,21 @@ SUBROUTINE hydro()
 
     ! calculate timestep
 
-    if(zparallel) then
-        IF (nstep.GT.1_ink) CALL getdt(dt)
-        d_elu = elu
-        d_elv = elv
-        d_rho05 = rho05
-        d_ein05 = ein05
-    else
+    !if(zparallel) then
+    !    IF (nstep.GT.1_ink) CALL getdt(dt)
+    !    d_elu = elu
+    !    d_elv = elv
+    !    d_rho05 = rho05
+    !    d_ein05 = ein05
+    !else
         IF (nstep.GT.1_ink) CALL getdt_host(dt, d_zdtnotreg, d_zmidlength, d_ielreg, d_rho, d_qq, d_csqrd, d_elx, d_ely,&
 &                               d_a1, d_a3, d_b1, d_b3, d_ielnd, d_elvol, d_ndu, d_ndv, d_iellocglob, d_rho05, &
 &                               d_ein05, d_elu, d_elv)
-    endif
+        !d_elu = elu
+        !d_elv = elv
+        !d_rho05 = rho05
+        !d_ein05 = ein05
+    !endif
     
     time=time+dt
     !# Missing code here that can't be merged
@@ -243,24 +247,24 @@ SUBROUTINE hydro()
     t2=get_time()
     t2=t2-t1
 
-    if(zparallel) then
-        qq = d_qq
-        elu = d_elu
-        elv = d_elv
-        elx = d_elx
-        ely = d_ely
-        a1 = d_a1
-        a3 = d_a3
-        b1 = d_b1
-        b3 = d_b3
-        elvol = d_elvol
-        rho05 = d_rho05
-        rho = d_rho
-        ein05 = d_ein05
-        csqrd = d_csqrd
-        ndu = d_ndu
-        ndv = d_ndv
-    endif
+    !if(zparallel) then
+        !qq = d_qq
+        !elu = d_elu
+        !elv = d_elv
+        !elx = d_elx
+        !ely = d_ely
+        !a1 = d_a1
+        !a3 = d_a3
+        !b1 = d_b1
+        !b3 = d_b3
+        !elvol = d_elvol
+        !rho05 = d_rho05
+        !rho = d_rho
+        !ein05 = d_ein05
+        !csqrd = d_csqrd
+        !ndu = d_ndu
+        !ndv = d_ndv
+    !endif
     bookleaf_times%time_step_io=bookleaf_times%time_step_io+t2
     ! test for end of calculation
     IF (time.GE.time_end) EXIT l1
